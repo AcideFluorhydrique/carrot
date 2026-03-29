@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.CarrotFantasy" parent="android:Theme.Material.NoTitleBar.Fullscreen" />
+</resources>
