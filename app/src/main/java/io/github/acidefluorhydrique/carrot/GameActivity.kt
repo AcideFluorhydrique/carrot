@@ -4,8 +4,18 @@ import android.app.Activity
 import android.os.Bundle
 
 class GameActivity : Activity() {
+
+    private lateinit var gameView: GameView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        // 用 GameView 取代 XML layout
+        gameView = GameView(this)
+        setContentView(gameView)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        gameView.holder.surface  // 讓 surfaceDestroyed 正常觸發
     }
 }
