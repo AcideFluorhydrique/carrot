@@ -1,3 +1,6 @@
 <resources>
-    <style name="Theme.CarrotFantasy" parent="android:Theme.Material.NoTitleBar.Fullscreen" />
+    <style name="Theme.CarrotFantasy" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
 </resources>

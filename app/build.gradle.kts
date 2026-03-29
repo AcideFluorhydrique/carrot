@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.carrot.fantasy"
+    namespace = "io.github.acidefluorhydrique.carrot"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.carrot.fantasy"
+        applicationId = "io.github.acidefluorhydrique.carrot"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
