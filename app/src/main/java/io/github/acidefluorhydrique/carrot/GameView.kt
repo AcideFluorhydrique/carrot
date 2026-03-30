@@ -9,7 +9,7 @@ import android.view.SurfaceView
 class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
     private val thread: GameThread
-    private val gameMap = GameMap()          // ← 新增
+    private val gameMap = GameMap()
 
     init {
         holder.addCallback(this)
@@ -22,7 +22,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         thread.start()
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+    // ← surfaceChanged 在 surface 準備好後會給出真實寬高，在這裡初始化地圖尺寸
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        gameMap.initSize(width, height)
+    }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         var retry = true
@@ -40,6 +43,6 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         canvas.drawColor(Color.parseColor("#1a1a2e"))
-        gameMap.draw(canvas)                 // ← 新增
+        gameMap.draw(canvas)
     }
 }
