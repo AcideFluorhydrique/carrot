@@ -42,15 +42,19 @@ class GameMap {
         }
     }
 
-    // ← 新增：GameView 拿到屏幕尺寸後調用一次
     fun initSize(screenWidth: Int, screenHeight: Int) {
+        val HUD_TOP = 70f       // 頂部HUD高度
+        val HUD_BOTTOM = 90f    // 底部選塔欄高度
+
+        val availableH = screenHeight - HUD_TOP - HUD_BOTTOM
+
         cellSize = minOf(
             screenWidth.toFloat() / COLS,
-            screenHeight.toFloat() / ROWS
+            availableH / ROWS
         )
-        // 計算居中偏移
+        // 水平居中，垂直從HUD下方開始
         offsetX = (screenWidth - cellSize * COLS) / 2f
-        offsetY = (screenHeight - cellSize * ROWS) / 2f
+        offsetY = HUD_TOP + (availableH - cellSize * ROWS) / 2f
     }
 
     fun cellToPixel(col: Int, row: Int): Pair<Float, Float> {

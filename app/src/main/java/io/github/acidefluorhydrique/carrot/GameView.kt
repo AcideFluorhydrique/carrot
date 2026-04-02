@@ -3,6 +3,7 @@ package io.github.acidefluorhydrique.carrot
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
@@ -10,15 +11,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     private val thread: GameThread
     private val gameMap = GameMap()
-    private val enemyManager = EnemyManager(gameMap)   // ← 新增
-    private val hud = HudRenderer()                    // ← 新增
-    private var screenWidth = 0                        // ← 新增
-    private var screenHeight = 0                       // ← 新增
+    private val enemyManager = EnemyManager(gameMap)
+    private val towerManager = TowerManager(gameMap)
+    private val hud = HudRenderer()
+    private var towerSelectBar: TowerSelectBar? = null
+    private var screenWidth = 0
+    private var screenHeight = 0
 
     init {
         holder.addCallback(this)
         thread = GameThread(holder, this)
         isFocusable = true
+        TowerManagerHolder.manager = towerManager
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -27,31 +31,47 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        screenWidth = width                            // ← 新增
-        screenHeight = height                          // ← 新增
+        screenWidth = width
+        screenHeight = height
         gameMap.initSize(width, height)
+        towerSelectBar = TowerSelectBar(width, height)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         var retry = true
         thread.running = false
         while (retry) {
-            try {
-                thread.join()
-                retry = false
-            } catch (e: InterruptedException) {}
+            try { thread.join(); retry = false }
+            catch (e: InterruptedException) {}
         }
     }
 
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            val x = event.x
+            val y = event.y
+            android.util.Log.d("CarrotGame", "Touch: $x, $y  barTop: ${towerSelectBar?.barTop}")
+            val hitBar = towerSelectBar?.onTap(x, y) ?: false
+            android.util.Log.d("CarrotGame", "hitBar: $hitBar  selectedType: ${towerManager.selectedType}")
+            if (!hitBar) {
+                towerManager.onTap(x, y)
+            }
+        }
+        return true
+    }
+
     fun update() {
-        enemyManager.update()                          // ← 新增
+        enemyManager.update()
+        towerManager.update(enemyManager.enemies)
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         canvas.drawColor(Color.parseColor("#1a1a2e"))
         gameMap.draw(canvas)
-        enemyManager.draw(canvas)                      // ← 新增
-        hud.draw(canvas, screenWidth, screenHeight)    // ← 新增
+        towerManager.draw(canvas)
+        enemyManager.draw(canvas)
+        hud.draw(canvas, screenWidth, screenHeight)
+        towerSelectBar?.draw(canvas, towerManager.selectedType)
     }
 }
