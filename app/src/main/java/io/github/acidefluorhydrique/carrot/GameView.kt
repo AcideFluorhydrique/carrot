@@ -10,6 +10,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     private val thread: GameThread
     private val gameMap = GameMap()
+    private val enemyManager = EnemyManager(gameMap)   // ← 新增
+    private val hud = HudRenderer()                    // ← 新增
+    private var screenWidth = 0                        // ← 新增
+    private var screenHeight = 0                       // ← 新增
 
     init {
         holder.addCallback(this)
@@ -22,8 +26,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         thread.start()
     }
 
-    // ← surfaceChanged 在 surface 準備好後會給出真實寬高，在這裡初始化地圖尺寸
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        screenWidth = width                            // ← 新增
+        screenHeight = height                          // ← 新增
         gameMap.initSize(width, height)
     }
 
@@ -38,11 +43,15 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
     }
 
-    fun update() {}
+    fun update() {
+        enemyManager.update()                          // ← 新增
+    }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         canvas.drawColor(Color.parseColor("#1a1a2e"))
         gameMap.draw(canvas)
+        enemyManager.draw(canvas)                      // ← 新增
+        hud.draw(canvas, screenWidth, screenHeight)    // ← 新增
     }
 }
