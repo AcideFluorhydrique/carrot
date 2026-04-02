@@ -16,44 +16,41 @@ class HudRenderer {
     }
 
     private fun drawTopBar(canvas: Canvas, screenWidth: Int) {
-        // 半透明頂欄背景
         paint.style = Paint.Style.FILL
         paint.color = Color.parseColor("#AA000000")
         canvas.drawRect(RectF(0f, 0f, screenWidth.toFloat(), 70f), paint)
 
-        // 蘿蔔圖標（橙色圓形代替）
-        paint.color = Color.parseColor("#FF6600")
-        canvas.drawCircle(40f, 35f, 20f, paint)
+        // ← 🥕 emoji 替換橙色圓形
+        paint.textSize = 40f
+        canvas.drawText("🥕", 10f, 52f, paint)
 
-        // 蘿蔔血量
         paint.color = Color.WHITE
         paint.textSize = 36f
         paint.isFakeBoldText = true
-        canvas.drawText("× ${GameState.carrotHp}", 70f, 52f, paint)
+        canvas.drawText("× ${GameState.carrotHp}", 60f, 52f, paint)
 
-        // 金幣
-        paint.color = Color.parseColor("#FFD700")
-        canvas.drawCircle(220f, 35f, 16f, paint)
+        // ← 金幣也用 emoji
+        paint.textSize = 36f
+        canvas.drawText("🪙", 190f, 52f, paint)
         paint.color = Color.WHITE
-        canvas.drawText("× ${GameState.gold}", 245f, 52f, paint)
+        canvas.drawText("× ${GameState.gold}", 235f, 52f, paint)
     }
 
     private fun drawDefeat(canvas: Canvas, w: Int, h: Int) {
-        // 半透明遮罩
         paint.style = Paint.Style.FILL
         paint.color = Color.parseColor("#BB000000")
         canvas.drawRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), paint)
 
-        paint.color = Color.parseColor("#FF4444")
         paint.textSize = 90f
         paint.isFakeBoldText = true
+        paint.color = Color.parseColor("#FF4444")
         val text = "DEFEAT"
         val tw = paint.measureText(text)
         canvas.drawText(text, (w - tw) / 2, h / 2f, paint)
 
         paint.textSize = 40f
         paint.color = Color.WHITE
-        val sub = "蘿蔔被吃掉了！"
+        val sub = "🥕 蘿蔔被吃掉了！"
         val sw = paint.measureText(sub)
         canvas.drawText(sub, (w - sw) / 2, h / 2f + 60, paint)
     }
@@ -63,16 +60,16 @@ class HudRenderer {
         paint.color = Color.parseColor("#BB003300")
         canvas.drawRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), paint)
 
-        paint.color = Color.parseColor("#44FF44")
         paint.textSize = 90f
         paint.isFakeBoldText = true
+        paint.color = Color.parseColor("#44FF44")
         val text = "VICTORY"
         val tw = paint.measureText(text)
         canvas.drawText(text, (w - tw) / 2, h / 2f, paint)
 
         paint.textSize = 40f
         paint.color = Color.WHITE
-        val sub = "蘿蔔保住了！"
+        val sub = "🥕 蘿蔔保住了！"
         val sw = paint.measureText(sub)
         canvas.drawText(sub, (w - sw) / 2, h / 2f + 60, paint)
     }
