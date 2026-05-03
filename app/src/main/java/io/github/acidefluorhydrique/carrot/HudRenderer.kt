@@ -34,6 +34,12 @@ class HudRenderer {
         canvas.drawText("🪙", 190f, 52f, paint)
         paint.color = Color.WHITE
         canvas.drawText("× ${GameState.gold}", 235f, 52f, paint)
+
+        paint.textSize = 24f
+        paint.isFakeBoldText = false
+        val waveText = "${GameState.level.name}  ${GameState.wave}/${GameState.level.waves.size} 波"
+        val tw = paint.measureText(waveText)
+        canvas.drawText(waveText, screenWidth - tw - 18f, 44f, paint)
     }
 
     private fun drawDefeat(canvas: Canvas, w: Int, h: Int) {
@@ -53,6 +59,8 @@ class HudRenderer {
         val sub = "🥕 蘿蔔被吃掉了！"
         val sw = paint.measureText(sub)
         canvas.drawText(sub, (w - sw) / 2, h / 2f + 60, paint)
+
+        drawBackHint(canvas, w, h)
     }
 
     private fun drawVictory(canvas: Canvas, w: Int, h: Int) {
@@ -72,5 +80,16 @@ class HudRenderer {
         val sub = "🥕 蘿蔔保住了！"
         val sw = paint.measureText(sub)
         canvas.drawText(sub, (w - sw) / 2, h / 2f + 60, paint)
+
+        drawBackHint(canvas, w, h)
+    }
+
+    private fun drawBackHint(canvas: Canvas, w: Int, h: Int) {
+        paint.textSize = 26f
+        paint.isFakeBoldText = false
+        paint.color = Color.parseColor("#DDFFFFFF")
+        val hint = "點擊任意位置返回主界面"
+        val hw = paint.measureText(hint)
+        canvas.drawText(hint, (w - hw) / 2, h / 2f + 108f, paint)
     }
 }

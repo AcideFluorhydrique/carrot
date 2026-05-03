@@ -6,22 +6,44 @@ class EnemyManager(private val gameMap: GameMap) {
 
     val enemies = mutableListOf<Enemy>()
 
-    // 生成間隔：每60幀生成一個（約1秒）
+    private var level = GameLevels.default
     private var spawnTimer = 0
-    private val spawnInterval = 60
-    private var spawnedCount = 0
-    private val totalEnemies = 10   // 第一波10個
+    private var spawnedInWave = 0
+    private var waveIndex = 0
+    private var interWaveTimer = 80
+
+    fun reset(selectedLevel: LevelConfig) {
+        level = selectedLevel
+        enemies.clear()
+        spawnTimer = 0
+        spawnedInWave = 0
+        waveIndex = 0
+        interWaveTimer = 80
+        GameState.wave = 1
+    }
 
     fun update() {
         if (GameState.status != GameStatus.PLAYING) return
 
-        // 生成敵人
-        if (spawnedCount < totalEnemies) {
-            spawnTimer++
-            if (spawnTimer >= spawnInterval) {
-                spawnTimer = 0
-                spawnedCount++
-                enemies.add(Enemy(gameMap))
+        if (waveIndex < level.waves.size) {
+            GameState.wave = waveIndex + 1
+            val wave = level.waves[waveIndex]
+
+            if (spawnedInWave < wave.count) {
+                spawnTimer++
+                if (spawnTimer >= wave.spawnInterval) {
+                    spawnTimer = 0
+                    spawnedInWave++
+                    enemies.add(Enemy(gameMap, wave))
+                }
+            } else if (enemies.isEmpty()) {
+                interWaveTimer--
+                if (interWaveTimer <= 0) {
+                    waveIndex++
+                    spawnedInWave = 0
+                    spawnTimer = 0
+                    interWaveTimer = 80
+                }
             }
         }
 
@@ -34,7 +56,7 @@ class EnemyManager(private val gameMap: GameMap) {
         enemies.removeAll { it.isDead || it.hasReachedEnd }
 
         // 判斷勝利：全部生成完且全部清除
-        if (spawnedCount >= totalEnemies && enemies.isEmpty()
+        if (waveIndex >= level.waves.size && enemies.isEmpty()
             && GameState.status == GameStatus.PLAYING) {
             GameState.status = GameStatus.VICTORY
         }

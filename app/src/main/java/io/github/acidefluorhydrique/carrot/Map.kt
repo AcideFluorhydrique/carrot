@@ -26,18 +26,19 @@ class GameMap {
         private set
 
     val grid = Array(ROWS) { IntArray(COLS) }
-    val pathPoints: List<Pair<Int, Int>>
+    var pathPoints: List<Pair<Int, Int>> = emptyList()
+        private set
 
     init {
-        val path = mutableListOf(
-            0 to 0, 1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0, 6 to 0,
-            6 to 1,
-            6 to 2, 7 to 2, 8 to 2, 9 to 2, 10 to 2, 11 to 2, 12 to 2, 13 to 2,
-            13 to 3,
-            13 to 4, 14 to 4, 15 to 4
-        )
-        pathPoints = path
-        for ((col, row) in path) {
+        loadLevel(GameLevels.default)
+    }
+
+    fun loadLevel(level: LevelConfig) {
+        for (row in 0 until ROWS) {
+            grid[row].fill(EMPTY)
+        }
+        pathPoints = level.path
+        for ((col, row) in pathPoints) {
             grid[row][col] = PATH
         }
     }

@@ -39,8 +39,7 @@ class TowerSelectBar(private val screenWidth: Int, private val screenHeight: Int
         if (y < barTop) return false
         for (btn in buttons) {
             if (btn.rect.contains(x, y)) {
-                TowerManagerHolder.manager?.selectedType =
-                    if (TowerManagerHolder.manager?.selectedType == btn.type) null else btn.type
+                TowerManagerHolder.manager?.toggleBuildType(btn.type)
                 return true
             }
         }

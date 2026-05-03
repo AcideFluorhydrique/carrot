@@ -13,16 +13,18 @@ class GameThread(
     private val targetTimeMs = 1000L / targetFps
 
     override fun run() {
-        var canvas: Canvas?
         while (running) {
             val startTime = System.currentTimeMillis()
 
-            canvas = null
+            var canvas: Canvas? = null
             try {
                 canvas = surfaceHolder.lockCanvas()
-                synchronized(surfaceHolder) {
-                    gameView.update()
-                    gameView.draw(canvas)
+                val lockedCanvas = canvas
+                if (lockedCanvas != null) {
+                    synchronized(surfaceHolder) {
+                        gameView.update()
+                        gameView.draw(lockedCanvas)
+                    }
                 }
             } finally {
                 if (canvas != null) {

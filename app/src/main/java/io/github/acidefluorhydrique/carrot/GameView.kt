@@ -9,25 +9,30 @@ import android.view.SurfaceView
 
 class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
-    private val thread: GameThread
+    private var thread: GameThread? = null
     private val gameMap = GameMap()
     private val enemyManager = EnemyManager(gameMap)
     private val towerManager = TowerManager(gameMap)
     private val hud = HudRenderer()
+    private val menu = MenuRenderer()
     private var towerSelectBar: TowerSelectBar? = null
+    private var towerUpgradePanel: TowerUpgradePanel? = null
     private var screenWidth = 0
     private var screenHeight = 0
+    private var screenMode = ScreenMode.MAIN_MENU
 
     init {
         holder.addCallback(this)
-        thread = GameThread(holder, this)
         isFocusable = true
         TowerManagerHolder.manager = towerManager
+        GameState.reset(GameLevels.default)
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        thread.running = true
-        thread.start()
+        thread = GameThread(holder, this).also {
+            it.running = true
+            it.start()
+        }
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -35,13 +40,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         screenHeight = height
         gameMap.initSize(width, height)
         towerSelectBar = TowerSelectBar(width, height)
+        towerUpgradePanel = TowerUpgradePanel(width, height)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         var retry = true
-        thread.running = false
+        thread?.running = false
         while (retry) {
-            try { thread.join(); retry = false }
+            try {
+                thread?.join()
+                thread = null
+                retry = false
+            }
             catch (e: InterruptedException) {}
         }
     }
@@ -50,28 +60,77 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         if (event.action == MotionEvent.ACTION_DOWN) {
             val x = event.x
             val y = event.y
-            android.util.Log.d("CarrotGame", "Touch: $x, $y  barTop: ${towerSelectBar?.barTop}")
-            val hitBar = towerSelectBar?.onTap(x, y) ?: false
-            android.util.Log.d("CarrotGame", "hitBar: $hitBar  selectedType: ${towerManager.selectedType}")
-            if (!hitBar) {
-                towerManager.onTap(x, y)
+            when (screenMode) {
+                ScreenMode.MAIN_MENU -> handleMainTap(x, y)
+                ScreenMode.LEVEL_SELECT -> handleLevelTap(x, y)
+                ScreenMode.PLAYING -> handleGameTap(x, y)
             }
         }
         return true
     }
 
     fun update() {
+        if (screenMode != ScreenMode.PLAYING) return
         enemyManager.update()
         towerManager.update(enemyManager.enemies)
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
+        when (screenMode) {
+            ScreenMode.MAIN_MENU -> menu.drawMain(canvas, screenWidth, screenHeight)
+            ScreenMode.LEVEL_SELECT -> menu.drawLevels(canvas, screenWidth, screenHeight)
+            ScreenMode.PLAYING -> drawGame(canvas)
+        }
+    }
+
+    private fun drawGame(canvas: Canvas) {
         canvas.drawColor(Color.parseColor("#1a1a2e"))
         gameMap.draw(canvas)
         towerManager.draw(canvas)
         enemyManager.draw(canvas)
         hud.draw(canvas, screenWidth, screenHeight)
+        towerUpgradePanel?.draw(canvas, towerManager)
         towerSelectBar?.draw(canvas, towerManager.selectedType)
     }
+
+    private fun handleMainTap(x: Float, y: Float) {
+        when (menu.mainTap(x, y)) {
+            MenuAction.START -> startLevel(GameState.level)
+            MenuAction.LEVELS -> screenMode = ScreenMode.LEVEL_SELECT
+            MenuAction.NONE -> Unit
+        }
+    }
+
+    private fun handleLevelTap(x: Float, y: Float) {
+        if (menu.tappedBack(x, y)) {
+            screenMode = ScreenMode.MAIN_MENU
+            return
+        }
+        val selectedLevel = menu.levelTap(x, y) ?: return
+        GameState.level = selectedLevel
+        startLevel(selectedLevel)
+    }
+
+    private fun handleGameTap(x: Float, y: Float) {
+        if (GameState.status != GameStatus.PLAYING) {
+            screenMode = ScreenMode.MAIN_MENU
+            return
+        }
+        if (towerUpgradePanel?.onTap(x, y, towerManager) == true) return
+        val hitBar = towerSelectBar?.onTap(x, y) ?: false
+        if (!hitBar) {
+            towerManager.onTap(x, y)
+        }
+    }
+
+    private fun startLevel(level: LevelConfig) {
+        GameState.reset(level)
+        gameMap.loadLevel(level)
+        towerManager.reset()
+        enemyManager.reset(level)
+        screenMode = ScreenMode.PLAYING
+    }
 }
+
+enum class ScreenMode { MAIN_MENU, LEVEL_SELECT, PLAYING }

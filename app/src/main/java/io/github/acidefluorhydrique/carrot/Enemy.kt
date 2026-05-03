@@ -6,20 +6,25 @@ import android.graphics.Paint
 import android.graphics.RectF
 import kotlin.math.*
 
-class Enemy(private val gameMap: GameMap) {
+class Enemy(
+    private val gameMap: GameMap,
+    wave: WaveConfig
+) {
 
     private var pathIndex = 0
+    var distanceTravelled = 0f
+        private set
     var x = 0f                  // ← 改為 var 暴露給 Bullet
         private set
     var y = 0f
         private set
 
-    var hp: Int = 3
-    var maxHp: Int = 3
-    var baseSpeed: Float = 2f
+    var hp: Int = wave.hp
+    var maxHp: Int = wave.hp
+    var baseSpeed: Float = wave.speed
     var isDead = false
     var hasReachedEnd = false
-    var goldReward: Int = 10
+    var goldReward: Int = wave.reward
 
     // 減速狀態
     private var slowFactor: Float = 1f
@@ -67,9 +72,13 @@ class Enemy(private val gameMap: GameMap) {
             x = targetX
             y = targetY
             pathIndex++
+            distanceTravelled += dist
         } else {
-            x += dx / dist * speed
-            y += dy / dist * speed
+            val stepX = dx / dist * speed
+            val stepY = dy / dist * speed
+            x += stepX
+            y += stepY
+            distanceTravelled += speed
         }
     }
 
