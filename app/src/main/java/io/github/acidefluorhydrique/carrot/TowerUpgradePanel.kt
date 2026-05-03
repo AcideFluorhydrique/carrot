@@ -2,8 +2,10 @@ package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Shader
 
 class TowerUpgradePanel(private val screenWidth: Int, private val screenHeight: Int) {
 
@@ -13,14 +15,15 @@ class TowerUpgradePanel(private val screenWidth: Int, private val screenHeight: 
 
     init {
         val panelW = minOf(360f, screenWidth - 24f)
-        val panelH = 108f
+        val panelH = 116f
+        val bottomBarHeight = 102f
         panel.set(
             screenWidth - panelW - 12f,
-            screenHeight - 90f - panelH - 12f,
+            screenHeight - bottomBarHeight - panelH - 12f,
             screenWidth - 12f,
-            screenHeight - 90f - 12f
+            screenHeight - bottomBarHeight - 12f
         )
-        upgradeButton.set(panel.right - 132f, panel.top + 52f, panel.right - 16f, panel.bottom - 14f)
+        upgradeButton.set(panel.right - 134f, panel.top + 58f, panel.right - 16f, panel.bottom - 14f)
     }
 
     fun onTap(x: Float, y: Float, towerManager: TowerManager): Boolean {
@@ -35,23 +38,32 @@ class TowerUpgradePanel(private val screenWidth: Int, private val screenHeight: 
         val tower = towerManager.selectedTower ?: return
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#CC101018")
+        paint.color = Color.parseColor("#66000000")
+        canvas.drawRoundRect(RectF(panel.left, panel.top + 4f, panel.right, panel.bottom + 4f), 14f, 14f, paint)
+
+        paint.shader = LinearGradient(
+            panel.left, panel.top, panel.left, panel.bottom,
+            Color.parseColor("#F02B3534"),
+            Color.parseColor("#E9182422"),
+            Shader.TileMode.CLAMP
+        )
         canvas.drawRoundRect(panel, 10f, 10f, paint)
+        paint.shader = null
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 2f
-        paint.color = Color.parseColor("#88FFFFFF")
+        paint.color = Color.parseColor("#66FFFFFF")
         canvas.drawRoundRect(panel, 10f, 10f, paint)
 
         paint.style = Paint.Style.FILL
         paint.isFakeBoldText = true
-        paint.color = Color.WHITE
+        paint.color = Color.parseColor("#FFFDF2")
         paint.textSize = 28f
         canvas.drawText("${towerIcon(tower.type)} Lv.${tower.level}", panel.left + 16f, panel.top + 34f, paint)
 
         paint.isFakeBoldText = false
         paint.textSize = 20f
-        paint.color = Color.parseColor("#DDFFFFFF")
+        paint.color = Color.parseColor("#DDE7F5E9")
         canvas.drawText("攻擊 ${tower.damage}  範圍 ${tower.range.toInt()}  間隔 ${tower.attackInterval}", panel.left + 16f, panel.top + 66f, paint)
 
         val maxLevel = tower.level >= 3
@@ -64,12 +76,18 @@ class TowerUpgradePanel(private val screenWidth: Int, private val screenHeight: 
         }
         canvas.drawRoundRect(upgradeButton, 8f, 8f, paint)
 
-        paint.color = if (maxLevel || canUpgrade) Color.WHITE else Color.parseColor("#99FFFFFF")
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.5f
+        paint.color = if (canUpgrade) Color.parseColor("#99F8FFB6") else Color.parseColor("#33FFFFFF")
+        canvas.drawRoundRect(upgradeButton, 8f, 8f, paint)
+
+        paint.style = Paint.Style.FILL
+        paint.color = if (maxLevel || canUpgrade) Color.parseColor("#FFFDF2") else Color.parseColor("#99FFFFFF")
         paint.textSize = 22f
         paint.isFakeBoldText = true
         val label = when {
             maxLevel -> "MAX"
-            else -> "升級 ${tower.upgradeCost}"
+            else -> "升級 ${tower.upgradeCost}🪙"
         }
         val tw = paint.measureText(label)
         canvas.drawText(label, upgradeButton.centerX() - tw / 2f, upgradeButton.centerY() + 8f, paint)

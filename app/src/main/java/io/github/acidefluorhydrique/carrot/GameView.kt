@@ -3,6 +3,9 @@ package io.github.acidefluorhydrique.carrot
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Shader
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -20,6 +23,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var screenWidth = 0
     private var screenHeight = 0
     private var screenMode = ScreenMode.MAIN_MENU
+    private val backgroundPaint = Paint()
 
     init {
         holder.addCallback(this)
@@ -85,13 +89,33 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     private fun drawGame(canvas: Canvas) {
-        canvas.drawColor(Color.parseColor("#1a1a2e"))
+        drawGameBackground(canvas)
         gameMap.draw(canvas)
         towerManager.draw(canvas)
         enemyManager.draw(canvas)
         hud.draw(canvas, screenWidth, screenHeight)
         towerUpgradePanel?.draw(canvas, towerManager)
         towerSelectBar?.draw(canvas, towerManager.selectedType)
+    }
+
+    private fun drawGameBackground(canvas: Canvas) {
+        backgroundPaint.shader = LinearGradient(
+            0f, 0f, 0f, screenHeight.toFloat(),
+            intArrayOf(
+                Color.parseColor("#142427"),
+                Color.parseColor("#1C3428"),
+                Color.parseColor("#244325")
+            ),
+            floatArrayOf(0f, 0.52f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), backgroundPaint)
+        backgroundPaint.shader = null
+
+        backgroundPaint.color = Color.parseColor("#224DA05A")
+        val hillY = screenHeight * 0.74f
+        canvas.drawCircle(screenWidth * 0.18f, hillY, screenWidth * 0.34f, backgroundPaint)
+        canvas.drawCircle(screenWidth * 0.72f, hillY + 20f, screenWidth * 0.42f, backgroundPaint)
     }
 
     private fun handleMainTap(x: Float, y: Float) {
