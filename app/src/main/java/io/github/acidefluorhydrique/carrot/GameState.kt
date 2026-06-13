@@ -1,6 +1,6 @@
 package io.github.acidefluorhydrique.carrot
 
-enum class GameStatus { PLAYING, VICTORY, DEFEAT }
+enum class GameStatus { PLAYING, PAUSED, VICTORY, DEFEAT }
 
 object GameState {
     var level: LevelConfig = GameLevels.default

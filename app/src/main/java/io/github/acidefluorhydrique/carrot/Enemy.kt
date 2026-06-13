@@ -90,6 +90,36 @@ class Enemy(
         }
     }
 
+    fun snapshot(): EnemySnapshot {
+        return EnemySnapshot(
+            pathIndex = pathIndex,
+            distanceTravelled = distanceTravelled,
+            x = x,
+            y = y,
+            hp = hp,
+            maxHp = maxHp,
+            baseSpeed = baseSpeed,
+            goldReward = goldReward,
+            slowFactor = slowFactor,
+            slowTimer = slowTimer
+        )
+    }
+
+    fun restore(snapshot: EnemySnapshot) {
+        pathIndex = snapshot.pathIndex
+        distanceTravelled = snapshot.distanceTravelled
+        x = snapshot.x
+        y = snapshot.y
+        hp = snapshot.hp
+        maxHp = snapshot.maxHp
+        baseSpeed = snapshot.baseSpeed
+        goldReward = snapshot.goldReward
+        slowFactor = snapshot.slowFactor
+        slowTimer = snapshot.slowTimer
+        isDead = false
+        hasReachedEnd = false
+    }
+
     private val paint = Paint().apply { isAntiAlias = true }
 
     fun draw(canvas: Canvas) {

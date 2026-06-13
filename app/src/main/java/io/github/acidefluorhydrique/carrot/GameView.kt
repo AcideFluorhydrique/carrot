@@ -13,6 +13,7 @@ import android.view.SurfaceView
 class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
     private var thread: GameThread? = null
+    private val saveRepository = SaveRepository(context.applicationContext)
     private val gameMap = GameMap()
     private val enemyManager = EnemyManager(gameMap)
     private val towerManager = TowerManager(gameMap)
@@ -24,12 +25,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var screenHeight = 0
     private var screenMode = ScreenMode.MAIN_MENU
     private val backgroundPaint = Paint()
+    private var lastSavedStatus: GameStatus = GameStatus.PLAYING
+    private var autoSaveFrame = 0
+    private var victoryRecorded = false
 
     init {
         holder.addCallback(this)
         isFocusable = true
         TowerManagerHolder.manager = towerManager
         GameState.reset(GameLevels.default)
+        saveRepository.loadGame()?.let { save ->
+            GameLevels.all.firstOrNull { it.id == save.levelId }?.let { GameState.level = it }
+        }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -49,6 +56,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         var retry = true
+        if (screenMode == ScreenMode.PLAYING) {
+            saveCurrentGame()
+        }
         thread?.running = false
         while (retry) {
             try {
@@ -75,15 +85,42 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     fun update() {
         if (screenMode != ScreenMode.PLAYING) return
+        val previousStatus = GameState.status
         enemyManager.update()
         towerManager.update(enemyManager.enemies)
+        if (previousStatus == GameStatus.PLAYING && GameState.status == GameStatus.VICTORY && !victoryRecorded) {
+            victoryRecorded = true
+            saveRepository.markLevelCompleted(GameState.level.id)
+            saveRepository.clearActiveSave()
+        }
+        if (previousStatus == GameStatus.PLAYING && GameState.status == GameStatus.DEFEAT) {
+            saveRepository.clearActiveSave()
+        }
+        if (GameState.status == GameStatus.PLAYING) {
+            autoSaveFrame++
+            if (autoSaveFrame >= 180) {
+                autoSaveFrame = 0
+                saveCurrentGame()
+            }
+        }
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         when (screenMode) {
-            ScreenMode.MAIN_MENU -> menu.drawMain(canvas, screenWidth, screenHeight)
-            ScreenMode.LEVEL_SELECT -> menu.drawLevels(canvas, screenWidth, screenHeight)
+            ScreenMode.MAIN_MENU -> menu.drawMain(
+                canvas,
+                screenWidth,
+                screenHeight,
+                saveRepository.hasActiveSave(),
+                saveRepository.completedLevels()
+            )
+            ScreenMode.LEVEL_SELECT -> menu.drawLevels(
+                canvas,
+                screenWidth,
+                screenHeight,
+                saveRepository.completedLevels()
+            )
             ScreenMode.PLAYING -> drawGame(canvas)
         }
     }
@@ -94,8 +131,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         towerManager.draw(canvas)
         enemyManager.draw(canvas)
         hud.draw(canvas, screenWidth, screenHeight)
-        towerUpgradePanel?.draw(canvas, towerManager)
-        towerSelectBar?.draw(canvas, towerManager.selectedType)
+        if (GameState.status == GameStatus.PLAYING) {
+            towerUpgradePanel?.draw(canvas, towerManager)
+            towerSelectBar?.draw(canvas, towerManager.selectedType)
+        }
     }
 
     private fun drawGameBackground(canvas: Canvas) {
@@ -120,6 +159,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     private fun handleMainTap(x: Float, y: Float) {
         when (menu.mainTap(x, y)) {
+            MenuAction.CONTINUE -> continueSavedGame()
             MenuAction.START -> startLevel(GameState.level)
             MenuAction.LEVELS -> screenMode = ScreenMode.LEVEL_SELECT
             MenuAction.NONE -> Unit
@@ -137,6 +177,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     private fun handleGameTap(x: Float, y: Float) {
+        if (GameState.status == GameStatus.VICTORY || GameState.status == GameStatus.DEFEAT) {
+            screenMode = ScreenMode.MAIN_MENU
+            return
+        }
+        if (HudRenderer.pauseButtonRect(screenWidth).contains(x, y)) {
+            togglePause()
+            return
+        }
+        if (GameState.status == GameStatus.PAUSED) {
+            handlePauseTap(x, y)
+            return
+        }
         if (GameState.status != GameStatus.PLAYING) {
             screenMode = ScreenMode.MAIN_MENU
             return
@@ -149,11 +201,82 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     private fun startLevel(level: LevelConfig) {
+        saveRepository.clearActiveSave()
         GameState.reset(level)
         gameMap.loadLevel(level)
         towerManager.reset()
         enemyManager.reset(level)
         screenMode = ScreenMode.PLAYING
+        victoryRecorded = false
+        autoSaveFrame = 0
+        saveCurrentGame()
+    }
+
+    private fun continueSavedGame() {
+        val save = saveRepository.loadGame() ?: return
+        val level = GameLevels.all.firstOrNull { it.id == save.levelId } ?: GameLevels.default
+        GameState.level = level
+        GameState.carrotHp = save.carrotHp
+        GameState.gold = save.gold
+        GameState.wave = save.wave
+        GameState.status = GameStatus.PLAYING
+        gameMap.loadLevel(level)
+        enemyManager.restore(level, save.enemyManager)
+        towerManager.restore(save.towers)
+        screenMode = ScreenMode.PLAYING
+        victoryRecorded = false
+        autoSaveFrame = 0
+    }
+
+    private fun togglePause() {
+        when (GameState.status) {
+            GameStatus.PLAYING -> pauseGame()
+            GameStatus.PAUSED -> resumeGame()
+            else -> Unit
+        }
+    }
+
+    private fun handlePauseTap(x: Float, y: Float) {
+        when {
+            HudRenderer.pauseResumeRect(screenWidth, screenHeight).contains(x, y) -> resumeGame()
+            HudRenderer.pauseSaveExitRect(screenWidth, screenHeight).contains(x, y) -> {
+                saveCurrentGame()
+                screenMode = ScreenMode.MAIN_MENU
+                GameState.status = GameStatus.PLAYING
+            }
+            HudRenderer.pauseRestartRect(screenWidth, screenHeight).contains(x, y) -> startLevel(GameState.level)
+        }
+    }
+
+    fun pauseGame() {
+        if (screenMode == ScreenMode.PLAYING && GameState.status == GameStatus.PLAYING) {
+            lastSavedStatus = GameState.status
+            GameState.status = GameStatus.PAUSED
+            saveCurrentGame()
+        }
+    }
+
+    fun resumeGame() {
+        if (screenMode == ScreenMode.PLAYING && GameState.status == GameStatus.PAUSED) {
+            GameState.status = lastSavedStatus
+        }
+    }
+
+    fun saveCurrentGame() {
+        if (screenMode != ScreenMode.PLAYING) return
+        if (GameState.status == GameStatus.VICTORY || GameState.status == GameStatus.DEFEAT) return
+        saveRepository.saveGame(
+            GameSave(
+                version = 1,
+                levelId = GameState.level.id,
+                carrotHp = GameState.carrotHp,
+                gold = GameState.gold,
+                wave = GameState.wave,
+                enemyManager = enemyManager.snapshot(),
+                towers = towerManager.snapshot(),
+                savedAt = System.currentTimeMillis()
+            )
+        )
     }
 }
 

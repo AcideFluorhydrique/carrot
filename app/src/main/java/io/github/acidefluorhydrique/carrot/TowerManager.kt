@@ -24,6 +24,33 @@ class TowerManager(private val gameMap: GameMap) {
         selectedTower = null
     }
 
+    fun snapshot(): List<TowerSnapshot> {
+        return towers.map {
+            TowerSnapshot(
+                col = it.col,
+                row = it.row,
+                type = it.type,
+                level = it.level,
+                cooldown = it.cooldown,
+                aimAngle = it.aimAngle
+            )
+        }
+    }
+
+    fun restore(snapshots: List<TowerSnapshot>) {
+        reset()
+        for (snapshot in snapshots) {
+            if (!gameMap.isValidCell(snapshot.col, snapshot.row)) continue
+            val tower = Tower(snapshot.col, snapshot.row, snapshot.type, gameMap).also {
+                it.level = snapshot.level
+                it.cooldown = snapshot.cooldown
+                it.aimAngle = snapshot.aimAngle
+            }
+            towers.add(tower)
+            gameMap.grid[snapshot.row][snapshot.col] = GameMap.BLOCKED
+        }
+    }
+
     fun toggleBuildType(type: TowerType) {
         selectedType = if (selectedType == type) null else type
         selectedTower = null

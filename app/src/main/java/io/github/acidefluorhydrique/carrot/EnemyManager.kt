@@ -22,6 +22,33 @@ class EnemyManager(private val gameMap: GameMap) {
         GameState.wave = 1
     }
 
+    fun snapshot(): EnemyManagerSnapshot {
+        return EnemyManagerSnapshot(
+            spawnTimer = spawnTimer,
+            spawnedInWave = spawnedInWave,
+            waveIndex = waveIndex,
+            interWaveTimer = interWaveTimer,
+            enemies = enemies
+                .filter { !it.isDead && !it.hasReachedEnd }
+                .map { it.snapshot() }
+        )
+    }
+
+    fun restore(selectedLevel: LevelConfig, snapshot: EnemyManagerSnapshot) {
+        level = selectedLevel
+        spawnTimer = snapshot.spawnTimer
+        spawnedInWave = snapshot.spawnedInWave
+        waveIndex = snapshot.waveIndex
+        interWaveTimer = snapshot.interWaveTimer
+        enemies.clear()
+        for (enemySnapshot in snapshot.enemies) {
+            enemies.add(Enemy(gameMap, level.waves[waveIndex.coerceIn(0, level.waves.lastIndex)]).also {
+                it.restore(enemySnapshot)
+            })
+        }
+        GameState.wave = (waveIndex + 1).coerceAtMost(level.waves.size)
+    }
+
     fun update() {
         if (GameState.status != GameStatus.PLAYING) return
 

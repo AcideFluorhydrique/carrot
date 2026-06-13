@@ -12,4 +12,9 @@ class GameActivity : Activity() {
         gameView = GameView(this)
         setContentView(gameView)
     }
+
+    override fun onPause() {
+        gameView.pauseGame()
+        super.onPause()
+    }
 }

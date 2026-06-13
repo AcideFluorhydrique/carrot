@@ -10,12 +10,13 @@ import android.graphics.Shader
 class MenuRenderer {
 
     private val paint = Paint().apply { isAntiAlias = true }
+    private val continueButton = RectF()
     private val startButton = RectF()
     private val levelButton = RectF()
     private val backButton = RectF()
     private val levelButtons = mutableListOf<Pair<LevelConfig, RectF>>()
 
-    fun drawMain(canvas: Canvas, w: Int, h: Int) {
+    fun drawMain(canvas: Canvas, w: Int, h: Int, hasSave: Boolean, completedLevels: Set<Int>) {
         drawBackground(canvas, w, h)
 
         paint.shader = null
@@ -31,17 +32,29 @@ class MenuRenderer {
 
         val btnW = minOf(360f, w - 48f)
         val btnH = 68f
-        startButton.set((w - btnW) / 2f, h * 0.47f, (w + btnW) / 2f, h * 0.47f + btnH)
+        val firstTop = if (hasSave) h * 0.41f else h * 0.47f
+        if (hasSave) {
+            continueButton.set((w - btnW) / 2f, firstTop, (w + btnW) / 2f, firstTop + btnH)
+            startButton.set(continueButton.left, continueButton.bottom + 16f, continueButton.right, continueButton.bottom + 16f + btnH)
+        } else {
+            continueButton.setEmpty()
+            startButton.set((w - btnW) / 2f, firstTop, (w + btnW) / 2f, firstTop + btnH)
+        }
         levelButton.set(startButton.left, startButton.bottom + 20f, startButton.right, startButton.bottom + 20f + btnH)
+        if (hasSave) drawButton(canvas, continueButton, "繼續遊戲", "#D7A331", "#A3701D")
         drawButton(canvas, startButton, "開始遊戲", "#4FA85D", "#2F7E3C")
         drawButton(canvas, levelButton, "選擇關卡", "#426D93", "#294D6F")
 
         paint.textSize = 22f
         paint.color = Color.parseColor("#BBFFFFFF")
         drawCentered(canvas, "目前關卡：${GameState.level.name}", w / 2f, levelButton.bottom + 42f)
+
+        paint.textSize = 18f
+        val progress = "已通關 ${completedLevels.size}/${GameLevels.all.size}"
+        drawCentered(canvas, progress, w / 2f, levelButton.bottom + 72f)
     }
 
-    fun drawLevels(canvas: Canvas, w: Int, h: Int) {
+    fun drawLevels(canvas: Canvas, w: Int, h: Int, completedLevels: Set<Int>) {
         drawBackground(canvas, w, h)
         levelButtons.clear()
 
@@ -58,6 +71,7 @@ class MenuRenderer {
             val rect = RectF((w - cardW) / 2f, top, (w + cardW) / 2f, top + cardH)
             levelButtons.add(level to rect)
             val selected = level.id == GameState.level.id
+            val completed = level.id in completedLevels
             paint.style = Paint.Style.FILL
             paint.color = Color.parseColor("#33000000")
             canvas.drawRoundRect(RectF(rect.left, rect.top + 5f, rect.right, rect.bottom + 5f), 14f, 14f, paint)
@@ -83,6 +97,13 @@ class MenuRenderer {
             paint.color = Color.parseColor("#DDFFFFFF")
             canvas.drawText(level.subtitle, rect.left + 18f, rect.top + 72f, paint)
             canvas.drawText("${level.waves.size} 波", rect.right - 78f, rect.top + 72f, paint)
+            if (completed) {
+                paint.textSize = 24f
+                paint.isFakeBoldText = true
+                paint.color = Color.parseColor("#FFE08A")
+                canvas.drawText("CLEAR", rect.right - 102f, rect.top + 36f, paint)
+                paint.isFakeBoldText = false
+            }
             top += cardH + 16f
         }
 
@@ -92,6 +113,7 @@ class MenuRenderer {
 
     fun mainTap(x: Float, y: Float): MenuAction {
         return when {
+            !continueButton.isEmpty() && continueButton.contains(x, y) -> MenuAction.CONTINUE
             startButton.contains(x, y) -> MenuAction.START
             levelButton.contains(x, y) -> MenuAction.LEVELS
             else -> MenuAction.NONE
@@ -175,4 +197,4 @@ class MenuRenderer {
     }
 }
 
-enum class MenuAction { NONE, START, LEVELS }
+enum class MenuAction { NONE, CONTINUE, START, LEVELS }
