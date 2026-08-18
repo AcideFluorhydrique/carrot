@@ -1,0 +1,139 @@
+<!--
+SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+# The Last Carrot
+
+[![Build APK](https://github.com/AcideFluorhydrique/carrot/actions/workflows/build.yml/badge.svg)](https://github.com/AcideFluorhydrique/carrot/actions/workflows/build.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
+A small, self-contained lane tower defence game for Android. Hungry critters march down the
+garden path and there is one carrot left. Build towers, upgrade them, hold the line.
+
+*[中文說明](README.zh.md)*
+
+**No permissions. No ads. No trackers. No network access. No bundled assets.**
+
+---
+
+## What makes it unusual
+
+There are effectively no asset files in this repository. Everything you see and hear is produced
+by the app itself:
+
+- **Audio is synthesised at runtime.** On first launch the app generates sixteen sound effects and
+  an eight-bar chiptune loop from oscillators and noise, writes them to its cache as WAV, and plays
+  them back. There is not a single `.wav` or `.ogg` in the repo.
+- **Graphics are drawn, not loaded.** The map, towers, HUD and menus are Canvas drawing calls; the
+  units are system emoji; the launcher icon is a vector drawable.
+
+The point is not minimalism for its own sake — it means there is no third-party content to license,
+attribute or get wrong.
+
+## Gameplay
+
+**Twenty levels across five chapters**, each chapter with its own palette and its own new problem.
+Pick a chapter, then follow a winding trail of levels; every stop you have cleared keeps its star
+rating. Levels unlock in order, and stars are awarded on how much carrot you have left.
+
+**Eight towers**, unlocked gradually — each arriving just before the enemy it answers:
+
+| Tower | Cost | Role |
+|---|---:|---|
+| 🏹 Arrow | 50 | Fast single target |
+| ❄️ Ice | 60 | Hard slow, one target at a time |
+| 💣 Bomb | 85 | Splash damage |
+| 🌙 Moon | 75 | Wide, gentle slow across a whole group |
+| ☠️ Poison | 95 | Damage over time, ignores armour |
+| 🚀 Rocket | 120 | Flies straight and pierces everything on the line |
+| ⚡ Tesla | 130 | Chain lightning between nearby enemies |
+| ☀️ Sun | 110 | Pulses damage in a ring around itself |
+
+Each tower upgrades three times, refunds 65% when sold, and can be told whether to target the enemy
+that is furthest along, the strongest, or the nearest. **Each level offers only four or five of your
+towers**, so the same roster produces different puzzles.
+
+**Five enemy types** — ordinary thieves, fragile sprinters, huge swarms, armoured ironhides, and
+garden overlords that take a serious bite out of the carrot if they get through.
+
+**Breakable obstacles.** Rocks, trees, mushrooms, ice blocks and crates sit around the map. Tap one
+to mark it and your towers chip away at it *only while no enemy is in range*, so clearing never
+costs you a leak. Breaking one pays gold and frees the tile to build on. Sun, Moon and Rocket damage
+obstacles on their own.
+
+Also: 1x/2x/3x speed control, call waves early for bonus gold, drag to position a tower and see its
+range before committing, and automatic saving so you can stop mid-wave.
+
+## Building
+
+**Requirements:** JDK 17 and the Android SDK (compileSdk 34).
+
+The Gradle wrapper is committed, so you do not need Gradle installed:
+
+```bash
+./gradlew assembleDebug
+```
+
+The APK lands in `app/build/outputs/apk/debug/app-debug.apk`. If you already have Gradle 8.2 or
+newer, `gradle assembleDebug` works too — that is what CI does.
+
+Use **JDK 17**, not a newer one: Gradle 8.2 only runs on Java 19 and below. Raising the wrapper to
+Gradle 8.5+ would lift that limit.
+
+> **About the wrapper JAR.** CI validates it against Gradle's published checksums, so it has to be
+> an official build. If you regenerate it, run the `wrapper` task from an official Gradle
+> distribution — the `gradle` package shipped by Linux distributions is often an old repackaged
+> build whose checksum will not match, and the build will be rejected.
+
+## Project layout
+
+Everything lives in `app/src/main/java/io/github/acidefluorhydrique/carrot/`. There is no dependency
+injection, no architecture framework and no third-party library beyond AndroidX core and appcompat —
+a `SurfaceView` with a game thread, and plain classes.
+
+| File | Responsibility |
+|---|---|
+| `GameView`, `GameThread` | Game loop, screen routing, touch handling |
+| `GameLevel`, `Chapter` | Level and chapter data, difficulty curve, themes |
+| `Tower`, `TowerManager`, `Bullet`, `PiercingShot` | Towers, targeting, projectiles |
+| `Enemy`, `EnemyManager`, `EnemyKind` | Enemies, waves, spawning |
+| `Obstacle`, `ObstacleManager` | Breakable props |
+| `SoundEngine` | Runtime audio synthesis |
+| `Effects` | Particles, floating text, screen shake |
+| `MenuRenderer`, `HudRenderer`, `Widgets` | All UI drawing |
+| `GameSave` | Persistence |
+| `Strings`, `LocaleManager`, `Ui` | Localisation and density-independent sizing |
+
+Level data is generated by a script that applies a smooth difficulty curve and validates every path
+for connectivity, self-intersection and buildable space, then emits Kotlin. Hand-editing
+`GameLevel.kt` works, but regenerating is easier if you want to reshape the curve.
+
+## Translating
+
+The interface ships in English, Traditional Chinese and Simplified Chinese, switchable in-game and
+independent of the system language.
+
+To add a language, copy `app/src/main/res/values/strings.xml` into a new qualified directory and
+translate the values. Script-based qualifiers are used for Chinese so that Hong Kong and Macau fall
+back correctly:
+
+```
+app/src/main/res/values/               English (default)
+app/src/main/res/values-b+zh+Hant/     Traditional Chinese
+app/src/main/res/values-b+zh+Hans/     Simplified Chinese
+```
+
+Two rules matter: keep the string keys identical across every locale, and keep the positional
+format arguments (`%1$d`, `%2$s`, …) consistent — a translation that drops or renumbers one will
+crash at runtime. Then add your locale to `LocaleManager.options` so it appears in the in-game
+picker.
+
+## Licence
+
+GPL-3.0-or-later. See [LICENSE](LICENSE). Source files carry SPDX headers.
+
+## Not affiliated with anything
+
+This is an original game. It borrows nothing but the genre from the lane tower defence games that
+inspired it, and is not connected to, endorsed by, or derived from any commercial title.
