@@ -7,111 +7,102 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
 
-class TowerSelectBar(private val screenWidth: Int, private val screenHeight: Int) {
+/**
+ * 底部選塔列。所有矩形都由畫面尺寸即時算出，
+ * 因此觸控（UI 執行緒）與繪製（遊戲執行緒）不會共享可變狀態。
+ */
+class TowerSelectBar {
 
-    private val barHeight = 102f
-    val barTop: Float get() = screenHeight - barHeight
     private val paint = Paint().apply { isAntiAlias = true }
 
-    data class TowerButton(
-        val type: TowerType,
-        val emoji: String,
-        val cost: Int,
-        var rect: RectF = RectF()
-    )
-
-    val buttons = listOf(
-        TowerButton(TowerType.ARROW, "🏹", 50),
-        TowerButton(TowerType.BOMB,  "💣", 80),
-        TowerButton(TowerType.ICE,   "❄️", 60)
-    )
-
-    init {
-        val btnW = minOf(150f, (screenWidth - 72f) / buttons.size)
-        val spacing = 14f
-        val totalW = buttons.size * btnW + (buttons.size - 1) * spacing
-        var startX = (screenWidth - totalW) / 2f
-        for (btn in buttons) {
-            btn.rect = RectF(startX, barTop + 14f, startX + btnW, barTop + barHeight - 14f)
-            startX += btnW + spacing
-        }
-    }
-
-    fun onTap(x: Float, y: Float): Boolean {
-        if (y < barTop) return false
-        for (btn in buttons) {
-            if (btn.rect.contains(x, y)) {
-                TowerManagerHolder.manager?.toggleBuildType(btn.type)
+    /** 回傳 true 表示這次點擊落在選塔列上。 */
+    fun onTap(x: Float, y: Float, w: Int, h: Int, towerManager: TowerManager): Boolean {
+        if (y < barTop(h)) return false
+        for (i in TYPES.indices) {
+            if (buttonRect(w, h, i).contains(x, y)) {
+                towerManager.toggleBuildType(TYPES[i])
                 return true
             }
         }
-        return false
+        return true   // 吃掉落在列上的空白點擊，避免誤蓋塔
     }
 
-    fun draw(canvas: Canvas, selectedType: TowerType?) {
+    fun draw(canvas: Canvas, w: Int, h: Int, selectedType: TowerType?) {
+        val top = barTop(h)
         paint.style = Paint.Style.FILL
         paint.shader = LinearGradient(
-            0f, barTop, 0f, screenHeight.toFloat(),
-            Color.parseColor("#E3172523"),
-            Color.parseColor("#F20E1515"),
-            Shader.TileMode.CLAMP
+            0f, top, 0f, h.toFloat(),
+            Color.parseColor("#E6172523"), Color.parseColor("#F40C1312"), Shader.TileMode.CLAMP
         )
-        canvas.drawRect(RectF(0f, barTop, screenWidth.toFloat(), screenHeight.toFloat()), paint)
+        canvas.drawRect(RectF(0f, top, w.toFloat(), h.toFloat()), paint)
         paint.shader = null
-        paint.color = Color.parseColor("#335FE36B")
-        canvas.drawRect(RectF(0f, barTop, screenWidth.toFloat(), barTop + 3f), paint)
+        paint.color = Color.parseColor("#445FE36B")
+        canvas.drawRect(RectF(0f, top, w.toFloat(), top + Ui.dp(1.5f)), paint)
 
-        for (btn in buttons) {
-            val isSelected = btn.type == selectedType
-            val canAfford = GameState.gold >= btn.cost
-
-            paint.style = Paint.Style.FILL
-            paint.color = Color.parseColor("#66000000")
-            canvas.drawRoundRect(RectF(btn.rect.left, btn.rect.top + 4f, btn.rect.right, btn.rect.bottom + 4f), 16f, 16f, paint)
-
-            paint.color = when {
-                isSelected  -> Color.parseColor("#E7428C4A")
-                !canAfford  -> Color.parseColor("#7A33403A")
-                else        -> Color.parseColor("#D8293532")
-            }
-            canvas.drawRoundRect(btn.rect, 16f, 16f, paint)
-
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = if (isSelected) 4f else 2f
-            paint.color = when {
-                isSelected -> Color.parseColor("#D8F8FFB6")
-                canAfford -> Color.parseColor("#5CFFFFFF")
-                else -> Color.parseColor("#33555555")
-            }
-            canvas.drawRoundRect(btn.rect, 16f, 16f, paint)
-
-            paint.style = Paint.Style.FILL
-            paint.color = if (canAfford) Color.WHITE else Color.parseColor("#77FFFFFF")
-            paint.textSize = 35f
-            canvas.drawText(btn.emoji, btn.rect.left + 13f, btn.rect.centerY() + 12f, paint)
-
-            paint.textSize = 20f
-            paint.isFakeBoldText = true
-            paint.color = if (canAfford) Color.parseColor("#FFE08A") else Color.parseColor("#88A0A0A0")
-            canvas.drawText("${btn.cost} 🪙", btn.rect.left + 54f, btn.rect.centerY() - 2f, paint)
-
-            paint.textSize = 15f
-            paint.isFakeBoldText = false
-            paint.color = if (canAfford) Color.parseColor("#CFE7F5D5") else Color.parseColor("#779CA3A0")
-            canvas.drawText(towerName(btn.type), btn.rect.left + 54f, btn.rect.centerY() + 22f, paint)
+        for (i in TYPES.indices) {
+            drawButton(canvas, buttonRect(w, h, i), TYPES[i], TYPES[i] == selectedType)
         }
     }
 
-    private fun towerName(type: TowerType): String {
-        return when (type) {
-            TowerType.ARROW -> "速射"
-            TowerType.BOMB -> "範圍"
-            TowerType.ICE -> "減速"
+    private fun drawButton(canvas: Canvas, rect: RectF, type: TowerType, selected: Boolean) {
+        val affordable = GameState.gold >= type.baseCost
+        val radius = Ui.dp(9f)
+
+        paint.style = Paint.Style.FILL
+        paint.shader = null
+        paint.color = Color.parseColor("#66000000")
+        canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(2.5f), rect.right, rect.bottom + Ui.dp(2.5f)), radius, radius, paint)
+
+        paint.color = when {
+            selected -> Color.parseColor("#E63F8A4C")
+            affordable -> Color.parseColor("#D8242F2C")
+            else -> Color.parseColor("#8A2A2F2C")
+        }
+        canvas.drawRoundRect(rect, radius, radius, paint)
+
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = if (selected) Ui.dp(2f) else Ui.dp(1.1f)
+        paint.color = when {
+            selected -> Color.parseColor("#E0F8FFB6")
+            affordable -> Color.parseColor("#5AFFFFFF")
+            else -> Color.parseColor("#33FFFFFF")
+        }
+        canvas.drawRoundRect(rect, radius, radius, paint)
+
+        paint.style = Paint.Style.FILL
+        paint.alpha = 255
+        paint.textSize = rect.height() * 0.36f
+        val emoji = type.emoji
+        canvas.drawText(emoji, rect.centerX() - paint.measureText(emoji) / 2f, rect.top + rect.height() * 0.42f, paint)
+
+        val inner = rect.width() - Ui.dp(5f)
+        Widgets.centeredFit(
+            canvas, type.displayName, rect.centerX(), rect.top + rect.height() * 0.68f,
+            rect.height() * 0.2f, inner, bold = false,
+            color = if (affordable) Color.parseColor("#DCEDE2") else Color.parseColor("#7F97A0")
+        )
+        Widgets.centeredFit(
+            canvas, Strings.format(R.string.tower_price, type.baseCost), rect.centerX(),
+            rect.top + rect.height() * 0.92f, rect.height() * 0.21f, inner, bold = true,
+            color = if (affordable) Color.parseColor("#FFE08A") else Color.parseColor("#8A96A0")
+        )
+    }
+
+    companion object {
+        val TYPES: List<TowerType> = TowerType.values().toList()
+
+        fun barTop(h: Int): Float = h - Ui.bottomBarHeight
+
+        fun buttonRect(w: Int, h: Int, index: Int): RectF {
+            val count = TYPES.size
+            val gap = Ui.dp(7f)
+            val available = w - Ui.dp(18f) - gap * (count - 1)
+            val width = (available / count).coerceAtMost(Ui.dp(84f))
+            val height = Ui.bottomBarHeight - Ui.dp(12f)
+            val total = width * count + gap * (count - 1)
+            val left = (w - total) / 2f + index * (width + gap)
+            val top = barTop(h) + Ui.dp(6f)
+            return RectF(left, top, left + width, top + height)
         }
     }
-}
-
-// 簡單持有 TowerManager 引用，避免循環依賴
-object TowerManagerHolder {
-    var manager: TowerManager? = null
 }

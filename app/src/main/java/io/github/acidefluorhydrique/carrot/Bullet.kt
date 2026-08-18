@@ -3,88 +3,172 @@ package io.github.acidefluorhydrique.carrot
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import kotlin.math.*
+import kotlin.math.sqrt
 
+/**
+ * 飛行中的投射物。電塔是瞬發連鎖，不走這裡。
+ */
 class Bullet(
     startX: Float,
     startY: Float,
     private val target: Enemy,
-    val damage: Int,
+    private val damage: Int,
     val type: TowerType,
-    val splashRadius: Float = 0f,   // 炸彈塔用
-    val slowFactor: Float = 1f,     // 冰塔用（0.5 = 減速50%）
-    val slowDuration: Int = 0
+    private val speed: Float,
+    private val splashRadius: Float = 0f,
+    private val slowFactor: Float = 1f,
+    private val slowDuration: Int = 0,
+    private val poisonDamage: Int = 0,
+    private val poisonDuration: Int = 0
 ) {
+
     var x = startX
+        private set
     var y = startY
+        private set
     var isDone = false
-    private val speed = 8f
+        private set
+
+    private var lastTargetX = target.x
+    private var lastTargetY = target.y
+    private var dirX = 0f
+    private var dirY = -1f
+    private var age = 0
 
     private val paint = Paint().apply { isAntiAlias = true }
 
     fun update(enemies: List<Enemy>) {
         if (isDone) return
-        if (target.isDead || target.hasReachedEnd) { isDone = true; return }
+        age++
+
+        if (!target.isAlive) {
+            // 目標已消失：炸彈仍在原地爆開，其餘直接消散
+            if (type == TowerType.BOMB) {
+                explode(enemies, lastTargetX, lastTargetY)
+            } else {
+                isDone = true
+            }
+            return
+        }
+
+        lastTargetX = target.x
+        lastTargetY = target.y
 
         val dx = target.x - x
         val dy = target.y - y
         val dist = sqrt(dx * dx + dy * dy)
+        if (dist > 0.0001f) {
+            dirX = dx / dist
+            dirY = dy / dist
+        }
 
         if (dist <= speed) {
-            // 命中
+            x = target.x
+            y = target.y
             onHit(enemies)
         } else {
-            x += dx / dist * speed
-            y += dy / dist * speed
+            x += dirX * speed
+            y += dirY * speed
+            spawnTrail()
+        }
+
+        // 保險：飛太久就自我了斷，避免殘留物件
+        if (age > 300) isDone = true
+    }
+
+    private fun spawnTrail() {
+        when (type) {
+            TowerType.BOMB -> if (age % 2 == 0) {
+                Fx.burst(x, y, 1, Color.parseColor("#8A8A8A"), Ui.dp(0.3f), Ui.dp(1.4f), 14, gravity = -0.02f)
+            }
+            TowerType.POISON -> if (age % 2 == 0) {
+                Fx.burst(x, y, 1, Color.parseColor("#84CC16"), Ui.dp(0.3f), Ui.dp(1.5f), 16, gravity = -0.02f)
+            }
+            TowerType.ICE -> if (age % 3 == 0) {
+                Fx.burst(x, y, 1, Color.parseColor("#BFEAFF"), Ui.dp(0.3f), Ui.dp(1.2f), 12, gravity = 0f)
+            }
+            else -> Unit
         }
     }
 
     private fun onHit(enemies: List<Enemy>) {
         isDone = true
         when (type) {
-            TowerType.ARROW -> target.takeDamage(damage)
-            TowerType.BOMB  -> {
-                // 範圍傷害
-                for (e in enemies) {
-                    val dx = e.x - target.x
-                    val dy = e.y - target.y
-                    if (sqrt(dx * dx + dy * dy) <= splashRadius) {
-                        e.takeDamage(damage)
-                    }
-                }
+            TowerType.ARROW -> {
+                target.takeDamage(damage)
+                Fx.hitSpark(x, y, Color.parseColor("#FFD700"))
+                Audio.play(Sfx.HIT)
             }
-            TowerType.ICE   -> {
+            TowerType.BOMB -> explode(enemies, x, y)
+            TowerType.ICE -> {
                 target.takeDamage(damage)
                 target.applySlow(slowFactor, slowDuration)
+                Fx.frost(x, y, Ui.dp(14f))
+                Audio.play(Sfx.ICE)
+            }
+            TowerType.POISON -> {
+                target.takeDamage(damage, ignoreArmor = true)
+                target.applyPoison(poisonDamage, poisonDuration)
+                Fx.burst(x, y, 8, Color.parseColor("#84CC16"), Ui.dp(1.4f), Ui.dp(2f), 20, gravity = -0.02f)
+                Audio.play(Sfx.POISON)
+            }
+            TowerType.LIGHT -> {
+                target.takeDamage(damage)
+                Audio.play(Sfx.ZAP)
+            }
+        }
+    }
+
+    private fun explode(enemies: List<Enemy>, cx: Float, cy: Float) {
+        isDone = true
+        Fx.explosion(cx, cy, splashRadius)
+        Audio.play(Sfx.EXPLODE)
+        for (enemy in enemies) {
+            if (!enemy.isAlive) continue
+            val dx = enemy.x - cx
+            val dy = enemy.y - cy
+            if (sqrt(dx * dx + dy * dy) <= splashRadius) {
+                enemy.takeDamage(damage)
             }
         }
     }
 
     fun draw(canvas: Canvas) {
         if (isDone) return
+        paint.style = Paint.Style.FILL
         when (type) {
             TowerType.ARROW -> {
-                // 短線子彈，朝目標方向
-                val dx = target.x - x
-                val dy = target.y - y
-                val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
-                val nx = dx / dist * 18f
-                val ny = dy / dist * 18f
-                paint.strokeWidth = 4f
+                val len = Ui.dp(7f)
+                paint.strokeWidth = Ui.dp(1.8f)
+                paint.style = Paint.Style.STROKE
+                paint.color = Color.parseColor("#66FFE9A8")
+                canvas.drawLine(x - dirX * len * 1.8f, y - dirY * len * 1.8f, x, y, paint)
                 paint.color = Color.parseColor("#FFD700")
-                canvas.drawLine(x - nx, y - ny, x + nx, y + ny, paint)
+                canvas.drawLine(x - dirX * len, y - dirY * len, x + dirX * len * 0.5f, y + dirY * len * 0.5f, paint)
+                paint.style = Paint.Style.FILL
             }
             TowerType.BOMB -> {
-                paint.textSize = 28f
-                canvas.drawText("💥", x - 14f, y + 10f, paint)
+                paint.color = Color.parseColor("#33221F")
+                canvas.drawCircle(x, y, Ui.dp(4f), paint)
+                paint.color = Color.parseColor("#FF8A3D")
+                canvas.drawCircle(x - dirX * Ui.dp(4f), y - dirY * Ui.dp(4f), Ui.dp(1.6f), paint)
             }
             TowerType.ICE -> {
-                paint.textSize = 24f
-                canvas.drawText("❄️", x - 12f, y + 8f, paint)
+                paint.color = Color.parseColor("#CCE8FAFF")
+                canvas.drawCircle(x, y, Ui.dp(3.2f), paint)
+                paint.color = Color.parseColor("#8FD8FF")
+                canvas.drawCircle(x, y, Ui.dp(2f), paint)
+            }
+            TowerType.POISON -> {
+                paint.color = Color.parseColor("#A3E635")
+                canvas.drawCircle(x, y, Ui.dp(3.4f), paint)
+                paint.color = Color.parseColor("#65A30D")
+                canvas.drawCircle(x + Ui.dp(0.8f), y + Ui.dp(0.8f), Ui.dp(1.6f), paint)
+            }
+            TowerType.LIGHT -> {
+                paint.color = Color.parseColor("#C4B5FD")
+                canvas.drawCircle(x, y, Ui.dp(3f), paint)
             }
         }
     }
 }
-
-// Enemy 需要暴露 x, y 給 Bullet，並支持減速
-// 下面在 Enemy.kt 增加這些屬性

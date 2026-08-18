@@ -1,3 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">保衛蘿蔔</string>
+
+    <!-- App -->
+    <string name="app_name">The Last Carrot</string>
+
+    <!-- Main menu -->
+    <string name="menu_title">The Last Carrot</string>
+    <string name="menu_tagline">Build, upgrade, and hold the line</string>
+    <string name="menu_continue">Continue</string>
+    <string name="menu_start">Play</string>
+    <string name="menu_levels">Levels</string>
+    <string name="menu_help">How to Play</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_progress">Cleared %1$d/%2$d   ★ %3$d/%4$d</string>
+    <string name="menu_current_level">Level: %1$s</string>
+
+    <!-- Level select -->
+    <string name="levels_title">Select Level</string>
+    <string name="level_locked">Clear level %1$d to unlock</string>
+    <string name="level_card_info">Waves %1$d · Carrot %2$d</string>
+    <string name="common_back">Back</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_sound">Sound</string>
+    <string name="settings_music">Music</string>
+    <string name="settings_on">On</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_reset">Reset Progress</string>
+    <string name="settings_reset_confirm">Tap again to confirm</string>
+    <string name="settings_reset_warning">All stars will be erased</string>
+
+    <!-- How to play -->
+    <string name="help_title">How to Play</string>
+    <string name="help_towers">Towers</string>
+    <string name="help_enemies">Enemies</string>
+    <string name="help_tower_line">%1$s %2$s (%3$d🪙) %4$s</string>
+    <string name="help_enemy_line">%1$s %2$s: %3$s</string>
+    <string name="help_tower_note_1">Towers upgrade to level 3. Selling refunds 65% of what you spent.</string>
+    <string name="help_tower_note_2">Select a tower to switch targeting: First / Strongest / Nearest.</string>
+    <string name="help_enemy_note_1">Poison ignores armour. Ice slows even armoured units.</string>
+    <string name="help_enemy_note_2">Call waves early for bonus gold. Speed (1x/2x/3x) is top right.</string>
+
+    <!-- In-game HUD -->
+    <string name="hud_wave">Wave %1$d/%2$d</string>
+    <string name="hud_wave_remaining">%1$s · %2$d left</string>
+    <string name="hud_score">Score %1$d</string>
+    <string name="hud_call_wave">Call Wave</string>
+    <string name="hud_call_wave_bonus">+%1$d 🪙 · %2$ds</string>
+    <string name="hud_incoming">Incoming</string>
+    <string name="hud_remaining">%1$d left</string>
+    <string name="hud_boss">%1$s %2$s  %3$d</string>
+
+    <!-- Pause -->
+    <string name="pause_title">Paused</string>
+    <string name="pause_summary">%1$s · Wave %2$d · Score %3$d</string>
+    <string name="pause_resume">Resume</string>
+    <string name="pause_restart">Restart</string>
+    <string name="pause_settings">Settings</string>
+    <string name="pause_save_exit">Save &amp; Exit</string>
+
+    <!-- Result -->
+    <string name="result_victory">Carrot Saved!</string>
+    <string name="result_defeat">The Carrot Was Eaten</string>
+    <string name="result_new_record">New record!</string>
+    <string name="result_best">Best %1$d ★</string>
+    <string name="result_survived">Survived to wave %1$d/%2$d</string>
+    <string name="result_stats">Kills %1$d   Gold %2$d🪙   Leaks %3$d   Score %4$d</string>
+    <string name="result_next_level">Next Level</string>
+    <string name="result_replay">Play Again</string>
+    <string name="result_menu">Main Menu</string>
+
+    <!-- Tower panel -->
+    <string name="tower_panel_header">%1$s %2$s Lv.%3$d</string>
+    <string name="tower_panel_stats">DMG %1$d · DPS %2$d · Range %3$d</string>
+    <string name="tower_stat_rate">%1$s shots/sec</string>
+    <string name="tower_stat_slow">Slow %1$d%% · %2$ds</string>
+    <string name="tower_stat_splash">Blast radius %1$d</string>
+    <string name="tower_stat_poison">Poison %1$d/tick · ignores armour</string>
+    <string name="tower_stat_chain">Chains to %1$d targets</string>
+    <string name="tower_max_level">MAX</string>
+    <string name="tower_upgrade">Upgrade</string>
+    <string name="tower_price">%1$d🪙</string>
+    <string name="tower_sell">Sell</string>
+    <string name="tower_refund">+%1$d🪙</string>
+    <string name="tower_target">Target</string>
+
+    <!-- Floating messages -->
+    <string name="toast_cannot_build">Can\'t build here</string>
+    <string name="toast_no_gold">Not enough gold</string>
+    <string name="toast_level_up">Lv.%1$d</string>
+
+    <!-- Map -->
+    <string name="map_start">GO</string>
+
+    <!-- Towers -->
+    <string name="tower_arrow">Arrow</string>
+    <string name="tower_arrow_tag">Fast single target</string>
+    <string name="tower_ice">Ice</string>
+    <string name="tower_ice_tag">Slows enemies down</string>
+    <string name="tower_bomb">Bomb</string>
+    <string name="tower_bomb_tag">Splash damage</string>
+    <string name="tower_poison">Poison</string>
+    <string name="tower_poison_tag">Damage over time, ignores armour</string>
+    <string name="tower_tesla">Tesla</string>
+    <string name="tower_tesla_tag">Chain lightning</string>
+
+    <!-- Targeting modes -->
+    <string name="target_first">First</string>
+    <string name="target_strongest">Strongest</string>
+    <string name="target_nearest">Nearest</string>
+
+    <!-- Enemies -->
+    <string name="enemy_grunt">Thief</string>
+    <string name="enemy_grunt_note">Standard unit</string>
+    <string name="enemy_runner">Sprinter</string>
+    <string name="enemy_runner_note">Fragile but very fast</string>
+    <string name="enemy_swarm">Swarm</string>
+    <string name="enemy_swarm_note">Arrives in huge numbers</string>
+    <string name="enemy_tank">Ironhide</string>
+    <string name="enemy_tank_note">Armour %1$d, costs %2$d carrot HP</string>
+    <string name="enemy_boss">Overlord</string>
+    <string name="enemy_boss_note">Armour %1$d, costs %2$d carrot HP</string>
+
+    <!-- Levels -->
+    <string name="level_1_name">Garden Path</string>
+    <string name="level_1_desc">Tutorial: learn to build and upgrade</string>
+    <string name="level_2_name">Winding Furrows</string>
+    <string name="level_2_desc">A longer route where bombs shine</string>
+    <string name="level_3_name">Night Farm</string>
+    <string name="level_3_desc">Faster enemies, ice towers help</string>
+    <string name="level_4_name">Serpent Maze</string>
+    <string name="level_4_desc">Very long path, poison excels here</string>
+    <string name="level_5_name">Carrot Fortress</string>
+    <string name="level_5_desc">Final stand, two overlords incoming</string>
+
 </resources>

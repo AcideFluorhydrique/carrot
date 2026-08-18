@@ -6,36 +6,51 @@ import android.view.SurfaceHolder
 class GameThread(
     private val surfaceHolder: SurfaceHolder,
     private val gameView: GameView
-) : Thread() {
+) : Thread("carrot-game-loop") {
 
+    @Volatile
     var running = false
-    private val targetFps = 60
-    private val targetTimeMs = 1000L / targetFps
 
     override fun run() {
         while (running) {
-            val startTime = System.currentTimeMillis()
+            val startTime = System.nanoTime()
 
             var canvas: Canvas? = null
             try {
                 canvas = surfaceHolder.lockCanvas()
-                val lockedCanvas = canvas
-                if (lockedCanvas != null) {
+                if (canvas != null) {
                     synchronized(surfaceHolder) {
                         gameView.update()
-                        gameView.draw(lockedCanvas)
+                        gameView.draw(canvas)
                     }
                 }
+            } catch (e: IllegalStateException) {
+                // Surface 正在被回收，下一輪重試
             } finally {
                 if (canvas != null) {
-                    surfaceHolder.unlockCanvasAndPost(canvas)
+                    try {
+                        surfaceHolder.unlockCanvasAndPost(canvas)
+                    } catch (e: IllegalStateException) {
+                        // 忽略：surface 已失效
+                    }
                 }
             }
 
-            // 控制幀率
-            val elapsed = System.currentTimeMillis() - startTime
-            val sleepTime = targetTimeMs - elapsed
-            if (sleepTime > 0) sleep(sleepTime)
+            val elapsedMs = (System.nanoTime() - startTime) / 1_000_000L
+            val sleepMs = TARGET_FRAME_MS - elapsedMs
+            if (sleepMs > 0) {
+                try {
+                    sleep(sleepMs)
+                } catch (e: InterruptedException) {
+                    currentThread().interrupt()
+                    return
+                }
+            }
         }
+    }
+
+    companion object {
+        private const val TARGET_FPS = 60
+        private const val TARGET_FRAME_MS = 1000L / TARGET_FPS
     }
 }

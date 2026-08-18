@@ -2,103 +2,136 @@ package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Shader
+import java.util.Locale
 
-class TowerUpgradePanel(private val screenWidth: Int, private val screenHeight: Int) {
+/**
+ * 選中塔之後的操作面板：升級、賣出、切換選敵模式。
+ * 放在左下角，避開右下角的「催下一波」按鈕與底部選塔列。
+ */
+class TowerUpgradePanel {
 
     private val paint = Paint().apply { isAntiAlias = true }
-    private val panel = RectF()
-    private val upgradeButton = RectF()
 
-    init {
-        val panelW = minOf(360f, screenWidth - 24f)
-        val panelH = 116f
-        val bottomBarHeight = 102f
-        panel.set(
-            screenWidth - panelW - 12f,
-            screenHeight - bottomBarHeight - panelH - 12f,
-            screenWidth - 12f,
-            screenHeight - bottomBarHeight - 12f
-        )
-        upgradeButton.set(panel.right - 134f, panel.top + 58f, panel.right - 16f, panel.bottom - 14f)
-    }
+    /** 回傳 true 表示點擊被面板吃掉。 */
+    fun onTap(x: Float, y: Float, w: Int, h: Int, towerManager: TowerManager): Boolean {
+        if (towerManager.selectedTower == null) return false
+        if (!panelRect(w, h).contains(x, y)) return false
 
-    fun onTap(x: Float, y: Float, towerManager: TowerManager): Boolean {
-        if (towerManager.selectedTower == null || !panel.contains(x, y)) return false
-        if (upgradeButton.contains(x, y)) {
-            towerManager.upgradeSelected()
+        when {
+            closeRect(w, h).contains(x, y) -> towerManager.clearSelection()
+            upgradeRect(w, h).contains(x, y) -> towerManager.upgradeSelected()
+            sellRect(w, h).contains(x, y) -> towerManager.sellSelected()
+            modeRect(w, h).contains(x, y) -> towerManager.cycleTargetModeOfSelected()
+            else -> Unit
         }
         return true
     }
 
-    fun draw(canvas: Canvas, towerManager: TowerManager) {
+    fun draw(canvas: Canvas, w: Int, h: Int, towerManager: TowerManager) {
         val tower = towerManager.selectedTower ?: return
+        val panel = panelRect(w, h)
+        Widgets.panel(canvas, panel)
 
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#66000000")
-        canvas.drawRoundRect(RectF(panel.left, panel.top + 4f, panel.right, panel.bottom + 4f), 14f, 14f, paint)
-
-        paint.shader = LinearGradient(
-            panel.left, panel.top, panel.left, panel.bottom,
-            Color.parseColor("#F02B3534"),
-            Color.parseColor("#E9182422"),
-            Shader.TileMode.CLAMP
+        val padding = Ui.dp(8f)
+        val textWidth = panel.width() - padding * 2f - Ui.dp(22f)
+        val header = Strings.format(
+            R.string.tower_panel_header, tower.type.emoji, tower.type.displayName, tower.level
         )
-        canvas.drawRoundRect(panel, 10f, 10f, paint)
-        paint.shader = null
+        Widgets.leftFit(
+            canvas, header, panel.left + padding, panel.top + Ui.dp(15f),
+            Ui.dp(13f), textWidth, Color.parseColor("#FFFDF2"), bold = true
+        )
 
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = Color.parseColor("#66FFFFFF")
-        canvas.drawRoundRect(panel, 10f, 10f, paint)
-
+        val close = closeRect(w, h)
         paint.style = Paint.Style.FILL
-        paint.isFakeBoldText = true
-        paint.color = Color.parseColor("#FFFDF2")
-        paint.textSize = 28f
-        canvas.drawText("${towerIcon(tower.type)} Lv.${tower.level}", panel.left + 16f, panel.top + 34f, paint)
+        paint.color = Color.parseColor("#33FFFFFF")
+        canvas.drawRoundRect(close, Ui.dp(5f), Ui.dp(5f), paint)
+        Widgets.centered(canvas, "✕", close.centerX(), close.centerY() + Ui.dp(4f), Ui.dp(11f), bold = true, color = Color.parseColor("#F0F5EE"))
 
-        paint.isFakeBoldText = false
-        paint.textSize = 20f
-        paint.color = Color.parseColor("#DDE7F5E9")
-        canvas.drawText("攻擊 ${tower.damage}  範圍 ${tower.range.toInt()}  間隔 ${tower.attackInterval}", panel.left + 16f, panel.top + 66f, paint)
+        val statsColor = Color.parseColor("#C9DED2")
+        Widgets.leftFit(
+            canvas,
+            Strings.format(
+                R.string.tower_panel_stats,
+                tower.damage, tower.dps, (tower.range / Ui.dp(1f)).toInt()
+            ),
+            panel.left + padding, panel.top + Ui.dp(29f), Ui.dp(9.5f),
+            panel.width() - padding * 2f, statsColor
+        )
+        Widgets.leftFit(
+            canvas, extraStat(tower),
+            panel.left + padding, panel.top + Ui.dp(40f), Ui.dp(9.5f),
+            panel.width() - padding * 2f, statsColor
+        )
 
-        val maxLevel = tower.level >= 3
         val canUpgrade = towerManager.canUpgradeSelected()
-        paint.style = Paint.Style.FILL
-        paint.color = when {
-            maxLevel -> Color.parseColor("#55444444")
-            canUpgrade -> Color.parseColor("#CC2E7D32")
-            else -> Color.parseColor("#66555555")
-        }
-        canvas.drawRoundRect(upgradeButton, 8f, 8f, paint)
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 1.5f
-        paint.color = if (canUpgrade) Color.parseColor("#99F8FFB6") else Color.parseColor("#33FFFFFF")
-        canvas.drawRoundRect(upgradeButton, 8f, 8f, paint)
-
-        paint.style = Paint.Style.FILL
-        paint.color = if (maxLevel || canUpgrade) Color.parseColor("#FFFDF2") else Color.parseColor("#99FFFFFF")
-        paint.textSize = 22f
-        paint.isFakeBoldText = true
-        val label = when {
-            maxLevel -> "MAX"
-            else -> "升級 ${tower.upgradeCost}🪙"
-        }
-        val tw = paint.measureText(label)
-        canvas.drawText(label, upgradeButton.centerX() - tw / 2f, upgradeButton.centerY() + 8f, paint)
-        paint.isFakeBoldText = false
+        Widgets.button(
+            canvas, upgradeRect(w, h),
+            Strings.get(if (tower.isMaxLevel) R.string.tower_max_level else R.string.tower_upgrade),
+            Widgets.GREEN_TOP, Widgets.GREEN_BOTTOM,
+            enabled = canUpgrade,
+            textSize = Ui.dp(10.5f),
+            subLabel = if (tower.isMaxLevel) null else Strings.format(R.string.tower_price, tower.upgradeCost)
+        )
+        Widgets.button(
+            canvas, sellRect(w, h), Strings.get(R.string.tower_sell), Widgets.RED_TOP, Widgets.RED_BOTTOM,
+            textSize = Ui.dp(10.5f), subLabel = Strings.format(R.string.tower_refund, tower.sellValue)
+        )
+        Widgets.button(
+            canvas, modeRect(w, h), Strings.get(R.string.tower_target), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM,
+            textSize = Ui.dp(10.5f), subLabel = tower.targetMode.label
+        )
     }
 
-    private fun towerIcon(type: TowerType): String {
-        return when (type) {
-            TowerType.ARROW -> "🏹"
-            TowerType.BOMB -> "💣"
-            TowerType.ICE -> "❄️"
+    private fun extraStat(tower: Tower): String = when (tower.type) {
+        TowerType.ARROW -> Strings.format(
+            R.string.tower_stat_rate,
+            String.format(Locale.US, "%.1f", 60f / tower.attackInterval)
+        )
+        TowerType.ICE -> Strings.format(
+            R.string.tower_stat_slow,
+            ((1f - tower.slowFactor) * 100).toInt(), tower.slowDuration / 60
+        )
+        TowerType.BOMB -> Strings.format(
+            R.string.tower_stat_splash, (tower.splashRadius / Ui.dp(1f)).toInt()
+        )
+        TowerType.POISON -> Strings.format(R.string.tower_stat_poison, tower.poisonDamage)
+        TowerType.LIGHT -> Strings.format(R.string.tower_stat_chain, tower.chainTargets)
+    }
+
+    companion object {
+
+        fun panelRect(w: Int, h: Int): RectF {
+            val width = (w * 0.46f).coerceAtMost(Ui.dp(206f))
+            val height = Ui.dp(94f)
+            val left = Ui.dp(10f)
+            val bottom = h - Ui.bottomBarHeight - Ui.dp(8f)
+            return RectF(left, bottom - height, left + width, bottom)
+        }
+
+        fun closeRect(w: Int, h: Int): RectF {
+            val panel = panelRect(w, h)
+            val size = Ui.dp(18f)
+            return RectF(panel.right - size - Ui.dp(6f), panel.top + Ui.dp(5f), panel.right - Ui.dp(6f), panel.top + Ui.dp(5f) + size)
+        }
+
+        fun upgradeRect(w: Int, h: Int): RectF = actionRect(w, h, 0)
+
+        fun sellRect(w: Int, h: Int): RectF = actionRect(w, h, 1)
+
+        fun modeRect(w: Int, h: Int): RectF = actionRect(w, h, 2)
+
+        private fun actionRect(w: Int, h: Int, index: Int): RectF {
+            val panel = panelRect(w, h)
+            val padding = Ui.dp(8f)
+            val gap = Ui.dp(6f)
+            val width = (panel.width() - padding * 2 - gap * 2) / 3f
+            val height = Ui.dp(30f)
+            val left = panel.left + padding + index * (width + gap)
+            val top = panel.bottom - padding - height
+            return RectF(left, top, left + width, top + height)
         }
     }
 }

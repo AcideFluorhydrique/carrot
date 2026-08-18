@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- App -->
+    <string name="app_name">最后一根萝卜</string>
+
+    <!-- 主菜单 -->
+    <string name="menu_title">最后一根萝卜</string>
+    <string name="menu_tagline">放塔、升级，守住最后一根胡萝卜</string>
+    <string name="menu_continue">继续游戏</string>
+    <string name="menu_start">开始游戏</string>
+    <string name="menu_levels">选择关卡</string>
+    <string name="menu_help">玩法说明</string>
+    <string name="menu_settings">设置</string>
+    <string name="menu_progress">已通关 %1$d/%2$d   ★ %3$d/%4$d</string>
+    <string name="menu_current_level">当前关卡：%1$s</string>
+
+    <!-- 选关 -->
+    <string name="levels_title">选择关卡</string>
+    <string name="level_locked">通关第 %1$d 关解锁</string>
+    <string name="level_card_info">%1$d 波 · 萝卜 %2$d</string>
+    <string name="common_back">返回</string>
+
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_sound">音效</string>
+    <string name="settings_music">音乐</string>
+    <string name="settings_on">开启</string>
+    <string name="settings_off">关闭</string>
+    <string name="settings_reset">重置进度</string>
+    <string name="settings_reset_confirm">再按一次确认</string>
+    <string name="settings_reset_warning">会清除所有星级</string>
+
+    <!-- 玩法说明 -->
+    <string name="help_title">玩法说明</string>
+    <string name="help_towers">防御塔</string>
+    <string name="help_enemies">敌人</string>
+    <string name="help_tower_line">%1$s %2$s（%3$d🪙）%4$s</string>
+    <string name="help_enemy_line">%1$s %2$s：%3$s</string>
+    <string name="help_tower_note_1">每座塔可升到 3 级，卖出可退回 65% 投入。</string>
+    <string name="help_tower_note_2">选中塔可切换选敌模式：最前 / 最强 / 最近。</string>
+    <string name="help_enemy_note_1">毒伤无视护甲，冰塔可拖慢铁甲兽。</string>
+    <string name="help_enemy_note_2">提前催下一波可拿奖励金，右上角可切 1x/2x/3x。</string>
+
+    <!-- 游戏中 HUD -->
+    <string name="hud_wave">第 %1$d/%2$d 波</string>
+    <string name="hud_wave_remaining">%1$s · 剩 %2$d</string>
+    <string name="hud_score">分数 %1$d</string>
+    <string name="hud_call_wave">催下一波</string>
+    <string name="hud_call_wave_bonus">+%1$d 🪙 · %2$d 秒</string>
+    <string name="hud_incoming">进攻中</string>
+    <string name="hud_remaining">剩 %1$d</string>
+    <string name="hud_boss">%1$s %2$s  %3$d</string>
+
+    <!-- 暂停 -->
+    <string name="pause_title">暂停中</string>
+    <string name="pause_summary">%1$s · 第 %2$d 波 · 分数 %3$d</string>
+    <string name="pause_resume">继续</string>
+    <string name="pause_restart">重新开始</string>
+    <string name="pause_settings">设置</string>
+    <string name="pause_save_exit">保存并离开</string>
+
+    <!-- 结算 -->
+    <string name="result_victory">守住了！</string>
+    <string name="result_defeat">萝卜被吃掉了</string>
+    <string name="result_new_record">新纪录！</string>
+    <string name="result_best">最佳纪录 %1$d 星</string>
+    <string name="result_survived">撑到第 %1$d/%2$d 波</string>
+    <string name="result_stats">击杀 %1$d   赚取 %2$d🪙   漏怪 %3$d   分数 %4$d</string>
+    <string name="result_next_level">下一关</string>
+    <string name="result_replay">再玩一次</string>
+    <string name="result_menu">回主菜单</string>
+
+    <!-- 塔面板 -->
+    <string name="tower_panel_header">%1$s %2$s Lv.%3$d</string>
+    <string name="tower_panel_stats">伤害 %1$d · 每秒 %2$d · 范围 %3$d</string>
+    <string name="tower_stat_rate">攻速 %1$s 次/秒</string>
+    <string name="tower_stat_slow">减速 %1$d%% · %2$d 秒</string>
+    <string name="tower_stat_splash">爆炸范围 %1$d</string>
+    <string name="tower_stat_poison">毒伤 %1$d/跳 · 无视护甲</string>
+    <string name="tower_stat_chain">连锁 %1$d 个目标</string>
+    <string name="tower_max_level">已满级</string>
+    <string name="tower_upgrade">升级</string>
+    <string name="tower_price">%1$d🪙</string>
+    <string name="tower_sell">卖出</string>
+    <string name="tower_refund">+%1$d🪙</string>
+    <string name="tower_target">目标</string>
+
+    <!-- 场上提示 -->
+    <string name="toast_cannot_build">不能盖在这里</string>
+    <string name="toast_no_gold">金币不足</string>
+    <string name="toast_level_up">Lv.%1$d</string>
+
+    <!-- 地图 -->
+    <string name="map_start">GO</string>
+
+    <!-- 防御塔 -->
+    <string name="tower_arrow">箭塔</string>
+    <string name="tower_arrow_tag">单体速射</string>
+    <string name="tower_ice">冰塔</string>
+    <string name="tower_ice_tag">减速控场</string>
+    <string name="tower_bomb">炸弹塔</string>
+    <string name="tower_bomb_tag">范围爆破</string>
+    <string name="tower_poison">毒塔</string>
+    <string name="tower_poison_tag">无视护甲的持续伤害</string>
+    <string name="tower_tesla">电塔</string>
+    <string name="tower_tesla_tag">连锁闪电</string>
+
+    <!-- 选敌模式 -->
+    <string name="target_first">最前</string>
+    <string name="target_strongest">最强</string>
+    <string name="target_nearest">最近</string>
+
+    <!-- 敌人 -->
+    <string name="enemy_grunt">萝卜贼</string>
+    <string name="enemy_grunt_note">标准单位</string>
+    <string name="enemy_runner">飞毛腿</string>
+    <string name="enemy_runner_note">血少但很快</string>
+    <string name="enemy_swarm">虫群</string>
+    <string name="enemy_swarm_note">数量极多</string>
+    <string name="enemy_tank">铁甲兽</string>
+    <string name="enemy_tank_note">护甲 %1$d，漏掉扣 %2$d 血</string>
+    <string name="enemy_boss">菜园霸主</string>
+    <string name="enemy_boss_note">护甲 %1$d，漏掉扣 %2$d 血</string>
+
+    <!-- 关卡 -->
+    <string name="level_1_name">菜园小径</string>
+    <string name="level_1_desc">新手教学：学会放塔与升级</string>
+    <string name="level_2_name">弯弯田埂</string>
+    <string name="level_2_desc">路线变长，炸弹塔开始好用</string>
+    <string name="level_3_name">夜色农场</string>
+    <string name="level_3_desc">敌人更快，需要冰塔控场</string>
+    <string name="level_4_name">蛇行迷宫</string>
+    <string name="level_4_desc">超长蛇形路径，毒塔的主场</string>
+    <string name="level_5_name">萝卜要塞</string>
+    <string name="level_5_desc">最终防线，两只霸主接连来袭</string>
+
+</resources>

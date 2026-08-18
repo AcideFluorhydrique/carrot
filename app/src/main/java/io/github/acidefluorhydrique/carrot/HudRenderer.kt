@@ -11,210 +11,270 @@ class HudRenderer {
 
     private val paint = Paint().apply { isAntiAlias = true }
 
-    fun draw(canvas: Canvas, screenWidth: Int, screenHeight: Int) {
-        drawTopBar(canvas, screenWidth)
-        if (GameState.status == GameStatus.PAUSED) drawPaused(canvas, screenWidth, screenHeight)
-        if (GameState.status == GameStatus.DEFEAT) drawDefeat(canvas, screenWidth, screenHeight)
-        if (GameState.status == GameStatus.VICTORY) drawVictory(canvas, screenWidth, screenHeight)
-    }
+    // ---- 遊戲中 HUD ----
 
-    private fun drawTopBar(canvas: Canvas, screenWidth: Int) {
-        paint.style = Paint.Style.FILL
-        paint.shader = LinearGradient(
-            0f, 0f, 0f, 76f,
-            Color.parseColor("#F01A2A2B"),
-            Color.parseColor("#D0131D20"),
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRect(RectF(0f, 0f, screenWidth.toFloat(), 76f), paint)
-        paint.shader = null
-        paint.color = Color.parseColor("#335FE36B")
-        canvas.drawRect(RectF(0f, 72f, screenWidth.toFloat(), 76f), paint)
-
-        drawResourcePill(canvas, 10f, "🥕", GameState.carrotHp.toString(), "#D96031")
-        drawResourcePill(canvas, 142f, "🪙", GameState.gold.toString(), "#D7A331")
-
-        paint.color = Color.WHITE
-        paint.textSize = 22f
-        paint.isFakeBoldText = false
-        val waveText = "${GameState.level.name}  ${GameState.wave}/${GameState.level.waves.size} 波"
-        val tw = paint.measureText(waveText)
-        val labelLeft = maxOf(286f, screenWidth - tw - 100f)
-        paint.color = Color.parseColor("#DDEFE8")
-        canvas.drawText(waveText, labelLeft, 45f, paint)
-
-        drawPauseButton(canvas, screenWidth)
-    }
-
-    private fun drawPauseButton(canvas: Canvas, screenWidth: Int) {
-        val rect = pauseButtonRect(screenWidth)
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#66000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + 3f, rect.right, rect.bottom + 3f), 14f, 14f, paint)
-        paint.color = if (GameState.status == GameStatus.PAUSED) {
-            Color.parseColor("#D64FA85D")
-        } else {
-            Color.parseColor("#D6263430")
+    fun draw(canvas: Canvas, w: Int, h: Int, enemyManager: EnemyManager) {
+        drawTopBar(canvas, w, enemyManager)
+        drawBossBar(canvas, w, enemyManager)
+        if (GameState.status == GameStatus.PLAYING) {
+            drawWaveCall(canvas, w, h, enemyManager)
         }
-        canvas.drawRoundRect(rect, 14f, 14f, paint)
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = Color.parseColor("#55FFFFFF")
-        canvas.drawRoundRect(rect, 14f, 14f, paint)
-
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#FFFDF2")
-        paint.textSize = 28f
-        paint.isFakeBoldText = true
-        val label = if (GameState.status == GameStatus.PAUSED) "▶" else "Ⅱ"
-        val tw = paint.measureText(label)
-        canvas.drawText(label, rect.centerX() - tw / 2f, rect.centerY() + 10f, paint)
-        paint.isFakeBoldText = false
     }
 
-    private fun drawPaused(canvas: Canvas, w: Int, h: Int) {
+    private fun drawTopBar(canvas: Canvas, w: Int, enemyManager: EnemyManager) {
+        val barH = Ui.topBarHeight
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#C50B1112")
-        canvas.drawRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), paint)
-
-        paint.textSize = minOf(72f, w / 6.4f)
-        paint.isFakeBoldText = true
-        paint.color = Color.parseColor("#FFF7D6")
-        val title = "PAUSED"
-        val titleW = paint.measureText(title)
-        canvas.drawText(title, (w - titleW) / 2f, h * 0.33f, paint)
-
-        val resume = pauseResumeRect(w, h)
-        val saveExit = pauseSaveExitRect(w, h)
-        val restart = pauseRestartRect(w, h)
-        drawOverlayButton(canvas, resume, "繼續遊戲", "#4FA85D", "#2F7E3C")
-        drawOverlayButton(canvas, saveExit, "保存並返回", "#426D93", "#294D6F")
-        drawOverlayButton(canvas, restart, "重新開始", "#9A5A3A", "#713E2A")
-    }
-
-    private fun drawDefeat(canvas: Canvas, w: Int, h: Int) {
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#D0141014")
-        canvas.drawRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), paint)
-
-        paint.textSize = minOf(88f, w / 5.4f)
-        paint.isFakeBoldText = true
-        paint.color = Color.parseColor("#FF6B6B")
-        val text = "DEFEAT"
-        val tw = paint.measureText(text)
-        canvas.drawText(text, (w - tw) / 2, h / 2f, paint)
-
-        paint.textSize = minOf(38f, w / 10f)
-        paint.color = Color.WHITE
-        val sub = "🥕 蘿蔔被吃掉了！"
-        val sw = paint.measureText(sub)
-        canvas.drawText(sub, (w - sw) / 2, h / 2f + 60, paint)
-
-        drawBackHint(canvas, w, h)
-    }
-
-    private fun drawVictory(canvas: Canvas, w: Int, h: Int) {
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#D00D2415")
-        canvas.drawRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), paint)
-
-        paint.textSize = minOf(88f, w / 5.2f)
-        paint.isFakeBoldText = true
-        paint.color = Color.parseColor("#67E879")
-        val text = "VICTORY"
-        val tw = paint.measureText(text)
-        canvas.drawText(text, (w - tw) / 2, h / 2f, paint)
-
-        paint.textSize = minOf(38f, w / 10f)
-        paint.color = Color.WHITE
-        val sub = "🥕 蘿蔔保住了！"
-        val sw = paint.measureText(sub)
-        canvas.drawText(sub, (w - sw) / 2, h / 2f + 60, paint)
-
-        drawBackHint(canvas, w, h)
-    }
-
-    private fun drawBackHint(canvas: Canvas, w: Int, h: Int) {
-        paint.textSize = 26f
-        paint.isFakeBoldText = false
-        paint.color = Color.parseColor("#DDFFFFFF")
-        val hint = "點擊任意位置返回主界面"
-        val hw = paint.measureText(hint)
-        canvas.drawText(hint, (w - hw) / 2, h / 2f + 108f, paint)
-    }
-
-    private fun drawOverlayButton(canvas: Canvas, rect: RectF, label: String, topColor: String, bottomColor: String) {
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#66000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + 4f, rect.right, rect.bottom + 4f), 12f, 12f, paint)
         paint.shader = LinearGradient(
-            rect.left, rect.top, rect.left, rect.bottom,
-            Color.parseColor(topColor),
-            Color.parseColor(bottomColor),
-            Shader.TileMode.CLAMP
+            0f, 0f, 0f, barH,
+            Color.parseColor("#F21A2A2B"), Color.parseColor("#D2131D20"), Shader.TileMode.CLAMP
         )
-        canvas.drawRoundRect(rect, 12f, 12f, paint)
+        canvas.drawRect(RectF(0f, 0f, w.toFloat(), barH), paint)
         paint.shader = null
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = Color.parseColor("#55FFFFFF")
-        canvas.drawRoundRect(rect, 12f, 12f, paint)
+        paint.color = Color.parseColor("#445FE36B")
+        canvas.drawRect(RectF(0f, barH - Ui.dp(1.5f), w.toFloat(), barH), paint)
 
-        paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#FFFDF2")
-        paint.textSize = 26f
-        paint.isFakeBoldText = true
-        val tw = paint.measureText(label)
-        canvas.drawText(label, rect.centerX() - tw / 2f, rect.centerY() + 9f, paint)
-        paint.isFakeBoldText = false
+        val pillW = Ui.dp(74f)
+        val pillH = Ui.dp(26f)
+        val pillTop = (barH - pillH) / 2f
+        val carrotDanger = GameState.carrotHp * 3 <= GameState.maxCarrotHp
+        drawPill(
+            canvas, RectF(Ui.dp(8f), pillTop, Ui.dp(8f) + pillW, pillTop + pillH),
+            "🥕", "${GameState.carrotHp}/${GameState.maxCarrotHp}",
+            if (carrotDanger) "#EF4444" else "#D96031"
+        )
+        val goldLeft = Ui.dp(8f) + pillW + Ui.dp(6f)
+        drawPill(
+            canvas, RectF(goldLeft, pillTop, goldLeft + pillW, pillTop + pillH),
+            "🪙", GameState.gold.toString(), "#D7A331"
+        )
+
+        val speedRect = speedButtonRect(w)
+        val pauseRect = pauseButtonRect(w)
+
+        // 關卡與波次
+        val infoLeft = goldLeft + pillW + Ui.dp(10f)
+        val infoRight = speedRect.left - Ui.dp(8f)
+        if (infoRight - infoLeft > Ui.dp(60f)) {
+            val title = GameState.level.name
+            Widgets.left(canvas, title, infoLeft, barH * 0.44f, Ui.dp(12.5f), Color.parseColor("#FFF3D0"), bold = true)
+            val waveText = Strings.format(
+                R.string.hud_wave, enemyManager.currentWaveNumber, enemyManager.totalWaves
+            )
+            val remaining = enemyManager.enemies.size + enemyManager.pendingInWave
+            val sub = if (remaining > 0) {
+                Strings.format(R.string.hud_wave_remaining, waveText, remaining)
+            } else {
+                waveText
+            }
+            Widgets.left(canvas, sub, infoLeft, barH * 0.78f, Ui.dp(10f), Color.parseColor("#B8D6CE"))
+
+            val scoreText = Strings.format(R.string.hud_score, GameState.score)
+            val scoreW = Widgets.measure(scoreText, Ui.dp(10.5f))
+            if (infoRight - infoLeft > scoreW + Widgets.measure(sub, Ui.dp(10f)) + Ui.dp(20f)) {
+                Widgets.left(canvas, scoreText, infoRight - scoreW, barH * 0.78f, Ui.dp(10.5f), Color.parseColor("#9FBEB6"))
+            }
+        }
+
+        // 速度切換
+        Widgets.button(
+            canvas, speedRect, "${GameState.speed}x",
+            topColor = if (GameState.speed > 1) Widgets.AMBER_TOP else "#2E3B38",
+            bottomColor = if (GameState.speed > 1) Widgets.AMBER_BOTTOM else "#1E2926",
+            textSize = Ui.dp(13f)
+        )
+        // 暫停
+        Widgets.button(
+            canvas, pauseRect,
+            if (GameState.status == GameStatus.PAUSED) "▶" else "❚❚",
+            topColor = "#2E3B38", bottomColor = "#1E2926", textSize = Ui.dp(12f)
+        )
     }
 
-    private fun drawResourcePill(canvas: Canvas, left: Float, icon: String, value: String, accent: String) {
-        val rect = RectF(left, 12f, left + 118f, 60f)
+    private fun drawPill(canvas: Canvas, rect: RectF, icon: String, value: String, accent: String) {
+        val radius = rect.height() / 2f
         paint.style = Paint.Style.FILL
+        paint.shader = null
         paint.color = Color.parseColor("#66000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + 3f, rect.right, rect.bottom + 3f), 18f, 18f, paint)
-        paint.color = Color.parseColor("#E6263430")
-        canvas.drawRoundRect(rect, 18f, 18f, paint)
-
+        canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(2f), rect.right, rect.bottom + Ui.dp(2f)), radius, radius, paint)
+        paint.color = Color.parseColor("#E6212C29")
+        canvas.drawRoundRect(rect, radius, radius, paint)
         paint.color = Color.parseColor(accent)
-        canvas.drawCircle(rect.left + 24f, rect.centerY(), 17f, paint)
+        canvas.drawCircle(rect.left + radius, rect.centerY(), radius * 0.82f, paint)
 
-        paint.textSize = 28f
-        canvas.drawText(icon, rect.left + 10f, rect.centerY() + 10f, paint)
+        paint.textSize = rect.height() * 0.66f
+        canvas.drawText(icon, rect.left + radius - paint.measureText(icon) / 2f, rect.centerY() + rect.height() * 0.24f, paint)
 
-        paint.color = Color.parseColor("#FFFDF2")
-        paint.textSize = 25f
-        paint.isFakeBoldText = true
-        canvas.drawText("× $value", rect.left + 50f, rect.centerY() + 9f, paint)
-        paint.isFakeBoldText = false
+        Widgets.left(
+            canvas, value, rect.left + radius * 2f + Ui.dp(2f),
+            rect.centerY() + rect.height() * 0.22f, rect.height() * 0.52f,
+            Color.parseColor("#FFFDF2"), bold = true
+        )
+    }
+
+    private fun drawBossBar(canvas: Canvas, w: Int, enemyManager: EnemyManager) {
+        val boss = enemyManager.activeBoss() ?: return
+        val barW = (w * 0.5f).coerceAtMost(Ui.dp(260f))
+        val barH = Ui.dp(11f)
+        val left = (w - barW) / 2f
+        val top = Ui.topBarHeight + Ui.dp(6f)
+
+        paint.style = Paint.Style.FILL
+        paint.shader = null
+        paint.color = Color.parseColor("#99000000")
+        canvas.drawRoundRect(RectF(left - Ui.dp(2f), top - Ui.dp(2f), left + barW + Ui.dp(2f), top + barH + Ui.dp(2f)), barH, barH, paint)
+        paint.color = Color.parseColor("#3A1A1A")
+        canvas.drawRoundRect(RectF(left, top, left + barW, top + barH), barH, barH, paint)
+        paint.color = Color.parseColor("#EF4444")
+        canvas.drawRoundRect(RectF(left, top, left + barW * boss.hpRatio, top + barH), barH, barH, paint)
+
+        Widgets.centered(
+            canvas,
+            Strings.format(R.string.hud_boss, boss.kind.emoji, boss.kind.displayName, boss.hp),
+            w / 2f, top + barH * 0.82f, Ui.dp(8.5f), bold = true, color = Color.parseColor("#FFECEC")
+        )
+    }
+
+    private fun drawWaveCall(canvas: Canvas, w: Int, h: Int, enemyManager: EnemyManager) {
+        val rect = callWaveRect(w, h)
+        val preview = enemyManager.nextWavePreview()
+
+        if (enemyManager.canCallNextWave() && preview != null) {
+            // 預覽下一波組成
+            val chipY = rect.top - Ui.dp(7f)
+            var chipX = rect.left
+            paint.style = Paint.Style.FILL
+            paint.shader = null
+            paint.textSize = Ui.dp(13f)
+            for (kind in preview.kinds) {
+                canvas.drawText(kind.emoji, chipX, chipY, paint)
+                chipX += Ui.dp(16f)
+            }
+            if (preview.hasBoss()) {
+                Widgets.left(canvas, "BOSS", chipX + Ui.dp(2f), chipY, Ui.dp(9f), Color.parseColor("#FF9A9A"), bold = true)
+            }
+
+            Widgets.button(
+                canvas, rect, Strings.get(R.string.hud_call_wave), Widgets.AMBER_TOP, Widgets.AMBER_BOTTOM,
+                textSize = Ui.dp(12f),
+                subLabel = Strings.format(
+                    R.string.hud_call_wave_bonus, enemyManager.callBonus, enemyManager.countdownSeconds
+                )
+            )
+        } else {
+            Widgets.button(
+                canvas, rect, Strings.get(R.string.hud_incoming), "#2A3532", "#1A2320",
+                enabled = false, textSize = Ui.dp(12f),
+                subLabel = Strings.format(
+                    R.string.hud_remaining, enemyManager.enemies.size + enemyManager.pendingInWave
+                )
+            )
+        }
+    }
+
+    // ---- 覆蓋層 ----
+
+    fun drawPauseOverlay(canvas: Canvas, w: Int, h: Int) {
+        Widgets.scrim(canvas, w, h, "#D40B1112")
+        Widgets.centered(canvas, Strings.get(R.string.pause_title), w / 2f, h * 0.26f, Ui.dp(30f), bold = true, color = Color.parseColor("#FFF7D6"))
+        Widgets.centered(
+            canvas,
+            Strings.format(R.string.pause_summary, GameState.level.name, GameState.wave, GameState.score),
+            w / 2f, h * 0.26f + Ui.dp(24f), Ui.dp(12f), color = Color.parseColor("#BFD3C9")
+        )
+
+        Widgets.button(canvas, rowButtonRect(w, h, 0, 4, 0.55f), Strings.get(R.string.pause_resume), Widgets.GREEN_TOP, Widgets.GREEN_BOTTOM, textSize = Ui.dp(13f))
+        Widgets.button(canvas, rowButtonRect(w, h, 1, 4, 0.55f), Strings.get(R.string.pause_restart), Widgets.RED_TOP, Widgets.RED_BOTTOM, textSize = Ui.dp(13f))
+        Widgets.button(canvas, rowButtonRect(w, h, 2, 4, 0.55f), Strings.get(R.string.pause_settings), Widgets.PURPLE_TOP, Widgets.PURPLE_BOTTOM, textSize = Ui.dp(13f))
+        Widgets.button(canvas, rowButtonRect(w, h, 3, 4, 0.55f), Strings.get(R.string.pause_save_exit), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(13f))
+    }
+
+    fun drawResultOverlay(
+        canvas: Canvas,
+        w: Int,
+        h: Int,
+        victory: Boolean,
+        stars: Int,
+        bestStars: Int,
+        hasNextLevel: Boolean
+    ) {
+        Widgets.scrim(canvas, w, h, if (victory) "#D80D2415" else "#D8180F12")
+
+        val title = Strings.get(if (victory) R.string.result_victory else R.string.result_defeat)
+        val titleColor = if (victory) Color.parseColor("#7BE88C") else Color.parseColor("#FF7B7B")
+        Widgets.centered(canvas, title, w / 2f, h * 0.24f, Ui.dp(32f), bold = true, color = titleColor)
+
+        if (victory) {
+            Widgets.stars(canvas, w / 2f, h * 0.24f + Ui.dp(40f), stars, Ui.dp(30f))
+            val note = if (stars > bestStars) {
+                Strings.get(R.string.result_new_record)
+            } else {
+                Strings.format(R.string.result_best, bestStars)
+            }
+            Widgets.centered(canvas, note, w / 2f, h * 0.24f + Ui.dp(62f), Ui.dp(11f), color = Color.parseColor("#DCE9D9"))
+        } else {
+            Widgets.centered(
+                canvas,
+                Strings.format(R.string.result_survived, GameState.wave, GameState.level.waves.size),
+                w / 2f, h * 0.24f + Ui.dp(30f), Ui.dp(13f), color = Color.parseColor("#E7C9C9")
+            )
+        }
+
+        val statsY = h * 0.24f + Ui.dp(if (victory) 88f else 60f)
+        val stats = Strings.format(
+            R.string.result_stats,
+            GameState.kills, GameState.goldEarned, GameState.leaks, GameState.score
+        )
+        Widgets.centered(canvas, stats, w / 2f, statsY, Ui.dp(11.5f), color = Color.parseColor("#C7D8CF"))
+
+        val count = if (victory && hasNextLevel) 3 else 2
+        var index = 0
+        if (victory && hasNextLevel) {
+            Widgets.button(canvas, resultButtonRect(w, h, index, count), Strings.get(R.string.result_next_level), Widgets.GREEN_TOP, Widgets.GREEN_BOTTOM, textSize = Ui.dp(13f))
+            index++
+        }
+        Widgets.button(canvas, resultButtonRect(w, h, index, count), Strings.get(R.string.result_replay), Widgets.AMBER_TOP, Widgets.AMBER_BOTTOM, textSize = Ui.dp(13f))
+        index++
+        Widgets.button(canvas, resultButtonRect(w, h, index, count), Strings.get(R.string.result_menu), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(13f))
     }
 
     companion object {
-        fun pauseButtonRect(screenWidth: Int): RectF {
-            return RectF(screenWidth - 76f, 12f, screenWidth - 18f, 60f)
+
+        fun pauseButtonRect(w: Int): RectF {
+            val size = Ui.dp(30f)
+            val right = w - Ui.dp(8f)
+            val top = (Ui.topBarHeight - size) / 2f
+            return RectF(right - size, top, right, top + size)
         }
 
-        fun pauseResumeRect(screenWidth: Int, screenHeight: Int): RectF {
-            return pauseMenuButtonRect(screenWidth, screenHeight, 0)
+        fun speedButtonRect(w: Int): RectF {
+            val height = Ui.dp(30f)
+            val width = Ui.dp(40f)
+            val right = pauseButtonRect(w).left - Ui.dp(6f)
+            val top = (Ui.topBarHeight - height) / 2f
+            return RectF(right - width, top, right, top + height)
         }
 
-        fun pauseSaveExitRect(screenWidth: Int, screenHeight: Int): RectF {
-            return pauseMenuButtonRect(screenWidth, screenHeight, 1)
+        fun callWaveRect(w: Int, h: Int): RectF {
+            val width = Ui.dp(100f)
+            val height = Ui.dp(34f)
+            val right = w - Ui.dp(10f)
+            val bottom = h - Ui.bottomBarHeight - Ui.dp(8f)
+            return RectF(right - width, bottom - height, right, bottom)
         }
 
-        fun pauseRestartRect(screenWidth: Int, screenHeight: Int): RectF {
-            return pauseMenuButtonRect(screenWidth, screenHeight, 2)
-        }
-
-        private fun pauseMenuButtonRect(screenWidth: Int, screenHeight: Int, index: Int): RectF {
-            val width = minOf(340f, screenWidth - 64f)
-            val height = 58f
-            val gap = 14f
-            val totalHeight = height * 3f + gap * 2f
-            val top = screenHeight * 0.45f - totalHeight / 2f + index * (height + gap)
-            val left = (screenWidth - width) / 2f
+        /** 覆蓋層上水平排列的按鈕。 */
+        fun rowButtonRect(w: Int, h: Int, index: Int, count: Int, topRatio: Float): RectF {
+            val maxWidth = (w - Ui.dp(30f)) / count - Ui.dp(8f)
+            val width = maxWidth.coerceAtMost(Ui.dp(108f)).coerceAtLeast(Ui.dp(52f))
+            val height = Ui.dp(34f)
+            val gap = Ui.dp(8f)
+            val total = width * count + gap * (count - 1)
+            val left = (w - total) / 2f + index * (width + gap)
+            val top = h * topRatio
             return RectF(left, top, left + width, top + height)
         }
+
+        fun resultButtonRect(w: Int, h: Int, index: Int, count: Int): RectF =
+            rowButtonRect(w, h, index, count, 0.7f)
     }
 }

@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 data class EnemySnapshot(
+    val kind: String,
     val pathIndex: Int,
     val distanceTravelled: Float,
     val x: Float,
@@ -14,32 +15,43 @@ data class EnemySnapshot(
     val baseSpeed: Float,
     val goldReward: Int,
     val slowFactor: Float,
-    val slowTimer: Int
+    val slowTimer: Int,
+    val poisonDamage: Int,
+    val poisonTimer: Int
 )
 
 data class EnemyManagerSnapshot(
-    val spawnTimer: Int,
-    val spawnedInWave: Int,
+    val phase: Int,
     val waveIndex: Int,
-    val interWaveTimer: Int,
+    val groupIndex: Int,
+    val spawnedInGroup: Int,
+    val spawnTimer: Int,
+    val restTimer: Int,
     val enemies: List<EnemySnapshot>
 )
 
 data class TowerSnapshot(
     val col: Int,
     val row: Int,
-    val type: TowerType,
+    val type: String,
     val level: Int,
     val cooldown: Int,
-    val aimAngle: Float
+    val aimAngle: Float,
+    val invested: Int,
+    val targetMode: String
 )
 
 data class GameSave(
     val version: Int,
     val levelId: Int,
     val carrotHp: Int,
+    val maxCarrotHp: Int,
     val gold: Int,
     val wave: Int,
+    val kills: Int,
+    val goldEarned: Int,
+    val leaks: Int,
+    val speed: Int,
     val enemyManager: EnemyManagerSnapshot,
     val towers: List<TowerSnapshot>,
     val savedAt: Long
@@ -49,138 +61,204 @@ class SaveRepository(context: Context) {
 
     private val prefs = context.getSharedPreferences("carrot_save", Context.MODE_PRIVATE)
 
-    fun hasActiveSave(): Boolean = prefs.contains(KEY_ACTIVE_SAVE)
+    // ---- 進行中的存檔 ----
+
+    /** 便宜的檢查：不解析 JSON，只看鍵與版本號。 */
+    fun hasActiveSave(): Boolean =
+        prefs.contains(KEY_ACTIVE_SAVE) && prefs.getInt(KEY_ACTIVE_VERSION, 0) == SAVE_VERSION
 
     fun saveGame(save: GameSave) {
-        prefs.edit()
-            .putString(KEY_ACTIVE_SAVE, save.toJson().toString())
-            .apply()
+        runCatching {
+            prefs.edit()
+                .putString(KEY_ACTIVE_SAVE, save.toJson().toString())
+                .putInt(KEY_ACTIVE_VERSION, save.version)
+                .apply()
+        }
     }
 
     fun loadGame(): GameSave? {
         val raw = prefs.getString(KEY_ACTIVE_SAVE, null) ?: return null
-        return runCatching { JSONObject(raw).toGameSave() }.getOrNull()
+        val save = runCatching { JSONObject(raw).toGameSave() }.getOrNull() ?: return null
+        if (save.version != SAVE_VERSION) {
+            clearActiveSave()
+            return null
+        }
+        return save
     }
 
     fun clearActiveSave() {
-        prefs.edit().remove(KEY_ACTIVE_SAVE).apply()
+        prefs.edit().remove(KEY_ACTIVE_SAVE).remove(KEY_ACTIVE_VERSION).apply()
     }
 
-    fun markLevelCompleted(levelId: Int) {
-        val completed = completedLevels().toMutableSet()
-        completed.add(levelId)
+    // ---- 關卡進度（星等）----
+
+    fun recordResult(levelId: Int, stars: Int) {
+        if (stars <= 0) return
+        val current = starsFor(levelId)
+        if (stars <= current) return
+        val map = starMap().toMutableMap()
+        map[levelId] = stars
         prefs.edit()
-            .putStringSet(KEY_COMPLETED_LEVELS, completed.map { it.toString() }.toSet())
+            .putStringSet(KEY_STARS, map.map { "${it.key}:${it.value}" }.toSet())
             .apply()
     }
 
-    fun completedLevels(): Set<Int> {
-        return prefs.getStringSet(KEY_COMPLETED_LEVELS, emptySet())
-            .orEmpty()
-            .mapNotNull { it.toIntOrNull() }
-            .toSet()
+    fun starsFor(levelId: Int): Int = starMap()[levelId] ?: 0
+
+    /** 一次取出全部星等，供畫面快取，避免每一影格重複解析。 */
+    fun allStars(): Map<Int, Int> = starMap()
+
+    fun completedLevels(): Set<Int> = starMap().filterValues { it > 0 }.keys
+
+    fun totalStars(): Int = starMap().values.sum()
+
+    fun resetProgress() {
+        prefs.edit()
+            .remove(KEY_STARS)
+            .remove(KEY_ACTIVE_SAVE)
+            .remove(KEY_ACTIVE_VERSION)
+            .apply()
     }
 
-    private fun GameSave.toJson(): JSONObject {
-        return JSONObject()
-            .put("version", version)
-            .put("levelId", levelId)
-            .put("carrotHp", carrotHp)
-            .put("gold", gold)
-            .put("wave", wave)
-            .put("savedAt", savedAt)
-            .put("enemyManager", enemyManager.toJson())
-            .put("towers", JSONArray().also { array ->
-                towers.forEach { array.put(it.toJson()) }
-            })
+    private fun starMap(): Map<Int, Int> {
+        val raw = prefs.getStringSet(KEY_STARS, emptySet()).orEmpty()
+        val result = HashMap<Int, Int>()
+        for (entry in raw) {
+            val parts = entry.split(":")
+            if (parts.size != 2) continue
+            val id = parts[0].toIntOrNull() ?: continue
+            val stars = parts[1].toIntOrNull() ?: continue
+            result[id] = stars
+        }
+        return result
     }
 
-    private fun EnemyManagerSnapshot.toJson(): JSONObject {
-        return JSONObject()
-            .put("spawnTimer", spawnTimer)
-            .put("spawnedInWave", spawnedInWave)
-            .put("waveIndex", waveIndex)
-            .put("interWaveTimer", interWaveTimer)
-            .put("enemies", JSONArray().also { array ->
-                enemies.forEach { array.put(it.toJson()) }
-            })
+    // ---- 設定 ----
+
+    fun soundEnabled(): Boolean = prefs.getBoolean(KEY_SOUND, true)
+
+    fun musicEnabled(): Boolean = prefs.getBoolean(KEY_MUSIC, true)
+
+    fun setSoundEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SOUND, enabled).apply()
     }
 
-    private fun EnemySnapshot.toJson(): JSONObject {
-        return JSONObject()
-            .put("pathIndex", pathIndex)
-            .put("distanceTravelled", distanceTravelled.toDouble())
-            .put("x", x.toDouble())
-            .put("y", y.toDouble())
-            .put("hp", hp)
-            .put("maxHp", maxHp)
-            .put("baseSpeed", baseSpeed.toDouble())
-            .put("goldReward", goldReward)
-            .put("slowFactor", slowFactor.toDouble())
-            .put("slowTimer", slowTimer)
+    fun setMusicEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_MUSIC, enabled).apply()
     }
 
-    private fun TowerSnapshot.toJson(): JSONObject {
-        return JSONObject()
-            .put("col", col)
-            .put("row", row)
-            .put("type", type.name)
-            .put("level", level)
-            .put("cooldown", cooldown)
-            .put("aimAngle", aimAngle.toDouble())
+    fun lastLevelId(): Int = prefs.getInt(KEY_LAST_LEVEL, GameLevels.default.id)
+
+    fun setLastLevelId(id: Int) {
+        prefs.edit().putInt(KEY_LAST_LEVEL, id).apply()
     }
 
-    private fun JSONObject.toGameSave(): GameSave {
-        return GameSave(
-            version = optInt("version", SAVE_VERSION),
-            levelId = getInt("levelId"),
-            carrotHp = getInt("carrotHp"),
-            gold = getInt("gold"),
-            wave = getInt("wave"),
-            enemyManager = getJSONObject("enemyManager").toEnemyManagerSnapshot(),
-            towers = getJSONArray("towers").mapObjects { it.toTowerSnapshot() },
-            savedAt = optLong("savedAt", 0L)
-        )
-    }
+    // ---- JSON ----
 
-    private fun JSONObject.toEnemyManagerSnapshot(): EnemyManagerSnapshot {
-        return EnemyManagerSnapshot(
-            spawnTimer = getInt("spawnTimer"),
-            spawnedInWave = getInt("spawnedInWave"),
-            waveIndex = getInt("waveIndex"),
-            interWaveTimer = getInt("interWaveTimer"),
-            enemies = getJSONArray("enemies").mapObjects { it.toEnemySnapshot() }
-        )
-    }
+    private fun GameSave.toJson(): JSONObject = JSONObject()
+        .put("version", version)
+        .put("levelId", levelId)
+        .put("carrotHp", carrotHp)
+        .put("maxCarrotHp", maxCarrotHp)
+        .put("gold", gold)
+        .put("wave", wave)
+        .put("kills", kills)
+        .put("goldEarned", goldEarned)
+        .put("leaks", leaks)
+        .put("speed", speed)
+        .put("savedAt", savedAt)
+        .put("enemyManager", enemyManager.toJson())
+        .put("towers", JSONArray().also { array -> towers.forEach { array.put(it.toJson()) } })
 
-    private fun JSONObject.toEnemySnapshot(): EnemySnapshot {
-        return EnemySnapshot(
-            pathIndex = getInt("pathIndex"),
-            distanceTravelled = getDouble("distanceTravelled").toFloat(),
-            x = getDouble("x").toFloat(),
-            y = getDouble("y").toFloat(),
-            hp = getInt("hp"),
-            maxHp = getInt("maxHp"),
-            baseSpeed = getDouble("baseSpeed").toFloat(),
-            goldReward = getInt("goldReward"),
-            slowFactor = getDouble("slowFactor").toFloat(),
-            slowTimer = getInt("slowTimer")
-        )
-    }
+    private fun EnemyManagerSnapshot.toJson(): JSONObject = JSONObject()
+        .put("phase", phase)
+        .put("waveIndex", waveIndex)
+        .put("groupIndex", groupIndex)
+        .put("spawnedInGroup", spawnedInGroup)
+        .put("spawnTimer", spawnTimer)
+        .put("restTimer", restTimer)
+        .put("enemies", JSONArray().also { array -> enemies.forEach { array.put(it.toJson()) } })
 
-    private fun JSONObject.toTowerSnapshot(): TowerSnapshot {
-        return TowerSnapshot(
-            col = getInt("col"),
-            row = getInt("row"),
-            type = TowerType.valueOf(getString("type")),
-            level = getInt("level"),
-            cooldown = getInt("cooldown"),
-            aimAngle = getDouble("aimAngle").toFloat()
-        )
-    }
+    private fun EnemySnapshot.toJson(): JSONObject = JSONObject()
+        .put("kind", kind)
+        .put("pathIndex", pathIndex)
+        .put("distanceTravelled", distanceTravelled.toDouble())
+        .put("x", x.toDouble())
+        .put("y", y.toDouble())
+        .put("hp", hp)
+        .put("maxHp", maxHp)
+        .put("baseSpeed", baseSpeed.toDouble())
+        .put("goldReward", goldReward)
+        .put("slowFactor", slowFactor.toDouble())
+        .put("slowTimer", slowTimer)
+        .put("poisonDamage", poisonDamage)
+        .put("poisonTimer", poisonTimer)
+
+    private fun TowerSnapshot.toJson(): JSONObject = JSONObject()
+        .put("col", col)
+        .put("row", row)
+        .put("type", type)
+        .put("level", level)
+        .put("cooldown", cooldown)
+        .put("aimAngle", aimAngle.toDouble())
+        .put("invested", invested)
+        .put("targetMode", targetMode)
+
+    private fun JSONObject.toGameSave(): GameSave = GameSave(
+        version = optInt("version", 0),
+        levelId = getInt("levelId"),
+        carrotHp = getInt("carrotHp"),
+        maxCarrotHp = optInt("maxCarrotHp", getInt("carrotHp")),
+        gold = getInt("gold"),
+        wave = getInt("wave"),
+        kills = optInt("kills", 0),
+        goldEarned = optInt("goldEarned", 0),
+        leaks = optInt("leaks", 0),
+        speed = optInt("speed", 1),
+        enemyManager = getJSONObject("enemyManager").toEnemyManagerSnapshot(),
+        towers = getJSONArray("towers").mapObjects { it.toTowerSnapshot() },
+        savedAt = optLong("savedAt", 0L)
+    )
+
+    private fun JSONObject.toEnemyManagerSnapshot(): EnemyManagerSnapshot = EnemyManagerSnapshot(
+        phase = optInt("phase", EnemyManager.PHASE_PREPARING),
+        waveIndex = optInt("waveIndex", 0),
+        groupIndex = optInt("groupIndex", 0),
+        spawnedInGroup = optInt("spawnedInGroup", 0),
+        spawnTimer = optInt("spawnTimer", 0),
+        restTimer = optInt("restTimer", 0),
+        enemies = getJSONArray("enemies").mapObjects { it.toEnemySnapshot() }
+    )
+
+    private fun JSONObject.toEnemySnapshot(): EnemySnapshot = EnemySnapshot(
+        kind = optString("kind", EnemyKind.GRUNT.name),
+        pathIndex = getInt("pathIndex"),
+        distanceTravelled = getDouble("distanceTravelled").toFloat(),
+        x = getDouble("x").toFloat(),
+        y = getDouble("y").toFloat(),
+        hp = getInt("hp"),
+        maxHp = getInt("maxHp"),
+        baseSpeed = getDouble("baseSpeed").toFloat(),
+        goldReward = getInt("goldReward"),
+        slowFactor = getDouble("slowFactor").toFloat(),
+        slowTimer = getInt("slowTimer"),
+        poisonDamage = optInt("poisonDamage", 0),
+        poisonTimer = optInt("poisonTimer", 0)
+    )
+
+    private fun JSONObject.toTowerSnapshot(): TowerSnapshot = TowerSnapshot(
+        col = getInt("col"),
+        row = getInt("row"),
+        type = optString("type", TowerType.ARROW.name),
+        level = getInt("level"),
+        cooldown = getInt("cooldown"),
+        aimAngle = getDouble("aimAngle").toFloat(),
+        invested = optInt("invested", 50),
+        targetMode = optString("targetMode", TargetMode.FIRST.name)
+    )
 
     private fun <T> JSONArray.mapObjects(transform: (JSONObject) -> T): List<T> {
-        val result = mutableListOf<T>()
+        val result = ArrayList<T>()
         for (i in 0 until length()) {
             result.add(transform(getJSONObject(i)))
         }
@@ -188,8 +266,12 @@ class SaveRepository(context: Context) {
     }
 
     companion object {
-        private const val SAVE_VERSION = 1
+        const val SAVE_VERSION = 2
         private const val KEY_ACTIVE_SAVE = "active_save"
-        private const val KEY_COMPLETED_LEVELS = "completed_levels"
+        private const val KEY_ACTIVE_VERSION = "active_save_version"
+        private const val KEY_STARS = "level_stars"
+        private const val KEY_SOUND = "sound_enabled"
+        private const val KEY_MUSIC = "music_enabled"
+        private const val KEY_LAST_LEVEL = "last_level"
     }
 }

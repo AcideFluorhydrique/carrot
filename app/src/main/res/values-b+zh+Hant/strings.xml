@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- App -->
+    <string name="app_name">最後一根蘿蔔</string>
+
+    <!-- 主選單 -->
+    <string name="menu_title">最後一根蘿蔔</string>
+    <string name="menu_tagline">放塔、升級，守住最後一根胡蘿蔔</string>
+    <string name="menu_continue">繼續遊戲</string>
+    <string name="menu_start">開始遊戲</string>
+    <string name="menu_levels">選擇關卡</string>
+    <string name="menu_help">玩法說明</string>
+    <string name="menu_settings">設定</string>
+    <string name="menu_progress">已通關 %1$d/%2$d   ★ %3$d/%4$d</string>
+    <string name="menu_current_level">目前關卡：%1$s</string>
+
+    <!-- 選關 -->
+    <string name="levels_title">選擇關卡</string>
+    <string name="level_locked">通關第 %1$d 關解鎖</string>
+    <string name="level_card_info">%1$d 波 · 蘿蔔 %2$d</string>
+    <string name="common_back">返回</string>
+
+    <!-- 設定 -->
+    <string name="settings_title">設定</string>
+    <string name="settings_sound">音效</string>
+    <string name="settings_music">音樂</string>
+    <string name="settings_on">開啟</string>
+    <string name="settings_off">關閉</string>
+    <string name="settings_reset">重置進度</string>
+    <string name="settings_reset_confirm">再按一次確認</string>
+    <string name="settings_reset_warning">會清除所有星等</string>
+
+    <!-- 玩法說明 -->
+    <string name="help_title">玩法說明</string>
+    <string name="help_towers">防禦塔</string>
+    <string name="help_enemies">敵人</string>
+    <string name="help_tower_line">%1$s %2$s（%3$d🪙）%4$s</string>
+    <string name="help_enemy_line">%1$s %2$s：%3$s</string>
+    <string name="help_tower_note_1">每座塔可升到 3 級，賣出可退回 65% 投入。</string>
+    <string name="help_tower_note_2">選中塔可切換選敵模式：最前 / 最強 / 最近。</string>
+    <string name="help_enemy_note_1">毒傷無視護甲，冰塔可拖慢鐵甲獸。</string>
+    <string name="help_enemy_note_2">提前催下一波可拿獎勵金，右上角可切 1x/2x/3x。</string>
+
+    <!-- 遊戲中 HUD -->
+    <string name="hud_wave">第 %1$d/%2$d 波</string>
+    <string name="hud_wave_remaining">%1$s · 剩 %2$d</string>
+    <string name="hud_score">分數 %1$d</string>
+    <string name="hud_call_wave">催下一波</string>
+    <string name="hud_call_wave_bonus">+%1$d 🪙 · %2$d 秒</string>
+    <string name="hud_incoming">進攻中</string>
+    <string name="hud_remaining">剩 %1$d</string>
+    <string name="hud_boss">%1$s %2$s  %3$d</string>
+
+    <!-- 暫停 -->
+    <string name="pause_title">暫停中</string>
+    <string name="pause_summary">%1$s · 第 %2$d 波 · 分數 %3$d</string>
+    <string name="pause_resume">繼續</string>
+    <string name="pause_restart">重新開始</string>
+    <string name="pause_settings">設定</string>
+    <string name="pause_save_exit">保存並離開</string>
+
+    <!-- 結算 -->
+    <string name="result_victory">守住了！</string>
+    <string name="result_defeat">蘿蔔被吃掉了</string>
+    <string name="result_new_record">新紀錄！</string>
+    <string name="result_best">最佳紀錄 %1$d 星</string>
+    <string name="result_survived">撐到第 %1$d/%2$d 波</string>
+    <string name="result_stats">擊殺 %1$d   賺取 %2$d🪙   漏怪 %3$d   分數 %4$d</string>
+    <string name="result_next_level">下一關</string>
+    <string name="result_replay">再玩一次</string>
+    <string name="result_menu">回主選單</string>
+
+    <!-- 塔面板 -->
+    <string name="tower_panel_header">%1$s %2$s Lv.%3$d</string>
+    <string name="tower_panel_stats">傷害 %1$d · 每秒 %2$d · 範圍 %3$d</string>
+    <string name="tower_stat_rate">攻速 %1$s 次/秒</string>
+    <string name="tower_stat_slow">減速 %1$d%% · %2$d 秒</string>
+    <string name="tower_stat_splash">爆炸範圍 %1$d</string>
+    <string name="tower_stat_poison">毒傷 %1$d/跳 · 無視護甲</string>
+    <string name="tower_stat_chain">連鎖 %1$d 個目標</string>
+    <string name="tower_max_level">已滿級</string>
+    <string name="tower_upgrade">升級</string>
+    <string name="tower_price">%1$d🪙</string>
+    <string name="tower_sell">賣出</string>
+    <string name="tower_refund">+%1$d🪙</string>
+    <string name="tower_target">目標</string>
+
+    <!-- 場上提示 -->
+    <string name="toast_cannot_build">不能蓋在這裡</string>
+    <string name="toast_no_gold">金幣不足</string>
+    <string name="toast_level_up">Lv.%1$d</string>
+
+    <!-- 地圖 -->
+    <string name="map_start">GO</string>
+
+    <!-- 防禦塔 -->
+    <string name="tower_arrow">箭塔</string>
+    <string name="tower_arrow_tag">單體速射</string>
+    <string name="tower_ice">冰塔</string>
+    <string name="tower_ice_tag">減速控場</string>
+    <string name="tower_bomb">炸彈塔</string>
+    <string name="tower_bomb_tag">範圍爆破</string>
+    <string name="tower_poison">毒塔</string>
+    <string name="tower_poison_tag">無視護甲的持續傷害</string>
+    <string name="tower_tesla">電塔</string>
+    <string name="tower_tesla_tag">連鎖閃電</string>
+
+    <!-- 選敵模式 -->
+    <string name="target_first">最前</string>
+    <string name="target_strongest">最強</string>
+    <string name="target_nearest">最近</string>
+
+    <!-- 敵人 -->
+    <string name="enemy_grunt">蘿蔔賊</string>
+    <string name="enemy_grunt_note">標準單位</string>
+    <string name="enemy_runner">飛毛腿</string>
+    <string name="enemy_runner_note">血少但很快</string>
+    <string name="enemy_swarm">蟲群</string>
+    <string name="enemy_swarm_note">數量極多</string>
+    <string name="enemy_tank">鐵甲獸</string>
+    <string name="enemy_tank_note">護甲 %1$d，漏掉扣 %2$d 血</string>
+    <string name="enemy_boss">菜園霸主</string>
+    <string name="enemy_boss_note">護甲 %1$d，漏掉扣 %2$d 血</string>
+
+    <!-- 關卡 -->
+    <string name="level_1_name">菜園小徑</string>
+    <string name="level_1_desc">新手教學：學會放塔與升級</string>
+    <string name="level_2_name">彎彎田埂</string>
+    <string name="level_2_desc">路線變長，炸彈塔開始好用</string>
+    <string name="level_3_name">夜色農場</string>
+    <string name="level_3_desc">敵人更快，需要冰塔控場</string>
+    <string name="level_4_name">蛇行迷宮</string>
+    <string name="level_4_desc">超長蛇形路徑，毒塔的主場</string>
+    <string name="level_5_name">蘿蔔要塞</string>
+    <string name="level_5_desc">最終防線，兩隻霸主接連來襲</string>
+
+</resources>

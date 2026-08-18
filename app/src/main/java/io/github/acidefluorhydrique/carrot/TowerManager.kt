@@ -3,161 +3,386 @@ package io.github.acidefluorhydrique.carrot
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import kotlin.math.*
+import android.graphics.RectF
+import kotlin.math.sqrt
 
 class TowerManager(private val gameMap: GameMap) {
 
     val towers = mutableListOf<Tower>()
     val bullets = mutableListOf<Bullet>()
 
-    // 當前選中要放置的塔類型（null = 未選擇）
+    /** 目前選取要建造的塔種（null = 未選）。 */
     var selectedType: TowerType? = null
+        private set
+
+    /** 目前選取的既有塔。 */
     var selectedTower: Tower? = null
         private set
 
+    private var ghostCol = -1
+    private var ghostRow = -1
+    private var placing = false
+
     private val paint = Paint().apply { isAntiAlias = true }
+
+    val ghostVisible: Boolean get() = placing && gameMap.isValidCell(ghostCol, ghostRow)
 
     fun reset() {
         towers.clear()
         bullets.clear()
         selectedType = null
         selectedTower = null
+        cancelPlacement()
     }
 
-    fun snapshot(): List<TowerSnapshot> {
-        return towers.map {
-            TowerSnapshot(
-                col = it.col,
-                row = it.row,
-                type = it.type,
-                level = it.level,
-                cooldown = it.cooldown,
-                aimAngle = it.aimAngle
-            )
+    // ---- 建造流程（按下拖曳定位、放開才落塔）----
+
+    fun toggleBuildType(type: TowerType) {
+        selectedType = if (selectedType == type) null else type
+        selectedTower = null
+        cancelPlacement()
+        Audio.play(if (selectedType == null) Sfx.SELL else Sfx.BUILD)
+    }
+
+    fun clearBuildType() {
+        selectedType = null
+        cancelPlacement()
+    }
+
+    fun clearSelection() {
+        selectedTower = null
+    }
+
+    /** 手指按在地圖上。回傳 true 表示已被建造流程接管。 */
+    fun onMapDown(x: Float, y: Float): Boolean {
+        val (col, row) = gameMap.pixelToCell(x, y)
+        if (!gameMap.isValidCell(col, row)) {
+            selectedTower = null
+            return false
         }
+
+        val existing = towers.firstOrNull { it.col == col && it.row == row }
+        if (existing != null) {
+            selectedTower = existing
+            clearBuildType()
+            return true
+        }
+
+        val type = selectedType
+        if (type == null) {
+            selectedTower = null
+            return false
+        }
+
+        placing = true
+        ghostCol = col
+        ghostRow = row
+        return true
+    }
+
+    fun onMapMove(x: Float, y: Float) {
+        if (!placing) return
+        val (col, row) = gameMap.pixelToCell(x, y)
+        ghostCol = col
+        ghostRow = row
+    }
+
+    /** 手指放開，真正落塔。 */
+    fun onMapUp() {
+        if (!placing) return
+        val type = selectedType
+        val col = ghostCol
+        val row = ghostRow
+        cancelPlacement()
+        if (type == null) return
+
+        if (!gameMap.canPlaceTower(col, row)) {
+            Audio.play(Sfx.DENY)
+            val (cx, cy) = gameMap.centerOf(col.coerceIn(0, GameMap.COLS - 1), row.coerceIn(0, GameMap.ROWS - 1))
+            Fx.text(cx, cy, Strings.get(R.string.toast_cannot_build), Color.parseColor("#FCA5A5"), Ui.dp(11f), 40)
+            return
+        }
+        if (GameState.gold < type.baseCost) {
+            Audio.play(Sfx.DENY)
+            val (cx, cy) = gameMap.centerOf(col, row)
+            Fx.text(cx, cy, Strings.get(R.string.toast_no_gold), Color.parseColor("#FCA5A5"), Ui.dp(11f), 40)
+            return
+        }
+
+        GameState.spendGold(type.baseCost)
+        val tower = Tower(col, row, type, gameMap)
+        towers.add(tower)
+        gameMap.occupy(col, row)
+        selectedTower = tower
+        Audio.play(Sfx.BUILD)
+        Fx.ring(tower.centerX, tower.centerY, gameMap.cellSize * 0.7f, Color.parseColor(type.accentColor), 18)
+        Fx.burst(tower.centerX, tower.centerY, 10, Color.parseColor(type.accentColor), Ui.dp(1.6f), Ui.dp(2f), 22)
+    }
+
+    fun cancelPlacement() {
+        placing = false
+        ghostCol = -1
+        ghostRow = -1
+    }
+
+    // ---- 升級 / 賣塔 / 選敵模式 ----
+
+    fun canUpgradeSelected(): Boolean {
+        val tower = selectedTower ?: return false
+        return !tower.isMaxLevel && GameState.gold >= tower.upgradeCost
+    }
+
+    fun upgradeSelected(): Boolean {
+        val tower = selectedTower ?: return false
+        if (tower.isMaxLevel) {
+            Audio.play(Sfx.DENY)
+            return false
+        }
+        if (GameState.gold < tower.upgradeCost) {
+            Audio.play(Sfx.DENY)
+            Fx.text(tower.centerX, tower.centerY, Strings.get(R.string.toast_no_gold), Color.parseColor("#FCA5A5"), Ui.dp(11f), 40)
+            return false
+        }
+        GameState.spendGold(tower.upgradeCost)
+        tower.upgrade()
+        Audio.play(Sfx.UPGRADE)
+        Fx.ring(tower.centerX, tower.centerY, gameMap.cellSize * 0.9f, Color.parseColor(tower.type.accentColor), 22)
+        Fx.burst(tower.centerX, tower.centerY, 14, Color.parseColor(tower.type.accentColor), Ui.dp(1.8f), Ui.dp(2.2f), 26, gravity = -0.04f)
+        Fx.text(tower.centerX, tower.centerY - gameMap.cellSize * 0.4f, Strings.format(R.string.toast_level_up, tower.level), Color.parseColor("#FFE08A"), Ui.dp(13f), 44)
+        return true
+    }
+
+    fun sellSelected(): Boolean {
+        val tower = selectedTower ?: return false
+        val refund = tower.sellValue
+        // 直接加回金幣，不計入 goldEarned，否則反覆蓋塔賣塔可以刷分數
+        GameState.gold += refund
+        towers.remove(tower)
+        gameMap.release(tower.col, tower.row)
+        selectedTower = null
+        Audio.play(Sfx.SELL)
+        Fx.burst(tower.centerX, tower.centerY, 12, Color.parseColor("#FFD75E"), Ui.dp(1.6f), Ui.dp(2f), 24)
+        Fx.goldGain(tower.centerX, tower.centerY, refund)
+        return true
+    }
+
+    fun cycleTargetModeOfSelected() {
+        val tower = selectedTower ?: return
+        tower.targetMode = tower.targetMode.next()
+        Audio.play(Sfx.BUILD)
+    }
+
+    // ---- 更新 ----
+
+    fun update(enemies: List<Enemy>) {
+        if (GameState.status != GameStatus.PLAYING) return
+
+        val alive = enemies.filter { it.isAlive }
+
+        for (tower in towers) {
+            tower.tick()
+            if (tower.cooldown > 0) continue
+
+            val target = pickTarget(tower, alive) ?: continue
+
+            if (tower.type == TowerType.ARROW || tower.type == TowerType.LIGHT) {
+                val dx = target.x - tower.centerX
+                val dy = target.y - tower.centerY
+                tower.aimAngle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            }
+
+            if (tower.type == TowerType.LIGHT) {
+                fireChainLightning(tower, target, alive)
+            } else {
+                fireProjectile(tower, target)
+            }
+            tower.onFired()
+        }
+
+        for (bullet in bullets) bullet.update(enemies)
+        bullets.removeAll { it.isDone }
+    }
+
+    private fun pickTarget(tower: Tower, alive: List<Enemy>): Enemy? {
+        var best: Enemy? = null
+        var bestScore = Float.NEGATIVE_INFINITY
+        for (enemy in alive) {
+            if (!enemy.isAlive) continue
+            val d = distance(tower.centerX, tower.centerY, enemy.x, enemy.y)
+            if (d > tower.range) continue
+            val score = when (tower.targetMode) {
+                TargetMode.FIRST -> enemy.distanceTravelled
+                TargetMode.STRONGEST -> enemy.hp.toFloat()
+                TargetMode.CLOSEST -> -d
+            }
+            if (score > bestScore) {
+                bestScore = score
+                best = enemy
+            }
+        }
+        return best
+    }
+
+    private fun fireProjectile(tower: Tower, target: Enemy) {
+        val speed = gameMap.cellSize * 0.16f
+        val bullet = when (tower.type) {
+            TowerType.ARROW -> Bullet(
+                tower.centerX, tower.centerY, target, tower.damage, TowerType.ARROW,
+                speed = speed * 1.4f
+            )
+            TowerType.BOMB -> Bullet(
+                tower.centerX, tower.centerY, target, tower.damage, TowerType.BOMB,
+                speed = speed * 0.9f, splashRadius = tower.splashRadius
+            )
+            TowerType.ICE -> Bullet(
+                tower.centerX, tower.centerY, target, tower.damage, TowerType.ICE,
+                speed = speed * 1.1f, slowFactor = tower.slowFactor, slowDuration = tower.slowDuration
+            )
+            TowerType.POISON -> Bullet(
+                tower.centerX, tower.centerY, target, tower.damage, TowerType.POISON,
+                speed = speed, poisonDamage = tower.poisonDamage, poisonDuration = tower.poisonDuration
+            )
+            TowerType.LIGHT -> return
+        }
+        bullets.add(bullet)
+        Audio.play(Sfx.SHOOT)
+    }
+
+    /** 電塔：瞬發，從主目標往鄰近敵人跳躍。 */
+    private fun fireChainLightning(tower: Tower, first: Enemy, alive: List<Enemy>) {
+        val hit = ArrayList<Enemy>()
+        val chainRange = gameMap.cellSize * 1.9f
+        var current = first
+        var fromX = tower.centerX
+        var fromY = tower.centerY
+        val color = Color.parseColor("#C4B5FD")
+
+        var remaining = tower.chainTargets
+        while (remaining > 0) {
+            hit.add(current)
+            Fx.beam(fromX, fromY, current.x, current.y, color, 9)
+            Fx.hitSpark(current.x, current.y, color)
+            current.takeDamage(tower.damage)
+            fromX = current.x
+            fromY = current.y
+            remaining--
+            if (remaining == 0) break
+
+            var next: Enemy? = null
+            var nextDist = Float.MAX_VALUE
+            for (enemy in alive) {
+                if (!enemy.isAlive || hit.contains(enemy)) continue
+                val d = distance(fromX, fromY, enemy.x, enemy.y)
+                if (d <= chainRange && d < nextDist) {
+                    nextDist = d
+                    next = enemy
+                }
+            }
+            current = next ?: break
+        }
+        Audio.play(Sfx.ZAP)
+    }
+
+    // ---- 存檔 ----
+
+    fun snapshot(): List<TowerSnapshot> = towers.map {
+        TowerSnapshot(
+            col = it.col,
+            row = it.row,
+            type = it.type.name,
+            level = it.level,
+            cooldown = it.cooldown,
+            aimAngle = it.aimAngle,
+            invested = it.invested,
+            targetMode = it.targetMode.name
+        )
     }
 
     fun restore(snapshots: List<TowerSnapshot>) {
         reset()
         for (snapshot in snapshots) {
             if (!gameMap.isValidCell(snapshot.col, snapshot.row)) continue
-            val tower = Tower(snapshot.col, snapshot.row, snapshot.type, gameMap).also {
-                it.level = snapshot.level
+            if (!gameMap.canPlaceTower(snapshot.col, snapshot.row)) continue
+            val tower = Tower(snapshot.col, snapshot.row, TowerType.fromName(snapshot.type), gameMap).also {
+                it.level = snapshot.level.coerceIn(1, Tower.MAX_LEVEL)
                 it.cooldown = snapshot.cooldown
                 it.aimAngle = snapshot.aimAngle
+                it.invested = snapshot.invested
+                it.targetMode = TargetMode.fromName(snapshot.targetMode)
             }
             towers.add(tower)
-            gameMap.grid[snapshot.row][snapshot.col] = GameMap.BLOCKED
+            gameMap.occupy(snapshot.col, snapshot.row)
         }
     }
 
-    fun toggleBuildType(type: TowerType) {
-        selectedType = if (selectedType == type) null else type
-        selectedTower = null
-    }
-
-    fun update(enemies: List<Enemy>) {
-        if (GameState.status != GameStatus.PLAYING) return
-
-        // 塔攻擊邏輯
-        for (tower in towers) {
-            if (tower.cooldown > 0) {
-                tower.cooldown--
-                continue
-            }
-            // 找範圍內血量最多的敵人（保衛蘿蔔原版策略：打最前面的）
-            val target = enemies
-                .filter { !it.isDead && !it.hasReachedEnd }
-                .filter { dist(tower.centerX, tower.centerY, it.x, it.y) <= tower.range }
-                .maxByOrNull { it.distanceTravelled }   // 最靠近終點的
-                ?: continue
-
-            // 更新箭塔朝向
-            if (tower.type == TowerType.ARROW) {
-                val dx = target.x - tower.centerX
-                val dy = target.y - tower.centerY
-                tower.aimAngle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
-            }
-
-            // 發射子彈
-            val bullet = when (tower.type) {
-                TowerType.ARROW -> Bullet(
-                    tower.centerX, tower.centerY, target,
-                    damage = tower.damage, type = TowerType.ARROW
-                )
-                TowerType.BOMB -> Bullet(
-                    tower.centerX, tower.centerY, target,
-                    damage = tower.damage, type = TowerType.BOMB,
-                    splashRadius = gameMap.cellSize * 1.5f
-                )
-                TowerType.ICE -> Bullet(
-                    tower.centerX, tower.centerY, target,
-                    damage = tower.damage, type = TowerType.ICE,
-                    slowFactor = 0.4f, slowDuration = 90
-                )
-            }
-            bullets.add(bullet)
-            tower.cooldown = tower.attackInterval
-        }
-
-        // 更新子彈
-        for (bullet in bullets) bullet.update(enemies)
-        bullets.removeAll { it.isDone }
-    }
-
-    // 點擊格子：放塔或升級
-    fun onTap(pixelX: Float, pixelY: Float) {
-        val (col, row) = gameMap.pixelToCell(pixelX, pixelY)
-        if (!gameMap.isValidCell(col, row)) return
-
-        // 已有塔 → 選中，交給升級面板處理
-        val existing = towers.find { it.col == col && it.row == row }
-        if (existing != null) {
-            selectedTower = existing
-            selectedType = null
-            return
-        }
-
-        // 空地 → 放塔
-        val type = selectedType ?: return
-        if (!gameMap.canPlaceTower(col, row)) return
-        val cost = when (type) {
-            TowerType.ARROW -> 50
-            TowerType.BOMB  -> 80
-            TowerType.ICE   -> 60
-        }
-        if (GameState.gold < cost) return
-        GameState.gold -= cost
-        val tower = Tower(col, row, type, gameMap)
-        towers.add(tower)
-        selectedTower = tower
-        gameMap.grid[row][col] = GameMap.BLOCKED
-    }
-
-    fun canUpgradeSelected(): Boolean {
-        val tower = selectedTower ?: return false
-        return tower.level < 3 && GameState.gold >= tower.upgradeCost
-    }
-
-    fun upgradeSelected(): Boolean {
-        val tower = selectedTower ?: return false
-        if (!canUpgradeSelected()) return false
-        GameState.gold -= tower.upgradeCost
-        tower.level++
-        return true
-    }
+    // ---- 繪製 ----
 
     fun draw(canvas: Canvas) {
-        selectedTower?.let { tower ->
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 3f
-            paint.color = Color.parseColor("#88FFDD55")
-            canvas.drawCircle(tower.centerX, tower.centerY, tower.range, paint)
-        }
+        drawSelectionRange(canvas)
+        drawGhost(canvas)
         for (tower in towers) tower.draw(canvas)
         for (bullet in bullets) bullet.draw(canvas)
     }
 
-    private fun dist(x1: Float, y1: Float, x2: Float, y2: Float) =
-        sqrt((x1 - x2).pow(2) + (y1 - y2).pow(2))
+    private fun drawSelectionRange(canvas: Canvas) {
+        val tower = selectedTower ?: return
+        paint.style = Paint.Style.FILL
+        paint.color = Color.parseColor("#14FFE08A")
+        canvas.drawCircle(tower.centerX, tower.centerY, tower.range, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = Ui.dp(1.6f)
+        paint.color = Color.parseColor("#99FFE08A")
+        canvas.drawCircle(tower.centerX, tower.centerY, tower.range, paint)
+
+        // 選中框
+        val cs = gameMap.cellSize
+        val px = gameMap.offsetX + tower.col * cs
+        val py = gameMap.offsetY + tower.row * cs
+        paint.strokeWidth = Ui.dp(2f)
+        paint.color = Color.parseColor("#CCFFF3C4")
+        canvas.drawRoundRect(RectF(px + cs * 0.04f, py + cs * 0.04f, px + cs * 0.96f, py + cs * 0.96f), cs * 0.2f, cs * 0.2f, paint)
+    }
+
+    private fun drawGhost(canvas: Canvas) {
+        if (!ghostVisible) return
+        val type = selectedType ?: return
+        val cs = gameMap.cellSize
+        val px = gameMap.offsetX + ghostCol * cs
+        val py = gameMap.offsetY + ghostRow * cs
+        val (cx, cy) = gameMap.centerOf(ghostCol, ghostRow)
+        val valid = gameMap.canPlaceTower(ghostCol, ghostRow) && GameState.gold >= type.baseCost
+        val tint = if (valid) "#5EE07A" else "#F87171"
+
+        val range = cs * when (type) {
+            TowerType.ARROW -> 2.7f
+            TowerType.ICE -> 2.3f
+            TowerType.BOMB -> 2.2f
+            TowerType.POISON -> 2.25f
+            TowerType.LIGHT -> 2.85f
+        }
+
+        paint.style = Paint.Style.FILL
+        paint.color = Color.parseColor(if (valid) "#1A5EE07A" else "#1AF87171")
+        canvas.drawCircle(cx, cy, range, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = Ui.dp(1.6f)
+        paint.color = Color.parseColor(tint)
+        canvas.drawCircle(cx, cy, range, paint)
+
+        paint.style = Paint.Style.FILL
+        paint.color = Color.parseColor(if (valid) "#665EE07A" else "#66F87171")
+        canvas.drawRoundRect(RectF(px + cs * 0.06f, py + cs * 0.06f, px + cs * 0.94f, py + cs * 0.94f), cs * 0.2f, cs * 0.2f, paint)
+
+        paint.alpha = 190
+        paint.textSize = cs * 0.5f
+        val emoji = type.emoji
+        canvas.drawText(emoji, cx - paint.measureText(emoji) / 2f, cy + cs * 0.18f, paint)
+        paint.alpha = 255
+    }
+
+    private fun distance(x1: Float, y1: Float, x2: Float, y2: Float): Float {
+        val dx = x1 - x2
+        val dy = y1 - y2
+        return sqrt(dx * dx + dy * dy)
+    }
 }
