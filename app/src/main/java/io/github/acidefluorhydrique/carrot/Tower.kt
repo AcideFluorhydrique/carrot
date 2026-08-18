@@ -67,6 +67,11 @@ enum class TowerType(
             val level = GameLevels.byId(unlockAtLevel)
             return Strings.format(R.string.tower_locked, level.chapterId, level.indexInChapter)
         }
+
+    companion object {
+        fun fromName(name: String): TowerType =
+            values().firstOrNull { it.name == name } ?: ARROW
+    }
 }
 
 /** 選敵策略。 */
