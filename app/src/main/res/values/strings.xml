@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+    SPDX-License-Identifier: GPL-3.0-or-later
+-->
 <resources>
 
     <!-- App -->
@@ -16,15 +20,14 @@
     <string name="menu_current_level">Level: %1$s</string>
 
     <!-- Level select -->
-    <string name="levels_title">Select Level</string>
-    <string name="level_locked">Clear level %1$d to unlock</string>
-    <string name="level_card_info">Waves %1$d · Carrot %2$d</string>
     <string name="common_back">Back</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_sound">Sound</string>
     <string name="settings_music">Music</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System default</string>
     <string name="settings_on">On</string>
     <string name="settings_off">Off</string>
     <string name="settings_reset">Reset Progress</string>
@@ -123,16 +126,45 @@
     <string name="enemy_boss">Overlord</string>
     <string name="enemy_boss_note">Armour %1$d, costs %2$d carrot HP</string>
 
-    <!-- Levels -->
-    <string name="level_1_name">Garden Path</string>
-    <string name="level_1_desc">Tutorial: learn to build and upgrade</string>
-    <string name="level_2_name">Winding Furrows</string>
-    <string name="level_2_desc">A longer route where bombs shine</string>
-    <string name="level_3_name">Night Farm</string>
-    <string name="level_3_desc">Faster enemies, ice towers help</string>
-    <string name="level_4_name">Serpent Maze</string>
-    <string name="level_4_desc">Very long path, poison excels here</string>
-    <string name="level_5_name">Carrot Fortress</string>
-    <string name="level_5_desc">Final stand, two overlords incoming</string>
+    <!-- Chapters -->
+    <string name="chapters_title">Select Chapter</string>
+    <string name="chapter_number">Chapter %1$d</string>
+    <string name="chapter_stars">%1$d/%2$d ★</string>
+    <string name="chapter_locked">Clear the previous chapter</string>
+    <string name="chapter_1_name">Garden Patch</string>
+    <string name="chapter_1_desc">Build, upgrade, and learn to freeze</string>
+    <string name="chapter_2_name">Golden Fields</string>
+    <string name="chapter_2_desc">Swarms arrive, and so do bombs</string>
+    <string name="chapter_3_name">Night Woods</string>
+    <string name="chapter_3_desc">Armour arrives; poison ignores it</string>
+    <string name="chapter_4_name">Frost Plains</string>
+    <string name="chapter_4_desc">Sprinters and swarms, meet chain lightning</string>
+    <string name="chapter_5_name">Ember Crater</string>
+    <string name="chapter_5_desc">Everything you have learned, at once</string>
+    <string name="level_number">Level %1$d</string>
+    <string name="level_full_name">%1$s %2$d-%3$d</string>
+    <string name="tower_locked">Unlocks at %1$d-%2$d</string>
+
+    <!-- Towers & obstacles added in v2 -->
+    <string name="tower_moon">Moon</string>
+    <string name="tower_moon_tag">Wide, gentle slow on whole groups</string>
+    <string name="tower_rocket">Rocket</string>
+    <string name="tower_rocket_tag">Pierces everything in a straight line</string>
+    <string name="tower_sun">Sun</string>
+    <string name="tower_sun_tag">Pulses damage all around itself</string>
+    <string name="tower_stat_pulse">Pulse radius %1$d</string>
+    <string name="tower_stat_aura">Slows %1$d%% in radius %2$d</string>
+    <string name="tower_stat_pierce">Pierces along %1$d</string>
+    <string name="obstacle_mushroom">Mushroom</string>
+    <string name="obstacle_rock">Rock</string>
+    <string name="obstacle_tree">Tree</string>
+    <string name="obstacle_ice">Ice Block</string>
+    <string name="obstacle_toxic">Toxic Cap</string>
+    <string name="obstacle_crate">Crate</string>
+    <string name="help_obstacles">Obstacles</string>
+    <string name="help_obstacle_note_1">Tap an obstacle to mark it. Towers hit it only when no enemy is in range.</string>
+    <string name="help_obstacle_note_2">Breaking one pays gold and frees the tile. Crates pay the most.</string>
+    <string name="help_obstacle_note_3">Sun, Moon and Rocket damage obstacles on their own, without marking.</string>
+    <string name="help_loadout">Each level offers only some of your towers. Work with what it gives you.</string>
 
 </resources>

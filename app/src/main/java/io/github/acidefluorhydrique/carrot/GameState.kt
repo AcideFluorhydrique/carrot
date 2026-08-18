@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 enum class GameStatus { PLAYING, PAUSED, VICTORY, DEFEAT }
@@ -19,6 +22,7 @@ object GameState {
     var kills: Int = 0
     var goldEarned: Int = 0
     var leaks: Int = 0
+    var obstaclesCleared: Int = 0
 
     /** 蘿蔔剛被咬到時的閃爍計時，用於視覺回饋。 */
     var carrotHurtTimer: Int = 0
@@ -46,6 +50,7 @@ object GameState {
         kills = 0
         goldEarned = 0
         leaks = 0
+        obstaclesCleared = 0
         carrotHurtTimer = 0
     }
 

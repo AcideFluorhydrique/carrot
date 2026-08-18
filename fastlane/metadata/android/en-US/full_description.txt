@@ -1,0 +1,36 @@
+Hungry critters are marching down the garden path, and there is only one carrot left. Build towers, upgrade them, and hold the line.
+
+The Last Carrot is a small, self-contained lane tower defence game. It asks for no permissions at all, has no ads, no trackers, no analytics and no network access whatsoever. Everything it needs is in the app.
+
+<b>Eight towers</b>
+* Arrow - fast single target damage
+* Ice - a hard slow on one target at a time
+* Bomb - splash damage for tightly packed groups
+* Moon - a wide, gentle slow that catches whole groups at once
+* Poison - damage over time that ignores armour completely
+* Rocket - flies in a straight line and pierces everything on it
+* Tesla - chain lightning that jumps between nearby enemies
+* Sun - pulses damage in a ring all around itself
+
+Every tower upgrades three times, can be sold back for 65% of what you spent, and can be told which enemy to prefer: first along the path, strongest, or nearest.
+
+<b>Five kinds of enemy</b>
+Ordinary thieves, fragile sprinters, huge swarms, armoured ironhides that shrug off direct damage, and garden overlords that take a serious bite out of your carrot if they get through.
+
+<b>Twenty levels across five chapters</b>
+Garden Patch, Golden Fields, Night Woods, Frost Plains and Ember Crater — each chapter has its own palette, its own map layouts and its own new problem to solve. Pick a chapter, then follow a winding trail of levels, with your star rating on every stop you have already cleared.
+
+Towers unlock as you go rather than all at once, and each one arrives just before the enemy it answers: ice before the sprinters, bombs before the swarms, poison before the armoured units, chain lightning before the big waves. Each level is scored one to three stars based on how much carrot you have left.
+
+<b>Breakable obstacles</b>
+Rocks, trees, mushrooms, ice blocks and crates sit around the map. Tap one to mark it and your towers will chip away at it whenever no enemy is in range, so clearing never costs you a leak. Breaking one pays gold and frees the tile to build on. Crates take the longest and pay the most. Sun, Moon and Rocket damage obstacles on their own, without being told.
+
+<b>Also included</b>
+* Speed control - play at 1x, 2x or 3x
+* Call waves early for bonus gold
+* Drag to position a tower and see its range before you commit
+* Automatic save, so you can put it down mid-wave and come back later
+* Interface in English, Traditional Chinese and Simplified Chinese, switchable in game
+
+<b>Free software, all the way down</b>
+Released under the GNU General Public License v3.0 or later. There are no proprietary assets in this app, because there are effectively no asset files at all: the artwork is drawn with vector shapes and system emoji, and every sound effect and the background music are synthesised by the app itself the first time it runs. Nothing is downloaded, and nothing is borrowed.

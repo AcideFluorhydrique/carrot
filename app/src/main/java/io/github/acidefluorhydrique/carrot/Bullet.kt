@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
@@ -112,9 +115,9 @@ class Bullet(
                 Fx.burst(x, y, 8, Color.parseColor("#84CC16"), Ui.dp(1.4f), Ui.dp(2f), 20, gravity = -0.02f)
                 Audio.play(Sfx.POISON)
             }
-            TowerType.LIGHT -> {
+            // 電塔是瞬發、太陽月亮是範圍脈衝、火箭是直線穿透，都不走這裡
+            TowerType.LIGHT, TowerType.MOON, TowerType.ROCKET, TowerType.SUN -> {
                 target.takeDamage(damage)
-                Audio.play(Sfx.ZAP)
             }
         }
     }
@@ -165,7 +168,7 @@ class Bullet(
                 paint.color = Color.parseColor("#65A30D")
                 canvas.drawCircle(x + Ui.dp(0.8f), y + Ui.dp(0.8f), Ui.dp(1.6f), paint)
             }
-            TowerType.LIGHT -> {
+            TowerType.LIGHT, TowerType.MOON, TowerType.ROCKET, TowerType.SUN -> {
                 paint.color = Color.parseColor("#C4B5FD")
                 canvas.drawCircle(x, y, Ui.dp(3f), paint)
             }

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.content.Context
@@ -30,6 +33,13 @@ data class EnemyManagerSnapshot(
     val enemies: List<EnemySnapshot>
 )
 
+data class ObstacleSnapshot(
+    val col: Int,
+    val row: Int,
+    val kind: String,
+    val hp: Int
+)
+
 data class TowerSnapshot(
     val col: Int,
     val row: Int,
@@ -54,6 +64,7 @@ data class GameSave(
     val speed: Int,
     val enemyManager: EnemyManagerSnapshot,
     val towers: List<TowerSnapshot>,
+    val obstacles: List<ObstacleSnapshot>,
     val savedAt: Long
 )
 
@@ -169,6 +180,7 @@ class SaveRepository(context: Context) {
         .put("savedAt", savedAt)
         .put("enemyManager", enemyManager.toJson())
         .put("towers", JSONArray().also { array -> towers.forEach { array.put(it.toJson()) } })
+        .put("obstacles", JSONArray().also { array -> obstacles.forEach { array.put(it.toJson()) } })
 
     private fun EnemyManagerSnapshot.toJson(): JSONObject = JSONObject()
         .put("phase", phase)
@@ -194,6 +206,12 @@ class SaveRepository(context: Context) {
         .put("poisonDamage", poisonDamage)
         .put("poisonTimer", poisonTimer)
 
+    private fun ObstacleSnapshot.toJson(): JSONObject = JSONObject()
+        .put("col", col)
+        .put("row", row)
+        .put("kind", kind)
+        .put("hp", hp)
+
     private fun TowerSnapshot.toJson(): JSONObject = JSONObject()
         .put("col", col)
         .put("row", row)
@@ -217,6 +235,7 @@ class SaveRepository(context: Context) {
         speed = optInt("speed", 1),
         enemyManager = getJSONObject("enemyManager").toEnemyManagerSnapshot(),
         towers = getJSONArray("towers").mapObjects { it.toTowerSnapshot() },
+        obstacles = optJSONArray("obstacles")?.mapObjects { it.toObstacleSnapshot() } ?: emptyList(),
         savedAt = optLong("savedAt", 0L)
     )
 
@@ -246,6 +265,13 @@ class SaveRepository(context: Context) {
         poisonTimer = optInt("poisonTimer", 0)
     )
 
+    private fun JSONObject.toObstacleSnapshot(): ObstacleSnapshot = ObstacleSnapshot(
+        col = getInt("col"),
+        row = getInt("row"),
+        kind = optString("kind", ObstacleKind.ROCK.name),
+        hp = getInt("hp")
+    )
+
     private fun JSONObject.toTowerSnapshot(): TowerSnapshot = TowerSnapshot(
         col = getInt("col"),
         row = getInt("row"),
@@ -266,10 +292,10 @@ class SaveRepository(context: Context) {
     }
 
     companion object {
-        const val SAVE_VERSION = 2
+        const val SAVE_VERSION = 4
         private const val KEY_ACTIVE_SAVE = "active_save"
         private const val KEY_ACTIVE_VERSION = "active_save_version"
-        private const val KEY_STARS = "level_stars"
+        private const val KEY_STARS = "level_stars_v3"
         private const val KEY_SOUND = "sound_enabled"
         private const val KEY_MUSIC = "music_enabled"
         private const val KEY_LAST_LEVEL = "last_level"

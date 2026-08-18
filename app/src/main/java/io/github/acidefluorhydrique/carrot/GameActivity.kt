@@ -1,6 +1,10 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -8,6 +12,10 @@ import android.view.WindowManager
 class GameActivity : Activity() {
 
     private lateinit var gameView: GameView
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleManager.localized(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
@@ -18,9 +21,14 @@ class TowerSelectBar {
     /** 回傳 true 表示這次點擊落在選塔列上。 */
     fun onTap(x: Float, y: Float, w: Int, h: Int, towerManager: TowerManager): Boolean {
         if (y < barTop(h)) return false
-        for (i in TYPES.indices) {
-            if (buttonRect(w, h, i).contains(x, y)) {
-                towerManager.toggleBuildType(TYPES[i])
+        val types = types()
+        for (i in types.indices) {
+            if (buttonRect(w, h, i, types.size).contains(x, y)) {
+                if (types[i].isAvailable) {
+                    towerManager.toggleBuildType(types[i])
+                } else {
+                    Audio.play(Sfx.DENY)
+                }
                 return true
             }
         }
@@ -39,13 +47,15 @@ class TowerSelectBar {
         paint.color = Color.parseColor("#445FE36B")
         canvas.drawRect(RectF(0f, top, w.toFloat(), top + Ui.dp(1.5f)), paint)
 
-        for (i in TYPES.indices) {
-            drawButton(canvas, buttonRect(w, h, i), TYPES[i], TYPES[i] == selectedType)
+        val types = types()
+        for (i in types.indices) {
+            drawButton(canvas, buttonRect(w, h, i, types.size), types[i], types[i] == selectedType)
         }
     }
 
     private fun drawButton(canvas: Canvas, rect: RectF, type: TowerType, selected: Boolean) {
-        val affordable = GameState.gold >= type.baseCost
+        val unlocked = type.isUnlocked
+        val affordable = unlocked && GameState.gold >= type.baseCost
         val radius = Ui.dp(9f)
 
         paint.style = Paint.Style.FILL
@@ -70,10 +80,11 @@ class TowerSelectBar {
         canvas.drawRoundRect(rect, radius, radius, paint)
 
         paint.style = Paint.Style.FILL
-        paint.alpha = 255
+        paint.alpha = if (unlocked) 255 else 110
         paint.textSize = rect.height() * 0.36f
-        val emoji = type.emoji
+        val emoji = if (unlocked) type.emoji else "🔒"
         canvas.drawText(emoji, rect.centerX() - paint.measureText(emoji) / 2f, rect.top + rect.height() * 0.42f, paint)
+        paint.alpha = 255
 
         val inner = rect.width() - Ui.dp(5f)
         Widgets.centeredFit(
@@ -81,23 +92,33 @@ class TowerSelectBar {
             rect.height() * 0.2f, inner, bold = false,
             color = if (affordable) Color.parseColor("#DCEDE2") else Color.parseColor("#7F97A0")
         )
+        // 未解鎖時，第三行改成提示要打到第幾關
+        val bottom = if (unlocked) {
+            Strings.format(R.string.tower_price, type.baseCost)
+        } else {
+            type.unlockHint
+        }
         Widgets.centeredFit(
-            canvas, Strings.format(R.string.tower_price, type.baseCost), rect.centerX(),
+            canvas, bottom, rect.centerX(),
             rect.top + rect.height() * 0.92f, rect.height() * 0.21f, inner, bold = true,
-            color = if (affordable) Color.parseColor("#FFE08A") else Color.parseColor("#8A96A0")
+            color = when {
+                !unlocked -> Color.parseColor("#94A3B8")
+                affordable -> Color.parseColor("#FFE08A")
+                else -> Color.parseColor("#8A96A0")
+            }
         )
     }
 
     companion object {
-        val TYPES: List<TowerType> = TowerType.values().toList()
+        /** 每關只給一部分的塔，讓同一批工具能組出不同的題目。 */
+        fun types(): List<TowerType> = GameState.level.allowedTowers
 
         fun barTop(h: Int): Float = h - Ui.bottomBarHeight
 
-        fun buttonRect(w: Int, h: Int, index: Int): RectF {
-            val count = TYPES.size
+        fun buttonRect(w: Int, h: Int, index: Int, count: Int): RectF {
             val gap = Ui.dp(7f)
             val available = w - Ui.dp(18f) - gap * (count - 1)
-            val width = (available / count).coerceAtMost(Ui.dp(84f))
+            val width = (available / count.coerceAtLeast(1)).coerceAtMost(Ui.dp(92f))
             val height = Ui.bottomBarHeight - Ui.dp(12f)
             val total = width * count + gap * (count - 1)
             val left = (w - total) / 2f + index * (width + gap)

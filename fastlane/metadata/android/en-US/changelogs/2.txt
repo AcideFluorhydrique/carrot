@@ -1,0 +1,19 @@
+A near total rewrite of the game.
+
+* Two new towers: Poison and Tesla, for five in total
+* Five enemy types with distinct behaviour, including armoured units and bosses
+* Restructured into 5 chapters of 4 levels each, chosen from a winding trail map
+* Each chapter has its own palette, from green garden to frozen plain to volcano
+* Towers now unlock as you progress, each one just before the enemy it counters
+* Rebalanced difficulty curve, with a breather at the start of every chapter
+* Breakable obstacles: mark one and idle towers clear it for gold and a build slot
+* Three new towers: Moon (wide group slow), Rocket (piercing line), Sun (ring pulse)
+* Each level now offers only 4-5 of your towers, so every map is its own puzzle
+* No-build zones behind the spawn and the carrot
+* New app icon
+* Sell towers, choose targeting priority, control game speed, call waves early
+* Particle effects, floating damage numbers, screen shake and a boss health bar
+* Sound effects and background music, synthesised on device
+* Settings screen with sound, music and language options
+* Interface translated into English, Traditional Chinese and Simplified Chinese
+* Interface now scales properly on high resolution screens

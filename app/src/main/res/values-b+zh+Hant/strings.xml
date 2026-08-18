@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+    SPDX-License-Identifier: GPL-3.0-or-later
+-->
 <resources>
 
     <!-- App -->
@@ -16,15 +20,14 @@
     <string name="menu_current_level">目前關卡：%1$s</string>
 
     <!-- 選關 -->
-    <string name="levels_title">選擇關卡</string>
-    <string name="level_locked">通關第 %1$d 關解鎖</string>
-    <string name="level_card_info">%1$d 波 · 蘿蔔 %2$d</string>
     <string name="common_back">返回</string>
 
     <!-- 設定 -->
     <string name="settings_title">設定</string>
     <string name="settings_sound">音效</string>
     <string name="settings_music">音樂</string>
+    <string name="settings_language">語言</string>
+    <string name="settings_language_system">跟隨系統</string>
     <string name="settings_on">開啟</string>
     <string name="settings_off">關閉</string>
     <string name="settings_reset">重置進度</string>
@@ -123,16 +126,45 @@
     <string name="enemy_boss">菜園霸主</string>
     <string name="enemy_boss_note">護甲 %1$d，漏掉扣 %2$d 血</string>
 
-    <!-- 關卡 -->
-    <string name="level_1_name">菜園小徑</string>
-    <string name="level_1_desc">新手教學：學會放塔與升級</string>
-    <string name="level_2_name">彎彎田埂</string>
-    <string name="level_2_desc">路線變長，炸彈塔開始好用</string>
-    <string name="level_3_name">夜色農場</string>
-    <string name="level_3_desc">敵人更快，需要冰塔控場</string>
-    <string name="level_4_name">蛇行迷宮</string>
-    <string name="level_4_desc">超長蛇形路徑，毒塔的主場</string>
-    <string name="level_5_name">蘿蔔要塞</string>
-    <string name="level_5_desc">最終防線，兩隻霸主接連來襲</string>
+    <!-- Chapters -->
+    <string name="chapters_title">選擇章節</string>
+    <string name="chapter_number">第 %1$d 章</string>
+    <string name="chapter_stars">%1$d/%2$d ★</string>
+    <string name="chapter_locked">通關前一章解鎖</string>
+    <string name="chapter_1_name">菜園</string>
+    <string name="chapter_1_desc">學會放塔、升級與減速</string>
+    <string name="chapter_2_name">田埂</string>
+    <string name="chapter_2_desc">蟲群成災，炸彈塔登場</string>
+    <string name="chapter_3_name">夜森</string>
+    <string name="chapter_3_desc">鐵甲來襲，毒藥無視護甲</string>
+    <string name="chapter_4_name">霜原</string>
+    <string name="chapter_4_desc">疾風與蟲潮，交給連鎖閃電</string>
+    <string name="chapter_5_name">火山</string>
+    <string name="chapter_5_desc">把學到的全部拿出來</string>
+    <string name="level_number">第 %1$d 關</string>
+    <string name="level_full_name">%1$s %2$d-%3$d</string>
+    <string name="tower_locked">第 %1$d-%2$d 關解鎖</string>
+
+    <!-- Towers & obstacles added in v2 -->
+    <string name="tower_moon">月亮</string>
+    <string name="tower_moon_tag">大範圍輕度減速，專治成群</string>
+    <string name="tower_rocket">火箭</string>
+    <string name="tower_rocket_tag">直線穿透，沿途通殺</string>
+    <string name="tower_sun">太陽</string>
+    <string name="tower_sun_tag">以自身為圓心的範圍脈衝</string>
+    <string name="tower_stat_pulse">脈衝半徑 %1$d</string>
+    <string name="tower_stat_aura">半徑 %2$d 內減速 %1$d%%</string>
+    <string name="tower_stat_pierce">穿透長度 %1$d</string>
+    <string name="obstacle_mushroom">蘑菇</string>
+    <string name="obstacle_rock">石頭</string>
+    <string name="obstacle_tree">大樹</string>
+    <string name="obstacle_ice">冰塊</string>
+    <string name="obstacle_toxic">毒菇</string>
+    <string name="obstacle_crate">寶箱</string>
+    <string name="help_obstacles">障礙物</string>
+    <string name="help_obstacle_note_1">點一下障礙物指定集火。塔只有在射程內沒有敵人時才會去打它。</string>
+    <string name="help_obstacle_note_2">打掉會給金幣並空出建塔位，寶箱給得最多。</string>
+    <string name="help_obstacle_note_3">太陽、月亮、火箭會自己掃到障礙物，不用指定。</string>
+    <string name="help_loadout">每關只開放一部分的塔，用手上有的那幾把解題。</string>
 
 </resources>

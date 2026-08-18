@@ -1,5 +1,9 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -10,7 +14,7 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
-enum class ScreenMode { MAIN_MENU, LEVEL_SELECT, SETTINGS, HELP, PLAYING }
+enum class ScreenMode { MAIN_MENU, CHAPTER_SELECT, LEVEL_MAP, SETTINGS, HELP, PLAYING }
 
 class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
@@ -22,6 +26,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private val gameMap = GameMap()
     private val enemyManager = EnemyManager(gameMap)
     private val towerManager = TowerManager(gameMap)
+    private val obstacleManager = ObstacleManager(gameMap)
     private val hud = HudRenderer()
     private val menu = MenuRenderer()
     private val selectBar = TowerSelectBar()
@@ -47,10 +52,15 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var cachedStars: Map<Int, Int> = emptyMap()
     private var cachedCompleted: Set<Int> = emptySet()
     private var cachedTotalStars = 0
+    private var languageTag = LocaleManager.SYSTEM
+    private var selectedChapter: Chapter = Chapters.default
+
+    /** 是否有一場進行中的對局；決定存檔是否有效，與目前在哪個畫面無關。 */
+    private var gameActive = false
 
     init {
         // 必須早於任何繪製；欄位初始化階段只會存放資源 id，不會查字串
-        Strings.init(context)
+        Strings.init(LocaleManager.localized(context))
 
         holder.addCallback(this)
         isFocusable = true
@@ -58,6 +68,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         Audio.engine = soundEngine
         soundEngine.setSoundEnabled(saveRepository.soundEnabled())
         soundEngine.setMusicEnabled(saveRepository.musicEnabled())
+
+        languageTag = LocaleManager.stored(context)
 
         val level = GameLevels.byId(saveRepository.lastLevelId())
         GameState.reset(level)
@@ -103,7 +115,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             }
         }
         // 迴圈停下之後才存檔，才不會和遊戲執行緒同時碰同一批物件
-        if (screenMode == ScreenMode.PLAYING) saveCurrentGame()
+        saveCurrentGame()
     }
 
     // ---- 生命週期轉接 ----
@@ -118,7 +130,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     fun onActivityDestroy() {
-        Audio.engine = null
+        // 語言切換會重建 Activity，新的 GameView 可能已經接手，別把它的引擎清掉
+        if (Audio.engine === soundEngine) Audio.engine = null
         soundEngine.release()
     }
 
@@ -127,8 +140,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     private fun handleBack(): Boolean = when (screenMode) {
         ScreenMode.MAIN_MENU -> false
-        ScreenMode.LEVEL_SELECT, ScreenMode.HELP -> {
+        ScreenMode.CHAPTER_SELECT, ScreenMode.HELP -> {
             screenMode = ScreenMode.MAIN_MENU
+            true
+        }
+        ScreenMode.LEVEL_MAP -> {
+            screenMode = ScreenMode.CHAPTER_SELECT
             true
         }
         ScreenMode.SETTINGS -> {
@@ -157,7 +174,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             for (i in 0 until steps) {
                 GameState.tickTimers()
                 enemyManager.update()
-                towerManager.update(enemyManager.enemies)
+                obstacleManager.update()
+                towerManager.update(enemyManager.enemies, obstacleManager)
                 Fx.update()
                 if (GameState.status != GameStatus.PLAYING) break
             }
@@ -177,6 +195,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         when (GameState.status) {
             GameStatus.VICTORY -> {
                 resultRecorded = true
+                gameActive = false
                 bestStarsBefore = saveRepository.starsFor(GameState.level.id)
                 resultStars = GameState.stars
                 saveRepository.recordResult(GameState.level.id, resultStars)
@@ -189,6 +208,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             }
             GameStatus.DEFEAT -> {
                 resultRecorded = true
+                gameActive = false
                 bestStarsBefore = saveRepository.starsFor(GameState.level.id)
                 resultStars = 0
                 saveRepository.clearActiveSave()
@@ -228,13 +248,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 cachedTotalStars,
                 cachedCompleted.size
             )
-            ScreenMode.LEVEL_SELECT -> menu.drawLevels(
-                canvas, w, h,
-                { id -> cachedStars[id] ?: 0 },
-                cachedCompleted
+            ScreenMode.CHAPTER_SELECT -> menu.drawChapters(canvas, w, h, cachedStars, cachedCompleted)
+            ScreenMode.LEVEL_MAP -> menu.drawLevelMap(
+                canvas, w, h, selectedChapter, cachedStars, cachedCompleted
             )
             ScreenMode.SETTINGS -> menu.drawSettings(
-                canvas, w, h, soundEngine.isSoundOn, soundEngine.isMusicOn, resetArmed
+                canvas, w, h, soundEngine.isSoundOn, soundEngine.isMusicOn, languageTag, resetArmed
             )
             ScreenMode.HELP -> menu.drawHelp(canvas, w, h)
             ScreenMode.PLAYING -> drawGame(canvas, w, h)
@@ -247,6 +266,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         canvas.save()
         canvas.translate(Fx.offsetX, Fx.offsetY)
         gameMap.draw(canvas)
+        obstacleManager.draw(canvas)
         towerManager.draw(canvas)
         enemyManager.draw(canvas)
         Fx.draw(canvas)
@@ -271,22 +291,21 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     private fun drawGameBackground(canvas: Canvas, w: Int, h: Int) {
+        val theme = GameState.level.chapter.theme
         backgroundPaint.shader = LinearGradient(
             0f, 0f, 0f, h.toFloat(),
-            intArrayOf(
-                Color.parseColor("#122023"),
-                Color.parseColor("#1A3025"),
-                Color.parseColor("#223E22")
-            ),
+            intArrayOf(theme.skyTopColor, theme.skyMidColor, theme.skyBottomColor),
             floatArrayOf(0f, 0.52f, 1f),
             Shader.TileMode.CLAMP
         )
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), backgroundPaint)
         backgroundPaint.shader = null
 
-        backgroundPaint.color = Color.parseColor("#1E4DA05A")
-        canvas.drawCircle(w * 0.18f, h * 0.76f, w * 0.32f, backgroundPaint)
-        canvas.drawCircle(w * 0.74f, h * 0.8f, w * 0.38f, backgroundPaint)
+        backgroundPaint.color = theme.hillColor
+        backgroundPaint.alpha = 120
+        canvas.drawCircle(w * 0.18f, h * 0.78f, w * 0.32f, backgroundPaint)
+        canvas.drawCircle(w * 0.74f, h * 0.82f, w * 0.38f, backgroundPaint)
+        backgroundPaint.alpha = 255
     }
 
     // ---- 觸控 ----
@@ -310,7 +329,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun handleDown(x: Float, y: Float) {
         when (screenMode) {
             ScreenMode.MAIN_MENU -> handleMainTap(x, y)
-            ScreenMode.LEVEL_SELECT -> handleLevelTap(x, y)
+            ScreenMode.CHAPTER_SELECT -> handleChapterTap(x, y)
+            ScreenMode.LEVEL_MAP -> handleLevelMapTap(x, y)
             ScreenMode.SETTINGS -> handleSettingsTap(x, y)
             ScreenMode.HELP -> if (MenuRenderer.backButtonRect(screenWidth, screenHeight).contains(x, y)) {
                 screenMode = ScreenMode.MAIN_MENU
@@ -326,7 +346,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             MenuAction.START -> startLevel(GameState.level)
             MenuAction.LEVELS -> {
                 refreshProgress()
-                screenMode = ScreenMode.LEVEL_SELECT
+                selectedChapter = GameState.level.chapter
+                screenMode = ScreenMode.CHAPTER_SELECT
             }
             MenuAction.HELP -> screenMode = ScreenMode.HELP
             MenuAction.SETTINGS -> {
@@ -338,12 +359,22 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
     }
 
-    private fun handleLevelTap(x: Float, y: Float) {
+    private fun handleChapterTap(x: Float, y: Float) {
         if (menu.tappedBack(x, y, screenWidth, screenHeight)) {
             screenMode = ScreenMode.MAIN_MENU
             return
         }
-        val level = menu.levelTap(x, y, screenWidth, screenHeight, cachedCompleted) ?: return
+        val chapter = menu.chapterTap(x, y, screenWidth, screenHeight, cachedCompleted) ?: return
+        selectedChapter = chapter
+        screenMode = ScreenMode.LEVEL_MAP
+    }
+
+    private fun handleLevelMapTap(x: Float, y: Float) {
+        if (menu.tappedBack(x, y, screenWidth, screenHeight)) {
+            screenMode = ScreenMode.CHAPTER_SELECT
+            return
+        }
+        val level = menu.levelMapTap(x, y, screenWidth, screenHeight, selectedChapter, cachedCompleted) ?: return
         GameState.level = level
         saveRepository.setLastLevelId(level.id)
         startLevel(level)
@@ -363,6 +394,17 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 soundEngine.setMusicEnabled(next)
                 saveRepository.setMusicEnabled(next)
                 resetArmed = false
+            }
+            SettingsAction.CYCLE_LANGUAGE -> {
+                resetArmed = false
+                val nextTag = LocaleManager.next(languageTag)
+                languageTag = nextTag
+                LocaleManager.store(context, nextTag)
+                Audio.play(Sfx.BUILD)
+                // 語言是在 attachBaseContext 套用的，只能靠重建 Activity 生效。
+                // 先落地存檔，重建後可以從主選單「繼續遊戲」接回去。
+                saveCurrentGame()
+                (context as? Activity)?.recreate()
             }
             SettingsAction.RESET_PROGRESS -> {
                 if (resetArmed) {
@@ -416,6 +458,14 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
         if (upgradePanel.onTap(x, y, screenWidth, screenHeight, towerManager)) return
         if (selectBar.onTap(x, y, screenWidth, screenHeight, towerManager)) return
+
+        // 點障礙物＝指定集火，優先於蓋塔判定
+        val (col, row) = gameMap.pixelToCell(x, y)
+        if (obstacleManager.onTap(col, row)) {
+            towerManager.clearSelection()
+            towerManager.cancelPlacement()
+            return
+        }
         towerManager.onMapDown(x, y)
     }
 
@@ -464,6 +514,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     // ---- 流程 ----
 
     private fun startLevel(level: LevelConfig) {
+        selectedChapter = level.chapter
         saveRepository.clearActiveSave()
         saveRepository.setLastLevelId(level.id)
         Fx.clear()
@@ -471,8 +522,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         gameMap.loadLevel(level)
         gameMap.initSize(screenWidth, screenHeight)
         towerManager.reset()
+        obstacleManager.reset(level)
         enemyManager.reset(level)
         screenMode = ScreenMode.PLAYING
+        gameActive = true
         resultRecorded = false
         resultStars = 0
         bestStarsBefore = saveRepository.starsFor(level.id)
@@ -483,6 +536,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private fun continueSavedGame() {
         val save = saveRepository.loadGame() ?: return
         val level = GameLevels.byId(save.levelId)
+        selectedChapter = level.chapter
         Fx.clear()
         GameState.reset(level)
         GameState.carrotHp = save.carrotHp.coerceIn(0, save.maxCarrotHp)
@@ -497,10 +551,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
         gameMap.loadLevel(level)
         gameMap.initSize(screenWidth, screenHeight)
+        obstacleManager.restore(level, save.obstacles)
         towerManager.restore(save.towers)
         enemyManager.restore(level, save.enemyManager)
 
         screenMode = ScreenMode.PLAYING
+        gameActive = true
         resultRecorded = false
         resultStars = 0
         bestStarsBefore = saveRepository.starsFor(level.id)
@@ -508,6 +564,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     private fun goToMainMenu() {
+        gameActive = false
         towerManager.clearBuildType()
         towerManager.clearSelection()
         Fx.clear()
@@ -537,7 +594,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     fun saveCurrentGame() {
-        if (screenMode != ScreenMode.PLAYING) return
+        if (!gameActive) return
         if (GameState.status == GameStatus.VICTORY || GameState.status == GameStatus.DEFEAT) return
         saveRepository.saveGame(
             GameSave(
@@ -553,6 +610,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 speed = GameState.speed,
                 enemyManager = enemyManager.snapshot(),
                 towers = towerManager.snapshot(),
+                obstacles = obstacleManager.snapshot(),
                 savedAt = System.currentTimeMillis()
             )
         )

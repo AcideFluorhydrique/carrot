@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
@@ -99,6 +102,12 @@ class TowerUpgradePanel {
         )
         TowerType.POISON -> Strings.format(R.string.tower_stat_poison, tower.poisonDamage)
         TowerType.LIGHT -> Strings.format(R.string.tower_stat_chain, tower.chainTargets)
+        TowerType.SUN -> Strings.format(R.string.tower_stat_pulse, (tower.range / Ui.dp(1f)).toInt())
+        TowerType.MOON -> Strings.format(
+            R.string.tower_stat_aura,
+            ((1f - tower.auraSlowFactor) * 100).toInt(), (tower.range / Ui.dp(1f)).toInt()
+        )
+        TowerType.ROCKET -> Strings.format(R.string.tower_stat_pierce, (tower.range / Ui.dp(1f)).toInt())
     }
 
     companion object {

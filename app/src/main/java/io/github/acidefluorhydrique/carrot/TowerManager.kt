@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
@@ -10,6 +13,7 @@ class TowerManager(private val gameMap: GameMap) {
 
     val towers = mutableListOf<Tower>()
     val bullets = mutableListOf<Bullet>()
+    val shots = mutableListOf<PiercingShot>()
 
     /** 目前選取要建造的塔種（null = 未選）。 */
     var selectedType: TowerType? = null
@@ -30,6 +34,7 @@ class TowerManager(private val gameMap: GameMap) {
     fun reset() {
         towers.clear()
         bullets.clear()
+        shots.clear()
         selectedType = null
         selectedTower = null
         cancelPlacement()
@@ -38,6 +43,10 @@ class TowerManager(private val gameMap: GameMap) {
     // ---- 建造流程（按下拖曳定位、放開才落塔）----
 
     fun toggleBuildType(type: TowerType) {
+        if (!type.isAvailable) {
+            Audio.play(Sfx.DENY)
+            return
+        }
         selectedType = if (selectedType == type) null else type
         selectedTower = null
         cancelPlacement()
@@ -174,7 +183,7 @@ class TowerManager(private val gameMap: GameMap) {
 
     // ---- 更新 ----
 
-    fun update(enemies: List<Enemy>) {
+    fun update(enemies: List<Enemy>, obstacleManager: ObstacleManager) {
         if (GameState.status != GameStatus.PLAYING) return
 
         val alive = enemies.filter { it.isAlive }
@@ -183,24 +192,100 @@ class TowerManager(private val gameMap: GameMap) {
             tower.tick()
             if (tower.cooldown > 0) continue
 
-            val target = pickTarget(tower, alive) ?: continue
-
-            if (tower.type == TowerType.ARROW || tower.type == TowerType.LIGHT) {
-                val dx = target.x - tower.centerX
-                val dy = target.y - tower.centerY
-                tower.aimAngle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            if (tower.type.isAreaPulse) {
+                if (firePulse(tower, alive, obstacleManager)) tower.onFired()
+                continue
             }
 
-            if (tower.type == TowerType.LIGHT) {
-                fireChainLightning(tower, target, alive)
-            } else {
-                fireProjectile(tower, target)
+            val target = pickTarget(tower, alive)
+            if (target != null) {
+                aimAt(tower, target.x, target.y)
+                when {
+                    tower.type == TowerType.LIGHT -> fireChainLightning(tower, target, alive)
+                    tower.type.isPiercing -> fireRocket(tower, target)
+                    else -> fireProjectile(tower, target)
+                }
+                tower.onFired()
+                continue
             }
-            tower.onFired()
+
+            // 射程內沒有敵人時才去清障，避免玩家點一下障礙物就漏怪
+            val obstacle = obstacleManager.focusedInRange(tower.centerX, tower.centerY, tower.range)
+            if (obstacle != null) {
+                aimAt(tower, obstacle.centerX, obstacle.centerY)
+                if (tower.type.isPiercing) {
+                    fireRocketAt(tower, obstacle.centerX, obstacle.centerY)
+                } else {
+                    strikeObstacle(tower, obstacle, enemies)
+                }
+                tower.onFired()
+            }
         }
 
         for (bullet in bullets) bullet.update(enemies)
         bullets.removeAll { it.isDone }
+        for (shot in shots) shot.update(enemies, obstacleManager.obstacles)
+        shots.removeAll { it.isDone }
+    }
+
+    private fun aimAt(tower: Tower, x: Float, y: Float) {
+        if (!tower.type.rotatesToTarget) return
+        val dx = x - tower.centerX
+        val dy = y - tower.centerY
+        tower.aimAngle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+    }
+
+    /** 太陽／月亮：以自身為圓心的脈衝，無差別掃到範圍內的敵人與障礙物。 */
+    private fun firePulse(tower: Tower, alive: List<Enemy>, obstacleManager: ObstacleManager): Boolean {
+        val targets = alive.filter {
+            it.isAlive && distance(tower.centerX, tower.centerY, it.x, it.y) <= tower.range
+        }
+        val props = obstacleManager.inRadius(tower.centerX, tower.centerY, tower.range)
+        if (targets.isEmpty() && props.isEmpty()) return false
+
+        val color = Color.parseColor(tower.type.accentColor)
+        Fx.ring(tower.centerX, tower.centerY, tower.range, color, 24, Ui.dp(3.4f))
+        for (enemy in targets) {
+            enemy.takeDamage(tower.damage, showNumber = false)
+            if (tower.type == TowerType.MOON) {
+                enemy.applySlow(tower.auraSlowFactor, tower.auraSlowDuration)
+            }
+        }
+        for (prop in props) prop.takeDamage(tower.damage, alive)
+        Audio.play(if (tower.type == TowerType.SUN) Sfx.EXPLODE else Sfx.ICE)
+        return true
+    }
+
+    private fun fireRocket(tower: Tower, target: Enemy) {
+        fireRocketAt(tower, target.x, target.y)
+    }
+
+    private fun fireRocketAt(tower: Tower, x: Float, y: Float) {
+        val dx = x - tower.centerX
+        val dy = y - tower.centerY
+        val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(0.001f)
+        shots.add(
+            PiercingShot(
+                startX = tower.centerX,
+                startY = tower.centerY,
+                dirX = dx / dist,
+                dirY = dy / dist,
+                maxDistance = tower.range,
+                damage = tower.damage,
+                speed = gameMap.cellSize * 0.2f,
+                hitRadius = gameMap.cellSize * 0.36f
+            )
+        )
+        Audio.play(Sfx.SHOOT)
+    }
+
+    private fun strikeObstacle(tower: Tower, obstacle: Obstacle, enemies: List<Enemy>) {
+        Fx.beam(
+            tower.centerX, tower.centerY, obstacle.centerX, obstacle.centerY,
+            Color.parseColor(tower.type.accentColor), 8
+        )
+        obstacle.takeDamage(tower.damage, enemies)
+        Audio.play(Sfx.HIT)
     }
 
     private fun pickTarget(tower: Tower, alive: List<Enemy>): Enemy? {
@@ -242,7 +327,7 @@ class TowerManager(private val gameMap: GameMap) {
                 tower.centerX, tower.centerY, target, tower.damage, TowerType.POISON,
                 speed = speed, poisonDamage = tower.poisonDamage, poisonDuration = tower.poisonDuration
             )
-            TowerType.LIGHT -> return
+            TowerType.LIGHT, TowerType.MOON, TowerType.ROCKET, TowerType.SUN -> return
         }
         bullets.add(bullet)
         Audio.play(Sfx.SHOOT)
@@ -322,6 +407,7 @@ class TowerManager(private val gameMap: GameMap) {
         drawGhost(canvas)
         for (tower in towers) tower.draw(canvas)
         for (bullet in bullets) bullet.draw(canvas)
+        for (shot in shots) shot.draw(canvas)
     }
 
     private fun drawSelectionRange(canvas: Canvas) {
@@ -353,13 +439,7 @@ class TowerManager(private val gameMap: GameMap) {
         val valid = gameMap.canPlaceTower(ghostCol, ghostRow) && GameState.gold >= type.baseCost
         val tint = if (valid) "#5EE07A" else "#F87171"
 
-        val range = cs * when (type) {
-            TowerType.ARROW -> 2.7f
-            TowerType.ICE -> 2.3f
-            TowerType.BOMB -> 2.2f
-            TowerType.POISON -> 2.25f
-            TowerType.LIGHT -> 2.85f
-        }
+        val range = cs * type.rangeCells(1)
 
         paint.style = Paint.Style.FILL
         paint.color = Color.parseColor(if (valid) "#1A5EE07A" else "#1AF87171")

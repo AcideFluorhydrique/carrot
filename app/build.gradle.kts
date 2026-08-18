@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")

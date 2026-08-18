@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
@@ -17,10 +20,12 @@ class GameMap {
 
         const val EMPTY = 0
         const val PATH = 1
-        /** 地形障礙，永遠不能蓋塔。 */
-        const val TERRAIN = 2
+        /** 永久地形：定義地圖形狀，打不掉也蓋不了。 */
+        const val PERMANENT = 2
+        /** 可摧毀的障礙物佔用中。 */
+        const val OBSTACLE = 3
         /** 已被塔佔用。 */
-        const val TOWER = 3
+        const val TOWER = 4
     }
 
     var cellSize = 60f
@@ -39,6 +44,9 @@ class GameMap {
     private val paint = Paint().apply { isAntiAlias = true }
     private val arrowPath = Path()
 
+    /** 目前關卡所屬章節的配色。 */
+    private val theme: ChapterTheme get() = GameState.level.chapter.theme
+
     init {
         loadLevel(GameLevels.default)
     }
@@ -49,8 +57,13 @@ class GameMap {
         for ((col, row) in pathPoints) {
             if (isValidCell(col, row)) grid[row][col] = PATH
         }
-        for ((col, row) in level.blocked) {
-            if (isValidCell(col, row) && grid[row][col] == EMPTY) grid[row][col] = TERRAIN
+        for ((col, row) in level.permanent) {
+            if (isValidCell(col, row) && grid[row][col] == EMPTY) grid[row][col] = PERMANENT
+        }
+        for (spec in level.obstacles) {
+            if (isValidCell(spec.col, spec.row) && grid[spec.row][spec.col] == EMPTY) {
+                grid[spec.row][spec.col] = OBSTACLE
+            }
         }
     }
 
@@ -89,6 +102,14 @@ class GameMap {
         if (isValidCell(col, row) && grid[row][col] == TOWER) grid[row][col] = EMPTY
     }
 
+    /** 障礙物被打掉之後，那一格就能蓋塔了。 */
+    fun clearObstacle(col: Int, row: Int) {
+        if (isValidCell(col, row) && grid[row][col] == OBSTACLE) grid[row][col] = EMPTY
+    }
+
+    fun isObstacle(col: Int, row: Int): Boolean =
+        isValidCell(col, row) && grid[row][col] == OBSTACLE
+
     fun tick() {
         frame++
     }
@@ -114,7 +135,7 @@ class GameMap {
         paint.style = Paint.Style.FILL
         paint.color = Color.parseColor("#55000000")
         canvas.drawRoundRect(RectF(left, top + Ui.dp(4f), right, bottom + Ui.dp(4f)), radius, radius, paint)
-        paint.color = Color.parseColor("#2A4423")
+        paint.color = theme.frameColor
         canvas.drawRoundRect(RectF(left, top, right, bottom), radius, radius, paint)
     }
 
@@ -129,23 +150,24 @@ class GameMap {
 
                 paint.style = Paint.Style.FILL
                 paint.color = when (cell) {
-                    PATH -> Color.parseColor("#A77935")
-                    TERRAIN -> Color.parseColor("#2C4A2E")
-                    else -> if ((row + col) % 2 == 0) Color.parseColor("#3F793F") else Color.parseColor("#376F38")
+                    PATH -> theme.pathColorInt
+                    PERMANENT -> theme.frameColor
+                    else -> if ((row + col) % 2 == 0) theme.grassAColor else theme.grassBColor
                 }
                 canvas.drawRoundRect(rect, radius, radius, paint)
 
                 if (cell == PATH) {
-                    paint.color = Color.parseColor("#28FFF1C3")
+                    paint.color = theme.pathHighlightColor
                     canvas.drawRoundRect(
                         RectF(rect.left + inset * 2, rect.top + inset * 2, rect.right - inset * 2, rect.top + cellSize * 0.26f),
                         radius * 0.7f, radius * 0.7f, paint
                     )
                 }
 
-                if (cell == TERRAIN) {
+                if (cell == PERMANENT) {
                     paint.textSize = cellSize * 0.5f
-                    val decor = if ((row * 7 + col * 3) % 2 == 0) "🪨" else "🌳"
+                    val decorations = theme.decor
+                    val decor = decorations[(row * 7 + col * 3) % decorations.size]
                     val tw = paint.measureText(decor)
                     canvas.drawText(decor, rect.centerX() - tw / 2f, rect.centerY() + cellSize * 0.18f, paint)
                 }
@@ -153,9 +175,8 @@ class GameMap {
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = Ui.dp(0.7f)
                 paint.color = when (cell) {
-                    PATH -> Color.parseColor("#553E2813")
-                    TERRAIN -> Color.parseColor("#44172B18")
-                    else -> Color.parseColor("#331F361E")
+                    PATH, PERMANENT -> theme.pathEdgeColor
+                    else -> theme.grassLineColor
                 }
                 canvas.drawRoundRect(rect, radius, radius, paint)
             }
