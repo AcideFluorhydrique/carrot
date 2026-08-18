@@ -3,7 +3,7 @@
     SPDX-License-Identifier: GPL-3.0-or-later
 -->
 <resources>
-    <style name="Theme.CarrotFantasy" parent="Theme.AppCompat.NoActionBar">
+    <style name="Theme.TheLastCarrot" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowContentOverlay">@null</item>
     </style>

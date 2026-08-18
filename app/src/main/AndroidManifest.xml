@@ -10,7 +10,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
-        android:theme="@style/Theme.CarrotFantasy">
+        android:theme="@style/Theme.TheLastCarrot">
 
         <activity
             android:name=".GameActivity"
