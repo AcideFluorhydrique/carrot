@@ -8,8 +8,11 @@ import android.graphics.Color
 import android.graphics.Paint
 
 /**
- * 火箭：沿著固定方向直飛，路徑上的敵人與障礙物各吃一次傷害。
- * 單體輸出不如箭塔，但敵人排成一列時非常划算。
+ * 火箭：沿著固定方向直飛到出界，路徑上的敵人與障礙物各吃一次傷害。
+ *
+ * 塔的射程只決定「打得到誰」——一旦打出去，彈體就不再受射程限制，
+ * 會一路穿到畫面外。所以火箭的價值在於瞄準時機：
+ * 讓彈道對齊一段直路，一發就能掃掉整排。
  */
 class PiercingShot(
     startX: Float,
@@ -68,11 +71,8 @@ class PiercingShot(
             }
         }
 
-        if (travelled >= maxDistance) {
-            isDone = true
-            Fx.explosion(x, y, hitRadius * 1.6f)
-            Audio.play(Sfx.EXPLODE)
-        }
+        // 飛出畫面就安靜地消失：這是一發掠過去的穿透彈，不是落點爆炸的炮彈
+        if (travelled >= maxDistance) isDone = true
     }
 
     fun draw(canvas: Canvas) {

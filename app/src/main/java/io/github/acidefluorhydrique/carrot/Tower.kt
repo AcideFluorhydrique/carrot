@@ -32,7 +32,10 @@ enum class TowerType(
     val displayName: String get() = Strings.get(displayNameRes)
     val tagline: String get() = Strings.get(taglineRes)
 
-    /** 以自己為圓心的範圍脈衝，不需要瞄準。 */
+    /**
+     * 以自己為圓心的範圍脈衝，不需要瞄準。
+     * 太陽與月亮共用同一個圈的大小，差別在圈裡裝的是傷害還是控制。
+     */
     val isAreaPulse: Boolean get() = this == SUN || this == MOON
 
     /** 直線穿透。 */
@@ -58,7 +61,7 @@ enum class TowerType(
         POISON -> 2.0f + level * 0.25f
         ROCKET -> 3.2f + level * 0.4f
         LIGHT -> 2.5f + level * 0.35f
-        SUN -> 1.6f + level * 0.3f
+        SUN -> 2.7f + level * 0.35f
     }
 
     /** 「1-2」這樣的解鎖提示。 */

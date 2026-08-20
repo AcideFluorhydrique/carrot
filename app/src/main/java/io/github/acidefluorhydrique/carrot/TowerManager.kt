@@ -270,13 +270,22 @@ class TowerManager(private val gameMap: GameMap) {
                 startY = tower.centerY,
                 dirX = dx / dist,
                 dirY = dy / dist,
-                maxDistance = tower.range,
+                // 射程只決定「打得到誰」；打出去之後就一路飛到出界，
+                // 沿途所有敵人與障礙物都會吃到傷害
+                maxDistance = mapDiagonal(),
                 damage = tower.damage,
                 speed = gameMap.cellSize * 0.2f,
                 hitRadius = gameMap.cellSize * 0.36f
             )
         )
         Audio.play(Sfx.SHOOT)
+    }
+
+    /** 對角線長度：保證火箭無論往哪個方向打都能飛出畫面。 */
+    private fun mapDiagonal(): Float {
+        val w = gameMap.cellSize * GameMap.COLS
+        val h = gameMap.cellSize * GameMap.ROWS
+        return sqrt(w * w + h * h)
     }
 
     private fun strikeObstacle(tower: Tower, obstacle: Obstacle, enemies: List<Enemy>) {
