@@ -77,7 +77,7 @@ class Obstacle(
         if (isDestroyed || amount <= 0) return
         hp -= amount
         hitFlash = 5
-        Fx.hitSpark(centerX, centerY, Color.parseColor(kind.tint))
+        Fx.hitSpark(centerX, centerY, Colors.of(kind.tint))
         if (hp <= 0) destroy(enemies)
     }
 
@@ -89,7 +89,7 @@ class Obstacle(
         GameState.addGold(goldReward)
         GameState.obstaclesCleared++
 
-        val color = Color.parseColor(kind.tint)
+        val color = Colors.of(kind.tint)
         Fx.burst(centerX, centerY, 18, color, Ui.dp(2.2f), Ui.dp(2.6f), 28)
         Fx.ring(centerX, centerY, gameMap.cellSize * 0.8f, color, 20)
         Fx.goldGain(centerX, centerY, goldReward)
@@ -105,8 +105,8 @@ class Obstacle(
             // 毒菇碎裂：放出一團毒雲
             ObstacleKind.TOXIC -> {
                 val radius = gameMap.cellSize * 1.6f
-                Fx.ring(centerX, centerY, radius, Color.parseColor("#A3E635"), 24)
-                Fx.burst(centerX, centerY, 16, Color.parseColor("#84CC16"), Ui.dp(1.6f), Ui.dp(2.4f), 34, gravity = -0.03f)
+                Fx.ring(centerX, centerY, radius, Colors.of("#A3E635"), 24)
+                Fx.burst(centerX, centerY, 16, Colors.of("#84CC16"), Ui.dp(1.6f), Ui.dp(2.4f), 34, gravity = -0.03f)
                 affectNearby(enemies, radius) { it.applyPoison(3, 200) }
             }
             ObstacleKind.CRATE -> Fx.shake(Ui.dp(3f), 14)
@@ -138,7 +138,7 @@ class Obstacle(
             val pulse = 1f + 0.07f * sin(animFrame * 0.16f)
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = Ui.dp(2f)
-            paint.color = Color.parseColor("#FFE08A")
+            paint.color = Colors.of("#FFE08A")
             canvas.drawRoundRect(
                 RectF(px + cs * 0.05f, py + cs * 0.05f, px + cs * 0.95f, py + cs * 0.95f),
                 cs * 0.18f * pulse, cs * 0.18f * pulse, paint
@@ -164,9 +164,9 @@ class Obstacle(
             val barH = Ui.dp(3f)
             val left = centerX - barW / 2f
             val top = py + cs * 0.86f
-            paint.color = Color.parseColor("#99101010")
+            paint.color = Colors.of("#99101010")
             canvas.drawRoundRect(RectF(left - 1f, top - 1f, left + barW + 1f, top + barH + 1f), barH, barH, paint)
-            paint.color = Color.parseColor(kind.tint)
+            paint.color = Colors.of(kind.tint)
             canvas.drawRoundRect(RectF(left, top, left + barW * hpRatio, top + barH), barH, barH, paint)
         }
     }

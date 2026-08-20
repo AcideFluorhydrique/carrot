@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
@@ -40,11 +39,11 @@ class TowerSelectBar {
         paint.style = Paint.Style.FILL
         paint.shader = LinearGradient(
             0f, top, 0f, h.toFloat(),
-            Color.parseColor("#E6172523"), Color.parseColor("#F40C1312"), Shader.TileMode.CLAMP
+            Colors.of("#E6172523"), Colors.of("#F40C1312"), Shader.TileMode.CLAMP
         )
         canvas.drawRect(RectF(0f, top, w.toFloat(), h.toFloat()), paint)
         paint.shader = null
-        paint.color = Color.parseColor("#445FE36B")
+        paint.color = Colors.of("#445FE36B")
         canvas.drawRect(RectF(0f, top, w.toFloat(), top + Ui.dp(1.5f)), paint)
 
         val types = types()
@@ -60,22 +59,22 @@ class TowerSelectBar {
 
         paint.style = Paint.Style.FILL
         paint.shader = null
-        paint.color = Color.parseColor("#66000000")
+        paint.color = Colors.of("#66000000")
         canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(2.5f), rect.right, rect.bottom + Ui.dp(2.5f)), radius, radius, paint)
 
         paint.color = when {
-            selected -> Color.parseColor("#E63F8A4C")
-            affordable -> Color.parseColor("#D8242F2C")
-            else -> Color.parseColor("#8A2A2F2C")
+            selected -> Colors.of("#E63F8A4C")
+            affordable -> Colors.of("#D8242F2C")
+            else -> Colors.of("#8A2A2F2C")
         }
         canvas.drawRoundRect(rect, radius, radius, paint)
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = if (selected) Ui.dp(2f) else Ui.dp(1.1f)
         paint.color = when {
-            selected -> Color.parseColor("#E0F8FFB6")
-            affordable -> Color.parseColor("#5AFFFFFF")
-            else -> Color.parseColor("#33FFFFFF")
+            selected -> Colors.of("#E0F8FFB6")
+            affordable -> Colors.of("#5AFFFFFF")
+            else -> Colors.of("#33FFFFFF")
         }
         canvas.drawRoundRect(rect, radius, radius, paint)
 
@@ -90,7 +89,7 @@ class TowerSelectBar {
         Widgets.centeredFit(
             canvas, type.displayName, rect.centerX(), rect.top + rect.height() * 0.68f,
             rect.height() * 0.2f, inner, bold = false,
-            color = if (affordable) Color.parseColor("#DCEDE2") else Color.parseColor("#7F97A0")
+            color = if (affordable) Colors.of("#DCEDE2") else Colors.of("#7F97A0")
         )
         // 未解鎖時，第三行改成提示要打到第幾關
         val bottom = if (unlocked) {
@@ -102,9 +101,9 @@ class TowerSelectBar {
             canvas, bottom, rect.centerX(),
             rect.top + rect.height() * 0.92f, rect.height() * 0.21f, inner, bold = true,
             color = when {
-                !unlocked -> Color.parseColor("#94A3B8")
-                affordable -> Color.parseColor("#FFE08A")
-                else -> Color.parseColor("#8A96A0")
+                !unlocked -> Colors.of("#94A3B8")
+                affordable -> Colors.of("#FFE08A")
+                else -> Colors.of("#8A96A0")
             }
         )
     }

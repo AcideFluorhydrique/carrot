@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
@@ -41,17 +40,17 @@ object Widgets {
     ) {
         paint.style = Paint.Style.FILL
         paint.shader = null
-        paint.color = Color.parseColor("#66000000")
+        paint.color = Colors.of("#66000000")
         canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f)), radius, radius, paint)
         paint.shader = LinearGradient(
             rect.left, rect.top, rect.left, rect.bottom,
-            Color.parseColor(topColor), Color.parseColor(bottomColor), Shader.TileMode.CLAMP
+            Colors.of(topColor), Colors.of(bottomColor), Shader.TileMode.CLAMP
         )
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.shader = null
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = Ui.dp(1.2f)
-        paint.color = Color.parseColor(borderColor)
+        paint.color = Colors.of(borderColor)
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.style = Paint.Style.FILL
     }
@@ -69,27 +68,27 @@ object Widgets {
         val radius = Ui.dp(9f)
         paint.shader = null
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#55000000")
+        paint.color = Colors.of("#55000000")
         canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f)), radius, radius, paint)
 
         if (enabled) {
             paint.shader = LinearGradient(
                 rect.left, rect.top, rect.left, rect.bottom,
-                Color.parseColor(topColor), Color.parseColor(bottomColor), Shader.TileMode.CLAMP
+                Colors.of(topColor), Colors.of(bottomColor), Shader.TileMode.CLAMP
             )
         } else {
-            paint.color = Color.parseColor("#77404A45")
+            paint.color = Colors.of("#77404A45")
         }
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.shader = null
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = Ui.dp(1.2f)
-        paint.color = if (enabled) Color.parseColor("#66FFFFFF") else Color.parseColor("#33FFFFFF")
+        paint.color = if (enabled) Colors.of("#66FFFFFF") else Colors.of("#33FFFFFF")
         canvas.drawRoundRect(rect, radius, radius, paint)
 
         paint.style = Paint.Style.FILL
-        paint.color = if (enabled) Color.parseColor("#FFFDF2") else Color.parseColor("#99C9CFC9")
+        paint.color = if (enabled) Colors.of("#FFFDF2") else Colors.of("#99C9CFC9")
         val inner = rect.width() - Ui.dp(7f)
         if (subLabel == null) {
             val size = fitSize(label, textSize, inner, bold = true)
@@ -97,7 +96,7 @@ object Widgets {
         } else {
             val mainSize = fitSize(label, textSize, inner, bold = true)
             centered(canvas, label, rect.centerX(), rect.centerY() - textSize * 0.05f, mainSize, bold = true)
-            paint.color = if (enabled) Color.parseColor("#CCE9F3E4") else Color.parseColor("#77C9CFC9")
+            paint.color = if (enabled) Colors.of("#CCE9F3E4") else Colors.of("#77C9CFC9")
             val subSize = fitSize(subLabel, textSize * 0.7f, inner)
             centered(canvas, subLabel, rect.centerX(), rect.centerY() + textSize * 1.05f, subSize, bold = false)
         }
@@ -195,7 +194,7 @@ object Widgets {
             paint.style = Paint.Style.FILL
             paint.textSize = size
             paint.isFakeBoldText = true
-            paint.color = if (i < earned) Color.parseColor("#FFD75E") else Color.parseColor("#4DFFFFFF")
+            paint.color = if (i < earned) Colors.of("#FFD75E") else Colors.of("#4DFFFFFF")
             val w = paint.measureText(glyph)
             canvas.drawText(glyph, startX + gap * i - w / 2f, baselineY, paint)
         }
@@ -205,15 +204,15 @@ object Widgets {
     fun scrim(canvas: Canvas, w: Int, h: Int, color: String) {
         paint.shader = null
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor(color)
+        paint.color = Colors.of(color)
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
     }
 
     fun badge(canvas: Canvas, rect: RectF, text: String, background: String, textColor: String, size: Float) {
         paint.shader = null
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor(background)
+        paint.color = Colors.of(background)
         canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, paint)
-        centered(canvas, text, rect.centerX(), rect.centerY() + size * 0.36f, size, bold = true, color = Color.parseColor(textColor))
+        centered(canvas, text, rect.centerX(), rect.centerY() + size * 0.36f, size, bold = true, color = Colors.of(textColor))
     }
 }

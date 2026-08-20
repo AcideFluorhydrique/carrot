@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import kotlin.math.sqrt
 
@@ -82,13 +81,13 @@ class Bullet(
     private fun spawnTrail() {
         when (type) {
             TowerType.BOMB -> if (age % 2 == 0) {
-                Fx.burst(x, y, 1, Color.parseColor("#8A8A8A"), Ui.dp(0.3f), Ui.dp(1.4f), 14, gravity = -0.02f)
+                Fx.burst(x, y, 1, Colors.of("#8A8A8A"), Ui.dp(0.3f), Ui.dp(1.4f), 14, gravity = -0.02f)
             }
             TowerType.POISON -> if (age % 2 == 0) {
-                Fx.burst(x, y, 1, Color.parseColor("#84CC16"), Ui.dp(0.3f), Ui.dp(1.5f), 16, gravity = -0.02f)
+                Fx.burst(x, y, 1, Colors.of("#84CC16"), Ui.dp(0.3f), Ui.dp(1.5f), 16, gravity = -0.02f)
             }
             TowerType.ICE -> if (age % 3 == 0) {
-                Fx.burst(x, y, 1, Color.parseColor("#BFEAFF"), Ui.dp(0.3f), Ui.dp(1.2f), 12, gravity = 0f)
+                Fx.burst(x, y, 1, Colors.of("#BFEAFF"), Ui.dp(0.3f), Ui.dp(1.2f), 12, gravity = 0f)
             }
             else -> Unit
         }
@@ -99,7 +98,7 @@ class Bullet(
         when (type) {
             TowerType.ARROW -> {
                 target.takeDamage(damage)
-                Fx.hitSpark(x, y, Color.parseColor("#FFD700"))
+                Fx.hitSpark(x, y, Colors.of("#FFD700"))
                 Audio.play(Sfx.HIT)
             }
             TowerType.BOMB -> explode(enemies, x, y)
@@ -112,7 +111,7 @@ class Bullet(
             TowerType.POISON -> {
                 target.takeDamage(damage, ignoreArmor = true)
                 target.applyPoison(poisonDamage, poisonDuration)
-                Fx.burst(x, y, 8, Color.parseColor("#84CC16"), Ui.dp(1.4f), Ui.dp(2f), 20, gravity = -0.02f)
+                Fx.burst(x, y, 8, Colors.of("#84CC16"), Ui.dp(1.4f), Ui.dp(2f), 20, gravity = -0.02f)
                 Audio.play(Sfx.POISON)
             }
             // 電塔是瞬發、太陽月亮是範圍脈衝、火箭是直線穿透，都不走這裡
@@ -144,32 +143,32 @@ class Bullet(
                 val len = Ui.dp(7f)
                 paint.strokeWidth = Ui.dp(1.8f)
                 paint.style = Paint.Style.STROKE
-                paint.color = Color.parseColor("#66FFE9A8")
+                paint.color = Colors.of("#66FFE9A8")
                 canvas.drawLine(x - dirX * len * 1.8f, y - dirY * len * 1.8f, x, y, paint)
-                paint.color = Color.parseColor("#FFD700")
+                paint.color = Colors.of("#FFD700")
                 canvas.drawLine(x - dirX * len, y - dirY * len, x + dirX * len * 0.5f, y + dirY * len * 0.5f, paint)
                 paint.style = Paint.Style.FILL
             }
             TowerType.BOMB -> {
-                paint.color = Color.parseColor("#33221F")
+                paint.color = Colors.of("#33221F")
                 canvas.drawCircle(x, y, Ui.dp(4f), paint)
-                paint.color = Color.parseColor("#FF8A3D")
+                paint.color = Colors.of("#FF8A3D")
                 canvas.drawCircle(x - dirX * Ui.dp(4f), y - dirY * Ui.dp(4f), Ui.dp(1.6f), paint)
             }
             TowerType.ICE -> {
-                paint.color = Color.parseColor("#CCE8FAFF")
+                paint.color = Colors.of("#CCE8FAFF")
                 canvas.drawCircle(x, y, Ui.dp(3.2f), paint)
-                paint.color = Color.parseColor("#8FD8FF")
+                paint.color = Colors.of("#8FD8FF")
                 canvas.drawCircle(x, y, Ui.dp(2f), paint)
             }
             TowerType.POISON -> {
-                paint.color = Color.parseColor("#A3E635")
+                paint.color = Colors.of("#A3E635")
                 canvas.drawCircle(x, y, Ui.dp(3.4f), paint)
-                paint.color = Color.parseColor("#65A30D")
+                paint.color = Colors.of("#65A30D")
                 canvas.drawCircle(x + Ui.dp(0.8f), y + Ui.dp(0.8f), Ui.dp(1.6f), paint)
             }
             TowerType.LIGHT, TowerType.MOON, TowerType.ROCKET, TowerType.SUN -> {
-                paint.color = Color.parseColor("#C4B5FD")
+                paint.color = Colors.of("#C4B5FD")
                 canvas.drawCircle(x, y, Ui.dp(3f), paint)
             }
         }

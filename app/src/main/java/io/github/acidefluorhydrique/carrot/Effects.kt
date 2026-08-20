@@ -156,29 +156,29 @@ object Fx {
     }
 
     fun explosion(x: Float, y: Float, radius: Float) {
-        ring(x, y, radius, Color.parseColor("#FFB347"), 18, Ui.dp(4f))
-        burst(x, y, 22, Color.parseColor("#FF8A3D"), Ui.dp(2.6f), Ui.dp(3.4f), 26)
-        burst(x, y, 12, Color.parseColor("#FFE066"), Ui.dp(3.2f), Ui.dp(2.4f), 20)
-        burst(x, y, 8, Color.parseColor("#6B7280"), Ui.dp(1.4f), Ui.dp(4f), 34, gravity = 0.02f)
+        ring(x, y, radius, Colors.of("#FFB347"), 18, Ui.dp(4f))
+        burst(x, y, 22, Colors.of("#FF8A3D"), Ui.dp(2.6f), Ui.dp(3.4f), 26)
+        burst(x, y, 12, Colors.of("#FFE066"), Ui.dp(3.2f), Ui.dp(2.4f), 20)
+        burst(x, y, 8, Colors.of("#6B7280"), Ui.dp(1.4f), Ui.dp(4f), 34, gravity = 0.02f)
         shake(Ui.dp(2.5f), 10)
     }
 
     fun frost(x: Float, y: Float, radius: Float) {
-        ring(x, y, radius, Color.parseColor("#8FD8FF"), 16, Ui.dp(2.5f))
-        burst(x, y, 8, Color.parseColor("#BFEAFF"), Ui.dp(1.6f), Ui.dp(2.2f), 22, gravity = 0.03f)
+        ring(x, y, radius, Colors.of("#8FD8FF"), 16, Ui.dp(2.5f))
+        burst(x, y, 8, Colors.of("#BFEAFF"), Ui.dp(1.6f), Ui.dp(2.2f), 22, gravity = 0.03f)
     }
 
     fun deathPuff(x: Float, y: Float, color: Int, scale: Float) {
         burst(x, y, (12 * scale).toInt().coerceIn(6, 30), color, Ui.dp(2.2f) * scale, Ui.dp(2.8f) * scale, 26)
-        burst(x, y, 6, Color.parseColor("#FFFFFF"), Ui.dp(1.6f) * scale, Ui.dp(1.8f) * scale, 16, gravity = 0.02f)
+        burst(x, y, 6, Colors.of("#FFFFFF"), Ui.dp(1.6f) * scale, Ui.dp(1.8f) * scale, 16, gravity = 0.02f)
     }
 
     fun goldGain(x: Float, y: Float, amount: Int) {
-        text(x, y, "+$amount", Color.parseColor("#FFD75E"), Ui.dp(12f), 46)
+        text(x, y, "+$amount", Colors.of("#FFD75E"), Ui.dp(12f), 46)
     }
 
     fun damage(x: Float, y: Float, amount: Int, critical: Boolean = false) {
-        val color = if (critical) Color.parseColor("#FF7A7A") else Color.parseColor("#FFFFFF")
+        val color = if (critical) Colors.of("#FF7A7A") else Colors.of("#FFFFFF")
         text(x, y, amount.toString(), color, Ui.dp(if (critical) 13f else 11f), 32)
     }
 

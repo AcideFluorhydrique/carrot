@@ -67,7 +67,7 @@ class EnemyManager(private val gameMap: GameMap) {
             gameMap.centerOf(gameMap.pathPoints.first().first, gameMap.pathPoints.first().second)
         } else Pair(0f, 0f)
         Fx.goldGain(cx, cy - gameMap.cellSize * 0.5f, bonus)
-        Fx.ring(cx, cy, gameMap.cellSize * 1.1f, android.graphics.Color.parseColor("#FFD75E"), 20)
+        Fx.ring(cx, cy, gameMap.cellSize * 1.1f, Colors.of("#FFD75E"), 20)
         if (phase == PHASE_PREPARING) {
             beginWave(0)
         } else {

@@ -133,7 +133,7 @@ class GameMap {
         val radius = Ui.dp(12f)
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#55000000")
+        paint.color = Colors.of("#55000000")
         canvas.drawRoundRect(RectF(left, top + Ui.dp(4f), right, bottom + Ui.dp(4f)), radius, radius, paint)
         paint.color = theme.frameColor
         canvas.drawRoundRect(RectF(left, top, right, bottom), radius, radius, paint)
@@ -206,7 +206,7 @@ class GameMap {
             arrowPath.lineTo(mx - size * 0.7f, my - size * 0.8f)
             arrowPath.lineTo(mx - size * 0.7f, my + size * 0.8f)
             arrowPath.close()
-            paint.color = Color.parseColor("#4DFFF3D0")
+            paint.color = Colors.of("#4DFFF3D0")
             canvas.drawPath(arrowPath, paint)
             canvas.restore()
             i += step
@@ -220,9 +220,9 @@ class GameMap {
         val pulse = 1f + 0.08f * sin(frame * 0.09f)
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#33EF4444")
+        paint.color = Colors.of("#33EF4444")
         canvas.drawCircle(cx, cy, cellSize * 0.42f * pulse, paint)
-        paint.color = Color.parseColor("#CCEF4444")
+        paint.color = Colors.of("#CCEF4444")
         canvas.drawCircle(cx, cy, cellSize * 0.3f, paint)
 
         paint.color = Color.WHITE
@@ -245,18 +245,18 @@ class GameMap {
         } else 0f
 
         paint.style = Paint.Style.FILL
-        paint.color = if (hurt) Color.parseColor("#66FF6B6B") else Color.parseColor("#33FFFFFF")
+        paint.color = if (hurt) Colors.of("#66FF6B6B") else Colors.of("#33FFFFFF")
         canvas.drawCircle(cx, cy, cellSize * 0.46f, paint)
 
         // 血量圓環
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = Ui.dp(3f)
-        paint.color = Color.parseColor("#55000000")
+        paint.color = Colors.of("#55000000")
         canvas.drawCircle(cx, cy, cellSize * 0.42f, paint)
         paint.color = when {
-            ratio > 0.6f -> Color.parseColor("#66E06B")
-            ratio > 0.3f -> Color.parseColor("#F2C14E")
-            else -> Color.parseColor("#EF4444")
+            ratio > 0.6f -> Colors.of("#66E06B")
+            ratio > 0.3f -> Colors.of("#F2C14E")
+            else -> Colors.of("#EF4444")
         }
         val arcRect = RectF(cx - cellSize * 0.42f, cy - cellSize * 0.42f, cx + cellSize * 0.42f, cy + cellSize * 0.42f)
         canvas.drawArc(arcRect, -90f, 360f * ratio, false, paint)

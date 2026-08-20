@@ -101,7 +101,7 @@ class Enemy(
         isDead = true
         GameState.kills++
         GameState.addGold(goldReward)
-        Fx.deathPuff(x, y, Color.parseColor(kind.auraColor), kind.sizeScale)
+        Fx.deathPuff(x, y, Colors.of(kind.auraColor), kind.sizeScale)
         Fx.goldGain(x, y - radius, goldReward)
         if (kind.isBoss) {
             Fx.explosion(x, y, gameMap.cellSize * 1.6f)
@@ -128,7 +128,7 @@ class Enemy(
             poisonTick++
             if (poisonTick >= POISON_TICK_FRAMES) {
                 poisonTick = 0
-                Fx.burst(x, y, 3, Color.parseColor("#84CC16"), Ui.dp(0.9f), Ui.dp(1.6f), 16, gravity = -0.03f)
+                Fx.burst(x, y, 3, Colors.of("#84CC16"), Ui.dp(0.9f), Ui.dp(1.6f), 16, gravity = -0.03f)
                 takeDamage(poisonDamage, ignoreArmor = true, showNumber = false)
                 if (!isAlive) return
             }
@@ -141,7 +141,7 @@ class Enemy(
         if (pathIndex >= points.size - 1) {
             hasReachedEnd = true
             GameState.onEnemyReached(kind)
-            Fx.burst(x, y, 10, Color.parseColor("#F87171"), Ui.dp(2f), Ui.dp(2.6f), 24)
+            Fx.burst(x, y, 10, Colors.of("#F87171"), Ui.dp(2f), Ui.dp(2.6f), 24)
             return
         }
 
@@ -214,20 +214,20 @@ class Enemy(
 
         // 影子
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#40000000")
+        paint.color = Colors.of("#40000000")
         canvas.drawOval(RectF(x - r * 0.8f, y + r * 0.6f, x + r * 0.8f, y + r * 0.95f), paint)
 
         // 狀態光暈
         if (isSlowed) {
-            paint.color = Color.parseColor("#5544AAFF")
+            paint.color = Colors.of("#5544AAFF")
             canvas.drawCircle(x, y + bob, r * 1.35f, paint)
         }
         if (isPoisoned) {
-            paint.color = Color.parseColor("#5584CC16")
+            paint.color = Colors.of("#5584CC16")
             canvas.drawCircle(x, y + bob, r * 1.2f, paint)
         }
         if (kind.isBoss) {
-            paint.color = Color.parseColor("#33F87171")
+            paint.color = Colors.of("#33F87171")
             canvas.drawCircle(x, y + bob, r * 1.5f, paint)
         }
 
@@ -260,15 +260,15 @@ class Enemy(
         val top = y + bob - r - Ui.dp(6f)
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#99101010")
+        paint.color = Colors.of("#99101010")
         canvas.drawRoundRect(RectF(left - 1f, top - 1f, left + barW + 1f, top + barH + 1f), barH, barH, paint)
 
         paint.color = when {
-            isPoisoned -> Color.parseColor("#A3E635")
-            isSlowed -> Color.parseColor("#44AAFF")
-            hpRatio > 0.5f -> Color.parseColor("#4ADE80")
-            hpRatio > 0.25f -> Color.parseColor("#FACC15")
-            else -> Color.parseColor("#F87171")
+            isPoisoned -> Colors.of("#A3E635")
+            isSlowed -> Colors.of("#44AAFF")
+            hpRatio > 0.5f -> Colors.of("#4ADE80")
+            hpRatio > 0.25f -> Colors.of("#FACC15")
+            else -> Colors.of("#F87171")
         }
         canvas.drawRoundRect(RectF(left, top, left + barW * hpRatio, top + barH), barH, barH, paint)
     }

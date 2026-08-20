@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
@@ -29,11 +28,11 @@ class HudRenderer {
         paint.style = Paint.Style.FILL
         paint.shader = LinearGradient(
             0f, 0f, 0f, barH,
-            Color.parseColor("#F21A2A2B"), Color.parseColor("#D2131D20"), Shader.TileMode.CLAMP
+            Colors.of("#F21A2A2B"), Colors.of("#D2131D20"), Shader.TileMode.CLAMP
         )
         canvas.drawRect(RectF(0f, 0f, w.toFloat(), barH), paint)
         paint.shader = null
-        paint.color = Color.parseColor("#445FE36B")
+        paint.color = Colors.of("#445FE36B")
         canvas.drawRect(RectF(0f, barH - Ui.dp(1.5f), w.toFloat(), barH), paint)
 
         val pillW = Ui.dp(74f)
@@ -59,7 +58,7 @@ class HudRenderer {
         val infoRight = speedRect.left - Ui.dp(8f)
         if (infoRight - infoLeft > Ui.dp(60f)) {
             val title = GameState.level.fullName
-            Widgets.left(canvas, title, infoLeft, barH * 0.44f, Ui.dp(12.5f), Color.parseColor("#FFF3D0"), bold = true)
+            Widgets.left(canvas, title, infoLeft, barH * 0.44f, Ui.dp(12.5f), Colors.of("#FFF3D0"), bold = true)
             val waveText = Strings.format(
                 R.string.hud_wave, enemyManager.currentWaveNumber, enemyManager.totalWaves
             )
@@ -69,12 +68,12 @@ class HudRenderer {
             } else {
                 waveText
             }
-            Widgets.left(canvas, sub, infoLeft, barH * 0.78f, Ui.dp(10f), Color.parseColor("#B8D6CE"))
+            Widgets.left(canvas, sub, infoLeft, barH * 0.78f, Ui.dp(10f), Colors.of("#B8D6CE"))
 
             val scoreText = Strings.format(R.string.hud_score, GameState.score)
             val scoreW = Widgets.measure(scoreText, Ui.dp(10.5f))
             if (infoRight - infoLeft > scoreW + Widgets.measure(sub, Ui.dp(10f)) + Ui.dp(20f)) {
-                Widgets.left(canvas, scoreText, infoRight - scoreW, barH * 0.78f, Ui.dp(10.5f), Color.parseColor("#9FBEB6"))
+                Widgets.left(canvas, scoreText, infoRight - scoreW, barH * 0.78f, Ui.dp(10.5f), Colors.of("#9FBEB6"))
             }
         }
 
@@ -97,11 +96,11 @@ class HudRenderer {
         val radius = rect.height() / 2f
         paint.style = Paint.Style.FILL
         paint.shader = null
-        paint.color = Color.parseColor("#66000000")
+        paint.color = Colors.of("#66000000")
         canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(2f), rect.right, rect.bottom + Ui.dp(2f)), radius, radius, paint)
-        paint.color = Color.parseColor("#E6212C29")
+        paint.color = Colors.of("#E6212C29")
         canvas.drawRoundRect(rect, radius, radius, paint)
-        paint.color = Color.parseColor(accent)
+        paint.color = Colors.of(accent)
         canvas.drawCircle(rect.left + radius, rect.centerY(), radius * 0.82f, paint)
 
         paint.textSize = rect.height() * 0.66f
@@ -110,7 +109,7 @@ class HudRenderer {
         Widgets.left(
             canvas, value, rect.left + radius * 2f + Ui.dp(2f),
             rect.centerY() + rect.height() * 0.22f, rect.height() * 0.52f,
-            Color.parseColor("#FFFDF2"), bold = true
+            Colors.of("#FFFDF2"), bold = true
         )
     }
 
@@ -123,17 +122,17 @@ class HudRenderer {
 
         paint.style = Paint.Style.FILL
         paint.shader = null
-        paint.color = Color.parseColor("#99000000")
+        paint.color = Colors.of("#99000000")
         canvas.drawRoundRect(RectF(left - Ui.dp(2f), top - Ui.dp(2f), left + barW + Ui.dp(2f), top + barH + Ui.dp(2f)), barH, barH, paint)
-        paint.color = Color.parseColor("#3A1A1A")
+        paint.color = Colors.of("#3A1A1A")
         canvas.drawRoundRect(RectF(left, top, left + barW, top + barH), barH, barH, paint)
-        paint.color = Color.parseColor("#EF4444")
+        paint.color = Colors.of("#EF4444")
         canvas.drawRoundRect(RectF(left, top, left + barW * boss.hpRatio, top + barH), barH, barH, paint)
 
         Widgets.centered(
             canvas,
             Strings.format(R.string.hud_boss, boss.kind.emoji, boss.kind.displayName, boss.hp),
-            w / 2f, top + barH * 0.82f, Ui.dp(8.5f), bold = true, color = Color.parseColor("#FFECEC")
+            w / 2f, top + barH * 0.82f, Ui.dp(8.5f), bold = true, color = Colors.of("#FFECEC")
         )
     }
 
@@ -153,7 +152,7 @@ class HudRenderer {
                 chipX += Ui.dp(16f)
             }
             if (preview.hasBoss()) {
-                Widgets.left(canvas, "BOSS", chipX + Ui.dp(2f), chipY, Ui.dp(9f), Color.parseColor("#FF9A9A"), bold = true)
+                Widgets.left(canvas, "BOSS", chipX + Ui.dp(2f), chipY, Ui.dp(9f), Colors.of("#FF9A9A"), bold = true)
             }
 
             Widgets.button(
@@ -178,11 +177,11 @@ class HudRenderer {
 
     fun drawPauseOverlay(canvas: Canvas, w: Int, h: Int) {
         Widgets.scrim(canvas, w, h, "#D40B1112")
-        Widgets.centered(canvas, Strings.get(R.string.pause_title), w / 2f, h * 0.26f, Ui.dp(30f), bold = true, color = Color.parseColor("#FFF7D6"))
+        Widgets.centered(canvas, Strings.get(R.string.pause_title), w / 2f, h * 0.26f, Ui.dp(30f), bold = true, color = Colors.of("#FFF7D6"))
         Widgets.centered(
             canvas,
             Strings.format(R.string.pause_summary, GameState.level.fullName, GameState.wave, GameState.score),
-            w / 2f, h * 0.26f + Ui.dp(24f), Ui.dp(12f), color = Color.parseColor("#BFD3C9")
+            w / 2f, h * 0.26f + Ui.dp(24f), Ui.dp(12f), color = Colors.of("#BFD3C9")
         )
 
         Widgets.button(canvas, rowButtonRect(w, h, 0, 4, 0.55f), Strings.get(R.string.pause_resume), Widgets.GREEN_TOP, Widgets.GREEN_BOTTOM, textSize = Ui.dp(13f))
@@ -203,7 +202,7 @@ class HudRenderer {
         Widgets.scrim(canvas, w, h, if (victory) "#D80D2415" else "#D8180F12")
 
         val title = Strings.get(if (victory) R.string.result_victory else R.string.result_defeat)
-        val titleColor = if (victory) Color.parseColor("#7BE88C") else Color.parseColor("#FF7B7B")
+        val titleColor = if (victory) Colors.of("#7BE88C") else Colors.of("#FF7B7B")
         Widgets.centered(canvas, title, w / 2f, h * 0.24f, Ui.dp(32f), bold = true, color = titleColor)
 
         if (victory) {
@@ -213,12 +212,12 @@ class HudRenderer {
             } else {
                 Strings.format(R.string.result_best, bestStars)
             }
-            Widgets.centered(canvas, note, w / 2f, h * 0.24f + Ui.dp(62f), Ui.dp(11f), color = Color.parseColor("#DCE9D9"))
+            Widgets.centered(canvas, note, w / 2f, h * 0.24f + Ui.dp(62f), Ui.dp(11f), color = Colors.of("#DCE9D9"))
         } else {
             Widgets.centered(
                 canvas,
                 Strings.format(R.string.result_survived, GameState.wave, GameState.level.waves.size),
-                w / 2f, h * 0.24f + Ui.dp(30f), Ui.dp(13f), color = Color.parseColor("#E7C9C9")
+                w / 2f, h * 0.24f + Ui.dp(30f), Ui.dp(13f), color = Colors.of("#E7C9C9")
             )
         }
 
@@ -227,7 +226,7 @@ class HudRenderer {
             R.string.result_stats,
             GameState.kills, GameState.goldEarned, GameState.leaks, GameState.score
         )
-        Widgets.centered(canvas, stats, w / 2f, statsY, Ui.dp(11.5f), color = Color.parseColor("#C7D8CF"))
+        Widgets.centered(canvas, stats, w / 2f, statsY, Ui.dp(11.5f), color = Colors.of("#C7D8CF"))
 
         val count = if (victory && hasNextLevel) 3 else 2
         var index = 0

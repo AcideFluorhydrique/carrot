@@ -6,7 +6,6 @@ package io.github.acidefluorhydrique.carrot
 import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
@@ -226,9 +225,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         for (i in 0 until 5) {
             val x = screenWidth * (0.15f + 0.175f * i)
             val y = screenHeight * (0.3f + (i % 2) * 0.12f)
-            Fx.burst(x, y, 26, Color.parseColor("#FFD75E"), Ui.dp(2.6f), Ui.dp(2.6f), 46)
-            Fx.burst(x, y, 18, Color.parseColor("#7BE88C"), Ui.dp(2.2f), Ui.dp(2.2f), 42)
-            Fx.ring(x, y, Ui.dp(40f), Color.parseColor("#FFF3C4"), 26)
+            Fx.burst(x, y, 26, Colors.of("#FFD75E"), Ui.dp(2.6f), Ui.dp(2.6f), 46)
+            Fx.burst(x, y, 18, Colors.of("#7BE88C"), Ui.dp(2.2f), Ui.dp(2.2f), 42)
+            Fx.ring(x, y, Ui.dp(40f), Colors.of("#FFF3C4"), 26)
         }
     }
 

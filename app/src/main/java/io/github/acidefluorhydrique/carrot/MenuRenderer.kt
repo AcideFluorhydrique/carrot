@@ -42,11 +42,11 @@ class MenuRenderer {
         val titleWidth = w * 0.5f - Ui.dp(16f)
         Widgets.centeredFit(
             canvas, Strings.get(R.string.menu_title), leftX, h * 0.3f,
-            Ui.dp(34f), titleWidth, bold = true, color = Color.parseColor("#FFF7D6")
+            Ui.dp(34f), titleWidth, bold = true, color = Colors.of("#FFF7D6")
         )
         Widgets.centeredFit(
             canvas, Strings.get(R.string.menu_tagline), leftX, h * 0.3f + Ui.dp(22f),
-            Ui.dp(11.5f), titleWidth, color = Color.parseColor("#D3E4CC")
+            Ui.dp(11.5f), titleWidth, color = Colors.of("#D3E4CC")
         )
 
         val bob = sin(frame * 0.05f) * Ui.dp(4f)
@@ -61,11 +61,11 @@ class MenuRenderer {
                 R.string.menu_progress,
                 completedCount, GameLevels.all.size, totalStars, GameLevels.all.size * 3
             ),
-            leftX, h * 0.76f, Ui.dp(11f), titleWidth, color = Color.parseColor("#C4D9C8")
+            leftX, h * 0.76f, Ui.dp(11f), titleWidth, color = Colors.of("#C4D9C8")
         )
         Widgets.centeredFit(
             canvas, Strings.format(R.string.menu_current_level, currentLevel.fullName),
-            leftX, h * 0.83f, Ui.dp(10.5f), titleWidth, color = Color.parseColor("#9FBDA6")
+            leftX, h * 0.83f, Ui.dp(10.5f), titleWidth, color = Colors.of("#9FBDA6")
         )
 
         for (i in items.indices) {
@@ -94,7 +94,7 @@ class MenuRenderer {
         drawBackground(canvas, w, h)
         Widgets.centered(
             canvas, Strings.get(R.string.chapters_title), w / 2f, h * 0.13f,
-            Ui.dp(24f), bold = true, color = Color.parseColor("#FFF7D6")
+            Ui.dp(24f), bold = true, color = Colors.of("#FFF7D6")
         )
 
         for (i in Chapters.all.indices) {
@@ -117,7 +117,7 @@ class MenuRenderer {
                 Widgets.centered(canvas, "🔒", rect.centerX(), rect.centerY(), Ui.dp(24f), color = Color.WHITE)
                 Widgets.centeredFit(
                     canvas, Strings.get(R.string.chapter_locked), rect.centerX(), rect.centerY() + Ui.dp(20f),
-                    Ui.dp(9f), rect.width() - Ui.dp(10f), color = Color.parseColor("#A9B6AE")
+                    Ui.dp(9f), rect.width() - Ui.dp(10f), color = Colors.of("#A9B6AE")
                 )
                 continue
             }
@@ -137,18 +137,18 @@ class MenuRenderer {
             Widgets.centeredFit(
                 canvas, Strings.format(R.string.chapter_number, chapter.id),
                 rect.centerX(), rect.top + Ui.dp(45f), Ui.dp(9.5f), rect.width() - Ui.dp(10f),
-                color = Color.parseColor("#B7C9BD")
+                color = Colors.of("#B7C9BD")
             )
             Widgets.centeredFit(
                 canvas, chapter.name, rect.centerX(), rect.top + Ui.dp(63f),
-                Ui.dp(14f), rect.width() - Ui.dp(10f), bold = true, color = Color.parseColor("#FFFDF2")
+                Ui.dp(14f), rect.width() - Ui.dp(10f), bold = true, color = Colors.of("#FFFDF2")
             )
-            drawWrapped(canvas, chapter.subtitle, rect, Ui.dp(9f), rect.top + Ui.dp(80f), Color.parseColor("#B9CCC0"))
+            drawWrapped(canvas, chapter.subtitle, rect, Ui.dp(9f), rect.top + Ui.dp(80f), Colors.of("#B9CCC0"))
 
             Widgets.centeredFit(
                 canvas, Strings.format(R.string.chapter_stars, earned, maximum),
                 rect.centerX(), rect.bottom - Ui.dp(10f), Ui.dp(10.5f), rect.width() - Ui.dp(10f),
-                bold = true, color = Color.parseColor("#FFD75E")
+                bold = true, color = Colors.of("#FFD75E")
             )
         }
 
@@ -182,11 +182,11 @@ class MenuRenderer {
 
         Widgets.centered(
             canvas, "${chapter.emoji}  ${chapter.name}", w / 2f, h * 0.13f,
-            Ui.dp(22f), bold = true, color = Color.parseColor("#FFF7D6")
+            Ui.dp(22f), bold = true, color = Colors.of("#FFF7D6")
         )
         Widgets.centered(
             canvas, chapter.subtitle, w / 2f, h * 0.13f + Ui.dp(19f),
-            Ui.dp(10.5f), color = Color.parseColor("#C8DACD")
+            Ui.dp(10.5f), color = Colors.of("#C8DACD")
         )
 
         val levels = chapter.levels
@@ -220,7 +220,7 @@ class MenuRenderer {
             val cleared = levels[i].id in completed
             for (d in 1 until dots) {
                 val t = d.toFloat() / dots
-                paint.color = if (cleared) chapter.theme.accentColor else Color.parseColor("#66000000")
+                paint.color = if (cleared) chapter.theme.accentColor else Colors.of("#66000000")
                 paint.alpha = if (cleared) 210 else 90
                 canvas.drawCircle(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, Ui.dp(2.6f), paint)
             }
@@ -258,12 +258,12 @@ class MenuRenderer {
             paint.alpha = 255
         }
 
-        paint.color = Color.parseColor("#77000000")
+        paint.color = Colors.of("#77000000")
         canvas.drawCircle(cx, cy + Ui.dp(2.5f), r, paint)
 
         paint.color = when {
-            !unlocked -> Color.parseColor("#3C4650")
-            cleared -> Color.parseColor("#2F7E3C")
+            !unlocked -> Colors.of("#3C4650")
+            cleared -> Colors.of("#2F7E3C")
             else -> chapter.theme.accentColor
         }
         canvas.drawCircle(cx, cy, r, paint)
@@ -271,9 +271,9 @@ class MenuRenderer {
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = Ui.dp(2f)
         paint.color = when {
-            !unlocked -> Color.parseColor("#55FFFFFF")
-            isNext -> Color.parseColor("#FFFFFFFF")
-            else -> Color.parseColor("#88FFFFFF")
+            !unlocked -> Colors.of("#55FFFFFF")
+            isNext -> Colors.of("#FFFFFFFF")
+            else -> Colors.of("#88FFFFFF")
         }
         canvas.drawCircle(cx, cy, r, paint)
         paint.style = Paint.Style.FILL
@@ -285,7 +285,7 @@ class MenuRenderer {
 
         Widgets.centered(
             canvas, level.indexInChapter.toString(), cx, cy + Ui.dp(7f),
-            Ui.dp(19f), bold = true, color = Color.parseColor("#FFFDF2")
+            Ui.dp(19f), bold = true, color = Colors.of("#FFFDF2")
         )
         if (level.hasBoss()) {
             Widgets.centered(canvas, "👹", cx + r * 0.78f, cy - r * 0.5f, Ui.dp(13f), color = Color.WHITE)
@@ -323,7 +323,7 @@ class MenuRenderer {
         resetArmed: Boolean
     ) {
         drawBackground(canvas, w, h)
-        Widgets.centered(canvas, Strings.get(R.string.settings_title), w / 2f, h * 0.2f, Ui.dp(24f), bold = true, color = Color.parseColor("#FFF7D6"))
+        Widgets.centered(canvas, Strings.get(R.string.settings_title), w / 2f, h * 0.2f, Ui.dp(24f), bold = true, color = Colors.of("#FFF7D6"))
 
         val on = Strings.get(R.string.settings_on)
         val off = Strings.get(R.string.settings_off)
@@ -366,7 +366,7 @@ class MenuRenderer {
 
     fun drawHelp(canvas: Canvas, w: Int, h: Int) {
         drawBackground(canvas, w, h)
-        Widgets.centered(canvas, Strings.get(R.string.help_title), w / 2f, h * 0.11f, Ui.dp(22f), bold = true, color = Color.parseColor("#FFF7D6"))
+        Widgets.centered(canvas, Strings.get(R.string.help_title), w / 2f, h * 0.11f, Ui.dp(22f), bold = true, color = Colors.of("#FFF7D6"))
 
         val colGap = Ui.dp(14f)
         val colW = (w - Ui.dp(28f) - colGap) / 2f
@@ -374,49 +374,49 @@ class MenuRenderer {
         val rightX = leftX + colW + colGap
         val y = h * 0.2f
 
-        Widgets.left(canvas, Strings.get(R.string.help_towers), leftX, y, Ui.dp(13f), Color.parseColor("#FFE9A8"), bold = true)
+        Widgets.left(canvas, Strings.get(R.string.help_towers), leftX, y, Ui.dp(13f), Colors.of("#FFE9A8"), bold = true)
         var lineY = y + Ui.dp(15f)
         for (type in TowerType.values()) {
             Widgets.leftFit(
                 canvas,
                 Strings.format(R.string.help_tower_line, type.emoji, type.displayName, type.baseCost, type.tagline),
-                leftX, lineY, Ui.dp(10f), colW, Color.parseColor("#D5E6D8")
+                leftX, lineY, Ui.dp(10f), colW, Colors.of("#D5E6D8")
             )
             lineY += Ui.dp(13f)
         }
         lineY += Ui.dp(4f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_tower_note_1), leftX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_tower_note_1), leftX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
         lineY += Ui.dp(12f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_tower_note_2), leftX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_tower_note_2), leftX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
         lineY += Ui.dp(12f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_loadout), leftX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_loadout), leftX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
 
-        Widgets.left(canvas, Strings.get(R.string.help_enemies), rightX, y, Ui.dp(13f), Color.parseColor("#FFE9A8"), bold = true)
+        Widgets.left(canvas, Strings.get(R.string.help_enemies), rightX, y, Ui.dp(13f), Colors.of("#FFE9A8"), bold = true)
         lineY = y + Ui.dp(15f)
         for (kind in EnemyKind.values()) {
             Widgets.leftFit(
                 canvas,
                 Strings.format(R.string.help_enemy_line, kind.emoji, kind.displayName, kind.note),
-                rightX, lineY, Ui.dp(10f), colW, Color.parseColor("#D5E6D8")
+                rightX, lineY, Ui.dp(10f), colW, Colors.of("#D5E6D8")
             )
             lineY += Ui.dp(13f)
         }
         lineY += Ui.dp(4f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_enemy_note_1), rightX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_enemy_note_1), rightX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
         lineY += Ui.dp(12f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_enemy_note_2), rightX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_enemy_note_2), rightX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
 
         lineY += Ui.dp(18f)
-        Widgets.left(canvas, Strings.get(R.string.help_obstacles), rightX, lineY, Ui.dp(13f), Color.parseColor("#FFE9A8"), bold = true)
+        Widgets.left(canvas, Strings.get(R.string.help_obstacles), rightX, lineY, Ui.dp(13f), Colors.of("#FFE9A8"), bold = true)
         lineY += Ui.dp(14f)
         val props = ObstacleKind.values().joinToString("   ") { "${it.emoji} ${it.displayName}" }
-        Widgets.leftFit(canvas, props, rightX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#D5E6D8"))
+        Widgets.leftFit(canvas, props, rightX, lineY, Ui.dp(9.5f), colW, Colors.of("#D5E6D8"))
         lineY += Ui.dp(12f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_obstacle_note_1), rightX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_obstacle_note_1), rightX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
         lineY += Ui.dp(12f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_obstacle_note_2), rightX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_obstacle_note_2), rightX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
         lineY += Ui.dp(12f)
-        Widgets.leftFit(canvas, Strings.get(R.string.help_obstacle_note_3), rightX, lineY, Ui.dp(9.5f), colW, Color.parseColor("#A9C3B0"))
+        Widgets.leftFit(canvas, Strings.get(R.string.help_obstacle_note_3), rightX, lineY, Ui.dp(9.5f), colW, Colors.of("#A9C3B0"))
 
         Widgets.button(canvas, backButtonRect(w, h), Strings.get(R.string.common_back), Widgets.GRAY_TOP, Widgets.GRAY_BOTTOM, textSize = Ui.dp(13f))
     }
@@ -458,7 +458,7 @@ class MenuRenderer {
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
         paint.shader = null
 
-        paint.color = Color.parseColor("#26FFFFFF")
+        paint.color = Colors.of("#26FFFFFF")
         canvas.drawCircle(w * 0.86f, h * 0.16f, Ui.dp(22f), paint)
 
         paint.color = theme.hillColor

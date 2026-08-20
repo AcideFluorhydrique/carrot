@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import kotlin.math.max
@@ -200,7 +199,7 @@ class Tower(
         if (type.isAreaPulse) {
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = Ui.dp(1f)
-            paint.color = Color.parseColor(type.accentColor)
+            paint.color = Colors.of(type.accentColor)
             paint.alpha = 46
             canvas.drawCircle(centerX, centerY, range, paint)
             paint.alpha = 255
@@ -208,24 +207,24 @@ class Tower(
         }
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#55000000")
+        paint.color = Colors.of("#55000000")
         canvas.drawRoundRect(
             RectF(px + inset, py + inset + cs * 0.05f, px + cs - inset, py + cs - inset + cs * 0.05f),
             cs * 0.2f, cs * 0.2f, paint
         )
-        paint.color = Color.parseColor(type.plateColor)
+        paint.color = Colors.of(type.plateColor)
         canvas.drawRoundRect(
             RectF(px + inset, py + inset, px + cs - inset, py + cs - inset),
             cs * 0.2f, cs * 0.2f, paint
         )
-        paint.color = Color.parseColor("#33FFFFFF")
+        paint.color = Colors.of("#33FFFFFF")
         canvas.drawRoundRect(
             RectF(px + inset * 1.6f, py + inset * 1.6f, px + cs - inset * 1.6f, py + cs * 0.42f),
             cs * 0.16f, cs * 0.16f, paint
         )
 
         if (fireFlash > 0) {
-            paint.color = Color.parseColor(type.accentColor)
+            paint.color = Colors.of(type.accentColor)
             paint.alpha = (fireFlash * 26).coerceIn(0, 170)
             canvas.drawCircle(centerX, centerY, cs * 0.44f, paint)
             paint.alpha = 255
@@ -260,9 +259,9 @@ class Tower(
         var cx = px + cs / 2f - totalW / 2f
         val cy = py + cs - cs * 0.11f
         for (i in 0 until level) {
-            paint.color = Color.parseColor("#55000000")
+            paint.color = Colors.of("#55000000")
             canvas.drawCircle(cx, cy + r * 0.3f, r, paint)
-            paint.color = Color.parseColor(type.accentColor)
+            paint.color = Colors.of(type.accentColor)
             canvas.drawCircle(cx, cy, r, paint)
             cx += gap
         }

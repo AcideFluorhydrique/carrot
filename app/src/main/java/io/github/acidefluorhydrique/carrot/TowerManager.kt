@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import kotlin.math.sqrt
@@ -108,13 +107,13 @@ class TowerManager(private val gameMap: GameMap) {
         if (!gameMap.canPlaceTower(col, row)) {
             Audio.play(Sfx.DENY)
             val (cx, cy) = gameMap.centerOf(col.coerceIn(0, GameMap.COLS - 1), row.coerceIn(0, GameMap.ROWS - 1))
-            Fx.text(cx, cy, Strings.get(R.string.toast_cannot_build), Color.parseColor("#FCA5A5"), Ui.dp(11f), 40)
+            Fx.text(cx, cy, Strings.get(R.string.toast_cannot_build), Colors.of("#FCA5A5"), Ui.dp(11f), 40)
             return
         }
         if (GameState.gold < type.baseCost) {
             Audio.play(Sfx.DENY)
             val (cx, cy) = gameMap.centerOf(col, row)
-            Fx.text(cx, cy, Strings.get(R.string.toast_no_gold), Color.parseColor("#FCA5A5"), Ui.dp(11f), 40)
+            Fx.text(cx, cy, Strings.get(R.string.toast_no_gold), Colors.of("#FCA5A5"), Ui.dp(11f), 40)
             return
         }
 
@@ -124,8 +123,8 @@ class TowerManager(private val gameMap: GameMap) {
         gameMap.occupy(col, row)
         selectedTower = tower
         Audio.play(Sfx.BUILD)
-        Fx.ring(tower.centerX, tower.centerY, gameMap.cellSize * 0.7f, Color.parseColor(type.accentColor), 18)
-        Fx.burst(tower.centerX, tower.centerY, 10, Color.parseColor(type.accentColor), Ui.dp(1.6f), Ui.dp(2f), 22)
+        Fx.ring(tower.centerX, tower.centerY, gameMap.cellSize * 0.7f, Colors.of(type.accentColor), 18)
+        Fx.burst(tower.centerX, tower.centerY, 10, Colors.of(type.accentColor), Ui.dp(1.6f), Ui.dp(2f), 22)
     }
 
     fun cancelPlacement() {
@@ -149,15 +148,15 @@ class TowerManager(private val gameMap: GameMap) {
         }
         if (GameState.gold < tower.upgradeCost) {
             Audio.play(Sfx.DENY)
-            Fx.text(tower.centerX, tower.centerY, Strings.get(R.string.toast_no_gold), Color.parseColor("#FCA5A5"), Ui.dp(11f), 40)
+            Fx.text(tower.centerX, tower.centerY, Strings.get(R.string.toast_no_gold), Colors.of("#FCA5A5"), Ui.dp(11f), 40)
             return false
         }
         GameState.spendGold(tower.upgradeCost)
         tower.upgrade()
         Audio.play(Sfx.UPGRADE)
-        Fx.ring(tower.centerX, tower.centerY, gameMap.cellSize * 0.9f, Color.parseColor(tower.type.accentColor), 22)
-        Fx.burst(tower.centerX, tower.centerY, 14, Color.parseColor(tower.type.accentColor), Ui.dp(1.8f), Ui.dp(2.2f), 26, gravity = -0.04f)
-        Fx.text(tower.centerX, tower.centerY - gameMap.cellSize * 0.4f, Strings.format(R.string.toast_level_up, tower.level), Color.parseColor("#FFE08A"), Ui.dp(13f), 44)
+        Fx.ring(tower.centerX, tower.centerY, gameMap.cellSize * 0.9f, Colors.of(tower.type.accentColor), 22)
+        Fx.burst(tower.centerX, tower.centerY, 14, Colors.of(tower.type.accentColor), Ui.dp(1.8f), Ui.dp(2.2f), 26, gravity = -0.04f)
+        Fx.text(tower.centerX, tower.centerY - gameMap.cellSize * 0.4f, Strings.format(R.string.toast_level_up, tower.level), Colors.of("#FFE08A"), Ui.dp(13f), 44)
         return true
     }
 
@@ -170,7 +169,7 @@ class TowerManager(private val gameMap: GameMap) {
         gameMap.release(tower.col, tower.row)
         selectedTower = null
         Audio.play(Sfx.SELL)
-        Fx.burst(tower.centerX, tower.centerY, 12, Color.parseColor("#FFD75E"), Ui.dp(1.6f), Ui.dp(2f), 24)
+        Fx.burst(tower.centerX, tower.centerY, 12, Colors.of("#FFD75E"), Ui.dp(1.6f), Ui.dp(2f), 24)
         Fx.goldGain(tower.centerX, tower.centerY, refund)
         return true
     }
@@ -243,7 +242,7 @@ class TowerManager(private val gameMap: GameMap) {
         val props = obstacleManager.inRadius(tower.centerX, tower.centerY, tower.range)
         if (targets.isEmpty() && props.isEmpty()) return false
 
-        val color = Color.parseColor(tower.type.accentColor)
+        val color = Colors.of(tower.type.accentColor)
         Fx.ring(tower.centerX, tower.centerY, tower.range, color, 24, Ui.dp(3.4f))
         for (enemy in targets) {
             enemy.takeDamage(tower.damage, showNumber = false)
@@ -291,7 +290,7 @@ class TowerManager(private val gameMap: GameMap) {
     private fun strikeObstacle(tower: Tower, obstacle: Obstacle, enemies: List<Enemy>) {
         Fx.beam(
             tower.centerX, tower.centerY, obstacle.centerX, obstacle.centerY,
-            Color.parseColor(tower.type.accentColor), 8
+            Colors.of(tower.type.accentColor), 8
         )
         obstacle.takeDamage(tower.damage, enemies)
         Audio.play(Sfx.HIT)
@@ -349,7 +348,7 @@ class TowerManager(private val gameMap: GameMap) {
         var current = first
         var fromX = tower.centerX
         var fromY = tower.centerY
-        val color = Color.parseColor("#C4B5FD")
+        val color = Colors.of("#C4B5FD")
 
         var remaining = tower.chainTargets
         while (remaining > 0) {
@@ -422,11 +421,11 @@ class TowerManager(private val gameMap: GameMap) {
     private fun drawSelectionRange(canvas: Canvas) {
         val tower = selectedTower ?: return
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#14FFE08A")
+        paint.color = Colors.of("#14FFE08A")
         canvas.drawCircle(tower.centerX, tower.centerY, tower.range, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = Ui.dp(1.6f)
-        paint.color = Color.parseColor("#99FFE08A")
+        paint.color = Colors.of("#99FFE08A")
         canvas.drawCircle(tower.centerX, tower.centerY, tower.range, paint)
 
         // 選中框
@@ -434,7 +433,7 @@ class TowerManager(private val gameMap: GameMap) {
         val px = gameMap.offsetX + tower.col * cs
         val py = gameMap.offsetY + tower.row * cs
         paint.strokeWidth = Ui.dp(2f)
-        paint.color = Color.parseColor("#CCFFF3C4")
+        paint.color = Colors.of("#CCFFF3C4")
         canvas.drawRoundRect(RectF(px + cs * 0.04f, py + cs * 0.04f, px + cs * 0.96f, py + cs * 0.96f), cs * 0.2f, cs * 0.2f, paint)
     }
 
@@ -451,15 +450,15 @@ class TowerManager(private val gameMap: GameMap) {
         val range = cs * type.rangeCells(1)
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor(if (valid) "#1A5EE07A" else "#1AF87171")
+        paint.color = Colors.of(if (valid) "#1A5EE07A" else "#1AF87171")
         canvas.drawCircle(cx, cy, range, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = Ui.dp(1.6f)
-        paint.color = Color.parseColor(tint)
+        paint.color = Colors.of(tint)
         canvas.drawCircle(cx, cy, range, paint)
 
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor(if (valid) "#665EE07A" else "#66F87171")
+        paint.color = Colors.of(if (valid) "#665EE07A" else "#66F87171")
         canvas.drawRoundRect(RectF(px + cs * 0.06f, py + cs * 0.06f, px + cs * 0.94f, py + cs * 0.94f), cs * 0.2f, cs * 0.2f, paint)
 
         paint.alpha = 190

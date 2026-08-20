@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 
 /**
@@ -47,7 +46,7 @@ class PiercingShot(
         travelled += speed
 
         if (age % 2 == 0) {
-            Fx.burst(x, y, 1, Color.parseColor("#FFB59A"), Ui.dp(0.4f), Ui.dp(1.6f), 14, gravity = -0.02f)
+            Fx.burst(x, y, 1, Colors.of("#FFB59A"), Ui.dp(0.4f), Ui.dp(1.6f), 14, gravity = -0.02f)
         }
 
         val r2 = hitRadius * hitRadius
@@ -58,7 +57,7 @@ class PiercingShot(
             if (dx * dx + dy * dy <= r2) {
                 hitEnemies.add(enemy)
                 enemy.takeDamage(damage)
-                Fx.hitSpark(enemy.x, enemy.y, Color.parseColor("#FF9FB0"))
+                Fx.hitSpark(enemy.x, enemy.y, Colors.of("#FF9FB0"))
             }
         }
         for (obstacle in obstacles) {
@@ -78,11 +77,11 @@ class PiercingShot(
     fun draw(canvas: Canvas) {
         if (isDone) return
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#66FFC9B4")
+        paint.color = Colors.of("#66FFC9B4")
         canvas.drawCircle(x - dirX * Ui.dp(5f), y - dirY * Ui.dp(5f), Ui.dp(2.6f), paint)
-        paint.color = Color.parseColor("#FF9FB0")
+        paint.color = Colors.of("#FF9FB0")
         canvas.drawCircle(x, y, Ui.dp(3.6f), paint)
-        paint.color = Color.parseColor("#FFF3E2")
+        paint.color = Colors.of("#FFF3E2")
         canvas.drawCircle(x + dirX * Ui.dp(1.4f), y + dirY * Ui.dp(1.4f), Ui.dp(1.8f), paint)
     }
 }

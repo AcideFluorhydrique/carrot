@@ -4,7 +4,6 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import java.util.Locale
@@ -44,16 +43,16 @@ class TowerUpgradePanel {
         )
         Widgets.leftFit(
             canvas, header, panel.left + padding, panel.top + Ui.dp(15f),
-            Ui.dp(13f), textWidth, Color.parseColor("#FFFDF2"), bold = true
+            Ui.dp(13f), textWidth, Colors.of("#FFFDF2"), bold = true
         )
 
         val close = closeRect(w, h)
         paint.style = Paint.Style.FILL
-        paint.color = Color.parseColor("#33FFFFFF")
+        paint.color = Colors.of("#33FFFFFF")
         canvas.drawRoundRect(close, Ui.dp(5f), Ui.dp(5f), paint)
-        Widgets.centered(canvas, "✕", close.centerX(), close.centerY() + Ui.dp(4f), Ui.dp(11f), bold = true, color = Color.parseColor("#F0F5EE"))
+        Widgets.centered(canvas, "✕", close.centerX(), close.centerY() + Ui.dp(4f), Ui.dp(11f), bold = true, color = Colors.of("#F0F5EE"))
 
-        val statsColor = Color.parseColor("#C9DED2")
+        val statsColor = Colors.of("#C9DED2")
         Widgets.leftFit(
             canvas,
             Strings.format(
