@@ -72,6 +72,26 @@ class SaveRepository(context: Context) {
 
     private val prefs = context.getSharedPreferences("carrot_save", Context.MODE_PRIVATE)
 
+    init {
+        migrateLegacyStars()
+    }
+
+    /**
+     * 把舊鍵下的星等搬到 [KEY_STARS]。
+     *
+     * 覆蓋安裝時 SharedPreferences 會整份保留，所以玩家的通關紀錄本來就不會掉 ——
+     * 真正會弄丟它的是「換一個鍵名」這個動作。舊鍵留著不刪，萬一玩家裝回舊版還能用。
+     */
+    private fun migrateLegacyStars() {
+        if (prefs.contains(KEY_STARS)) return
+        for (key in LEGACY_STAR_KEYS) {
+            val legacy = prefs.getStringSet(key, null) ?: continue
+            // getStringSet 回傳的是內部共用實例，必須複製後再寫回
+            prefs.edit().putStringSet(KEY_STARS, HashSet(legacy)).apply()
+            return
+        }
+    }
+
     // ---- 進行中的存檔 ----
 
     /** 便宜的檢查：不解析 JSON，只看鍵與版本號。 */
@@ -295,7 +315,14 @@ class SaveRepository(context: Context) {
         const val SAVE_VERSION = 4
         private const val KEY_ACTIVE_SAVE = "active_save"
         private const val KEY_ACTIVE_VERSION = "active_save_version"
-        private const val KEY_STARS = "level_stars_v3"
+        /**
+         * 通關星等。這個字串永遠不要再改 —— 它是玩家唯一不該因為版本更新而消失的資料，
+         * 換掉它等於把所有人的進度歸零。要調整格式就寫遷移（見 migrateLegacyStars）。
+         */
+        private const val KEY_STARS = "level_stars"
+
+        /** 歷史上用過的鍵，只在遷移時讀。新的鍵不要加版本後綴。 */
+        private val LEGACY_STAR_KEYS = listOf("level_stars_v3")
         private const val KEY_SOUND = "sound_enabled"
         private const val KEY_MUSIC = "music_enabled"
         private const val KEY_LAST_LEVEL = "last_level"

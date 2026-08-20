@@ -68,6 +68,13 @@ data class LevelConfig(
  * 難度曲線與敵人登場時機是算出來的：每種新敵人都緊跟在剋制它的塔解鎖之後，
  * 而每章的第一關會給額外起始金並縮短波數，形成「喘一口氣再往上爬」的節奏。
  * 每關只開放 4~5 座塔，讓同樣的一批工具能組出不一樣的題目。
+ *
+ * **id 是存檔的主鍵，只能往後加，不能重排也不能重用。**
+ * 玩家的通關星等是以 id 索引的（見 SaveRepository），把 id 挪動一次，
+ * 所有人的紀錄就會對到錯的關卡。要在中間插新關，就給它一個全新的較大 id，
+ * 顯示順序由 chapterId / indexInChapter 決定，不需要靠 id 排序。
+ *
+ * 調數值前先跑 `python3 tools/balance.py levels` 看可行性，別憑感覺改。
  */
 object GameLevels {
 
@@ -850,7 +857,10 @@ object GameLevels {
             id = 15,
             chapterId = 4,
             indexInChapter = 3,
-            startGold = 248,
+            // 這一關沒有箭/冰/炸任何一座便宜塔，開場唯一撐得住的是火箭（120 金）。
+            // 248 只夠買兩座，第一波的輸出剛好差一截；360 才湊得出第三座，
+            // 第一波的傷害/血量比也才回到和 4-1 相當的 1.6。
+            startGold = 360,
             carrotHp = 9,
             path = listOf(
                 0 to 5, 1 to 5, 2 to 5, 2 to 4, 2 to 3, 2 to 2, 2 to 1, 2 to 0,
