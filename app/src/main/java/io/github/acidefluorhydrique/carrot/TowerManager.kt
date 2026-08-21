@@ -27,6 +27,8 @@ class TowerManager(private val gameMap: GameMap) {
     private var placing = false
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。回傳出去的版面矩形不適用。 */
+    private val scratch = RectF()
 
     val ghostVisible: Boolean get() = placing && gameMap.isValidCell(ghostCol, ghostRow)
 
@@ -434,7 +436,8 @@ class TowerManager(private val gameMap: GameMap) {
         val py = gameMap.offsetY + tower.row * cs
         paint.strokeWidth = Ui.dp(2f)
         paint.color = Colors.of("#CCFFF3C4")
-        canvas.drawRoundRect(RectF(px + cs * 0.04f, py + cs * 0.04f, px + cs * 0.96f, py + cs * 0.96f), cs * 0.2f, cs * 0.2f, paint)
+        scratch.set(px + cs * 0.04f, py + cs * 0.04f, px + cs * 0.96f, py + cs * 0.96f)
+        canvas.drawRoundRect(scratch, cs * 0.2f, cs * 0.2f, paint)
     }
 
     private fun drawGhost(canvas: Canvas) {
@@ -459,7 +462,8 @@ class TowerManager(private val gameMap: GameMap) {
 
         paint.style = Paint.Style.FILL
         paint.color = Colors.of(if (valid) "#665EE07A" else "#66F87171")
-        canvas.drawRoundRect(RectF(px + cs * 0.06f, py + cs * 0.06f, px + cs * 0.94f, py + cs * 0.94f), cs * 0.2f, cs * 0.2f, paint)
+        scratch.set(px + cs * 0.06f, py + cs * 0.06f, px + cs * 0.94f, py + cs * 0.94f)
+        canvas.drawRoundRect(scratch, cs * 0.2f, cs * 0.2f, paint)
 
         paint.alpha = 190
         paint.textSize = cs * 0.5f

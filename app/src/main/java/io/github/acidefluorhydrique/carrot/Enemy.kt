@@ -205,6 +205,8 @@ class Enemy(
     // ---- 繪製 ----
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。 */
+    private val scratch = RectF()
 
     fun draw(canvas: Canvas) {
         if (!isAlive) return
@@ -215,7 +217,8 @@ class Enemy(
         // 影子
         paint.style = Paint.Style.FILL
         paint.color = Colors.of("#40000000")
-        canvas.drawOval(RectF(x - r * 0.8f, y + r * 0.6f, x + r * 0.8f, y + r * 0.95f), paint)
+        scratch.set(x - r * 0.8f, y + r * 0.6f, x + r * 0.8f, y + r * 0.95f)
+        canvas.drawOval(scratch, paint)
 
         // 狀態光暈
         if (isSlowed) {
@@ -261,7 +264,8 @@ class Enemy(
 
         paint.style = Paint.Style.FILL
         paint.color = Colors.of("#99101010")
-        canvas.drawRoundRect(RectF(left - 1f, top - 1f, left + barW + 1f, top + barH + 1f), barH, barH, paint)
+        scratch.set(left - 1f, top - 1f, left + barW + 1f, top + barH + 1f)
+        canvas.drawRoundRect(scratch, barH, barH, paint)
 
         paint.color = when {
             isPoisoned -> Colors.of("#A3E635")
@@ -270,7 +274,8 @@ class Enemy(
             hpRatio > 0.25f -> Colors.of("#FACC15")
             else -> Colors.of("#F87171")
         }
-        canvas.drawRoundRect(RectF(left, top, left + barW * hpRatio, top + barH), barH, barH, paint)
+        scratch.set(left, top, left + barW * hpRatio, top + barH)
+        canvas.drawRoundRect(scratch, barH, barH, paint)
     }
 
     companion object {

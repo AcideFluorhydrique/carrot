@@ -126,6 +126,8 @@ class Obstacle(
     // ---- 繪製 ----
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。 */
+    private val scratch = RectF()
 
     fun draw(canvas: Canvas) {
         if (isDestroyed) return
@@ -139,10 +141,8 @@ class Obstacle(
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = Ui.dp(2f)
             paint.color = Colors.of("#FFE08A")
-            canvas.drawRoundRect(
-                RectF(px + cs * 0.05f, py + cs * 0.05f, px + cs * 0.95f, py + cs * 0.95f),
-                cs * 0.18f * pulse, cs * 0.18f * pulse, paint
-            )
+            scratch.set(px + cs * 0.05f, py + cs * 0.05f, px + cs * 0.95f, py + cs * 0.95f)
+            canvas.drawRoundRect(scratch, cs * 0.18f * pulse, cs * 0.18f * pulse, paint)
             paint.style = Paint.Style.FILL
         }
 
@@ -165,9 +165,11 @@ class Obstacle(
             val left = centerX - barW / 2f
             val top = py + cs * 0.86f
             paint.color = Colors.of("#99101010")
-            canvas.drawRoundRect(RectF(left - 1f, top - 1f, left + barW + 1f, top + barH + 1f), barH, barH, paint)
+            scratch.set(left - 1f, top - 1f, left + barW + 1f, top + barH + 1f)
+            canvas.drawRoundRect(scratch, barH, barH, paint)
             paint.color = Colors.of(kind.tint)
-            canvas.drawRoundRect(RectF(left, top, left + barW * hpRatio, top + barH), barH, barH, paint)
+            scratch.set(left, top, left + barW * hpRatio, top + barH)
+            canvas.drawRoundRect(scratch, barH, barH, paint)
         }
     }
 }

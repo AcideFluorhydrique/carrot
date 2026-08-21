@@ -12,6 +12,10 @@ import android.graphics.Shader
 class HudRenderer {
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。回傳出去的版面矩形不適用。 */
+    private val scratch = RectF()
+    private val pillRect = RectF()
+    private val pillShadow = RectF()
 
     // ---- 遊戲中 HUD ----
 
@@ -30,23 +34,27 @@ class HudRenderer {
             0f, 0f, 0f, barH,
             Colors.of("#F21A2A2B"), Colors.of("#D2131D20"), Shader.TileMode.CLAMP
         )
-        canvas.drawRect(RectF(0f, 0f, w.toFloat(), barH), paint)
+        scratch.set(0f, 0f, w.toFloat(), barH)
+        canvas.drawRect(scratch, paint)
         paint.shader = null
         paint.color = Colors.of("#445FE36B")
-        canvas.drawRect(RectF(0f, barH - Ui.dp(1.5f), w.toFloat(), barH), paint)
+        scratch.set(0f, barH - Ui.dp(1.5f), w.toFloat(), barH)
+        canvas.drawRect(scratch, paint)
 
         val pillW = Ui.dp(74f)
         val pillH = Ui.dp(26f)
         val pillTop = (barH - pillH) / 2f
         val carrotDanger = GameState.carrotHp * 3 <= GameState.maxCarrotHp
+        pillRect.set(Ui.dp(8f), pillTop, Ui.dp(8f) + pillW, pillTop + pillH)
         drawPill(
-            canvas, RectF(Ui.dp(8f), pillTop, Ui.dp(8f) + pillW, pillTop + pillH),
+            canvas, pillRect,
             "🥕", "${GameState.carrotHp}/${GameState.maxCarrotHp}",
             if (carrotDanger) "#EF4444" else "#D96031"
         )
         val goldLeft = Ui.dp(8f) + pillW + Ui.dp(6f)
+        pillRect.set(goldLeft, pillTop, goldLeft + pillW, pillTop + pillH)
         drawPill(
-            canvas, RectF(goldLeft, pillTop, goldLeft + pillW, pillTop + pillH),
+            canvas, pillRect,
             "🪙", GameState.gold.toString(), "#D7A331"
         )
 
@@ -97,7 +105,8 @@ class HudRenderer {
         paint.style = Paint.Style.FILL
         paint.shader = null
         paint.color = Colors.of("#66000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(2f), rect.right, rect.bottom + Ui.dp(2f)), radius, radius, paint)
+        pillShadow.set(rect.left, rect.top + Ui.dp(2f), rect.right, rect.bottom + Ui.dp(2f))
+        canvas.drawRoundRect(pillShadow, radius, radius, paint)
         paint.color = Colors.of("#E6212C29")
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.color = Colors.of(accent)
@@ -123,11 +132,14 @@ class HudRenderer {
         paint.style = Paint.Style.FILL
         paint.shader = null
         paint.color = Colors.of("#99000000")
-        canvas.drawRoundRect(RectF(left - Ui.dp(2f), top - Ui.dp(2f), left + barW + Ui.dp(2f), top + barH + Ui.dp(2f)), barH, barH, paint)
+        scratch.set(left - Ui.dp(2f), top - Ui.dp(2f), left + barW + Ui.dp(2f), top + barH + Ui.dp(2f))
+        canvas.drawRoundRect(scratch, barH, barH, paint)
         paint.color = Colors.of("#3A1A1A")
-        canvas.drawRoundRect(RectF(left, top, left + barW, top + barH), barH, barH, paint)
+        scratch.set(left, top, left + barW, top + barH)
+        canvas.drawRoundRect(scratch, barH, barH, paint)
         paint.color = Colors.of("#EF4444")
-        canvas.drawRoundRect(RectF(left, top, left + barW * boss.hpRatio, top + barH), barH, barH, paint)
+        scratch.set(left, top, left + barW * boss.hpRatio, top + barH)
+        canvas.drawRoundRect(scratch, barH, barH, paint)
 
         Widgets.centered(
             canvas,

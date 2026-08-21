@@ -29,6 +29,8 @@ object Widgets {
     const val PURPLE_BOTTOM = "#563B79"
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。 */
+    private val shadow = RectF()
 
     fun panel(
         canvas: Canvas,
@@ -41,7 +43,8 @@ object Widgets {
         paint.style = Paint.Style.FILL
         paint.shader = null
         paint.color = Colors.of("#66000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f)), radius, radius, paint)
+        shadow.set(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f))
+        canvas.drawRoundRect(shadow, radius, radius, paint)
         paint.shader = LinearGradient(
             rect.left, rect.top, rect.left, rect.bottom,
             Colors.of(topColor), Colors.of(bottomColor), Shader.TileMode.CLAMP
@@ -69,7 +72,8 @@ object Widgets {
         paint.shader = null
         paint.style = Paint.Style.FILL
         paint.color = Colors.of("#55000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f)), radius, radius, paint)
+        shadow.set(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f))
+        canvas.drawRoundRect(shadow, radius, radius, paint)
 
         if (enabled) {
             paint.shader = LinearGradient(

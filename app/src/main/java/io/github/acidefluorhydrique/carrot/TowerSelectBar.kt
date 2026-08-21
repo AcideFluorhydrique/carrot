@@ -16,6 +16,9 @@ import android.graphics.Shader
 class TowerSelectBar {
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。回傳出去的版面矩形不適用。 */
+    private val scratch = RectF()
+    private val buttonShadow = RectF()
 
     /** 回傳 true 表示這次點擊落在選塔列上。 */
     fun onTap(x: Float, y: Float, w: Int, h: Int, towerManager: TowerManager): Boolean {
@@ -41,10 +44,12 @@ class TowerSelectBar {
             0f, top, 0f, h.toFloat(),
             Colors.of("#E6172523"), Colors.of("#F40C1312"), Shader.TileMode.CLAMP
         )
-        canvas.drawRect(RectF(0f, top, w.toFloat(), h.toFloat()), paint)
+        scratch.set(0f, top, w.toFloat(), h.toFloat())
+        canvas.drawRect(scratch, paint)
         paint.shader = null
         paint.color = Colors.of("#445FE36B")
-        canvas.drawRect(RectF(0f, top, w.toFloat(), top + Ui.dp(1.5f)), paint)
+        scratch.set(0f, top, w.toFloat(), top + Ui.dp(1.5f))
+        canvas.drawRect(scratch, paint)
 
         val types = types()
         for (i in types.indices) {
@@ -60,7 +65,8 @@ class TowerSelectBar {
         paint.style = Paint.Style.FILL
         paint.shader = null
         paint.color = Colors.of("#66000000")
-        canvas.drawRoundRect(RectF(rect.left, rect.top + Ui.dp(2.5f), rect.right, rect.bottom + Ui.dp(2.5f)), radius, radius, paint)
+        buttonShadow.set(rect.left, rect.top + Ui.dp(2.5f), rect.right, rect.bottom + Ui.dp(2.5f))
+        canvas.drawRoundRect(buttonShadow, radius, radius, paint)
 
         paint.color = when {
             selected -> Colors.of("#E63F8A4C")

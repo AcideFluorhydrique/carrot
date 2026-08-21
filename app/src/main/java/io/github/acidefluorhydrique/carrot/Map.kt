@@ -42,6 +42,13 @@ class GameMap {
 
     private var frame = 0
     private val paint = Paint().apply { isAntiAlias = true }
+    /**
+     * 重複使用的矩形。這些形狀每一幀都要重算，配一個新的 RectF 出去只是
+     * 白白餵給 GC —— 光是棋盤格一幀就有上百個。只給「畫完就丟」的形狀用，
+     * 會被回傳出去或拿去做命中判定的版面矩形絕對不能共用。
+     */
+    private val scratch = RectF()
+    private val scratchInner = RectF()
     private val arrowPath = Path()
 
     /** 目前關卡所屬章節的配色。 */
@@ -134,9 +141,11 @@ class GameMap {
 
         paint.style = Paint.Style.FILL
         paint.color = Colors.of("#55000000")
-        canvas.drawRoundRect(RectF(left, top + Ui.dp(4f), right, bottom + Ui.dp(4f)), radius, radius, paint)
+        scratch.set(left, top + Ui.dp(4f), right, bottom + Ui.dp(4f))
+        canvas.drawRoundRect(scratch, radius, radius, paint)
         paint.color = theme.frameColor
-        canvas.drawRoundRect(RectF(left, top, right, bottom), radius, radius, paint)
+        scratch.set(left, top, right, bottom)
+        canvas.drawRoundRect(scratch, radius, radius, paint)
     }
 
     private fun drawCells(canvas: Canvas) {
@@ -145,7 +154,7 @@ class GameMap {
         for (row in 0 until ROWS) {
             for (col in 0 until COLS) {
                 val (x, y) = cellToPixel(col, row)
-                val rect = RectF(x + inset, y + inset, x + cellSize - inset, y + cellSize - inset)
+                scratch.set(x + inset, y + inset, x + cellSize - inset, y + cellSize - inset)
                 val cell = grid[row][col]
 
                 paint.style = Paint.Style.FILL
@@ -154,14 +163,15 @@ class GameMap {
                     PERMANENT -> theme.frameColor
                     else -> if ((row + col) % 2 == 0) theme.grassAColor else theme.grassBColor
                 }
-                canvas.drawRoundRect(rect, radius, radius, paint)
+                canvas.drawRoundRect(scratch, radius, radius, paint)
 
                 if (cell == PATH) {
                     paint.color = theme.pathHighlightColor
-                    canvas.drawRoundRect(
-                        RectF(rect.left + inset * 2, rect.top + inset * 2, rect.right - inset * 2, rect.top + cellSize * 0.26f),
-                        radius * 0.7f, radius * 0.7f, paint
+                    scratchInner.set(
+                        scratch.left + inset * 2, scratch.top + inset * 2,
+                        scratch.right - inset * 2, scratch.top + cellSize * 0.26f
                     )
+                    canvas.drawRoundRect(scratchInner, radius * 0.7f, radius * 0.7f, paint)
                 }
 
                 if (cell == PERMANENT) {
@@ -169,7 +179,7 @@ class GameMap {
                     val decorations = theme.decor
                     val decor = decorations[(row * 7 + col * 3) % decorations.size]
                     val tw = paint.measureText(decor)
-                    canvas.drawText(decor, rect.centerX() - tw / 2f, rect.centerY() + cellSize * 0.18f, paint)
+                    canvas.drawText(decor, scratch.centerX() - tw / 2f, scratch.centerY() + cellSize * 0.18f, paint)
                 }
 
                 paint.style = Paint.Style.STROKE
@@ -178,7 +188,7 @@ class GameMap {
                     PATH, PERMANENT -> theme.pathEdgeColor
                     else -> theme.grassLineColor
                 }
-                canvas.drawRoundRect(rect, radius, radius, paint)
+                canvas.drawRoundRect(scratch, radius, radius, paint)
             }
         }
     }
@@ -258,8 +268,8 @@ class GameMap {
             ratio > 0.3f -> Colors.of("#F2C14E")
             else -> Colors.of("#EF4444")
         }
-        val arcRect = RectF(cx - cellSize * 0.42f, cy - cellSize * 0.42f, cx + cellSize * 0.42f, cy + cellSize * 0.42f)
-        canvas.drawArc(arcRect, -90f, 360f * ratio, false, paint)
+        scratch.set(cx - cellSize * 0.42f, cy - cellSize * 0.42f, cx + cellSize * 0.42f, cy + cellSize * 0.42f)
+        canvas.drawArc(scratch, -90f, 360f * ratio, false, paint)
 
         paint.style = Paint.Style.FILL
         paint.textSize = cellSize * 0.55f

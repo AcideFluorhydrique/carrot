@@ -19,6 +19,8 @@ enum class SettingsAction { NONE, TOGGLE_SOUND, TOGGLE_MUSIC, CYCLE_LANGUAGE, RE
 class MenuRenderer {
 
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。回傳出去的版面矩形不適用。 */
+    private val scratch = RectF()
     private var frame = 0
 
     fun tick() {
@@ -127,10 +129,8 @@ class MenuRenderer {
             paint.shader = null
             paint.color = theme.accentColor
             paint.alpha = 60
-            canvas.drawRoundRect(
-                RectF(rect.left + Ui.dp(2f), rect.top + Ui.dp(2f), rect.right - Ui.dp(2f), rect.top + Ui.dp(30f)),
-                Ui.dp(8f), Ui.dp(8f), paint
-            )
+            scratch.set(rect.left + Ui.dp(2f), rect.top + Ui.dp(2f), rect.right - Ui.dp(2f), rect.top + Ui.dp(30f))
+            canvas.drawRoundRect(scratch, Ui.dp(8f), Ui.dp(8f), paint)
             paint.alpha = 255
 
             Widgets.centered(canvas, chapter.emoji, rect.centerX(), rect.top + Ui.dp(24f), Ui.dp(19f))
@@ -462,12 +462,14 @@ class MenuRenderer {
         canvas.drawCircle(w * 0.86f, h * 0.16f, Ui.dp(22f), paint)
 
         paint.color = theme.hillColor
-        canvas.drawRoundRect(RectF(-Ui.dp(14f), h * 0.68f, w + Ui.dp(14f), h + Ui.dp(20f)), Ui.dp(20f), Ui.dp(20f), paint)
+        scratch.set(-Ui.dp(14f), h * 0.68f, w + Ui.dp(14f), h + Ui.dp(20f))
+        canvas.drawRoundRect(scratch, Ui.dp(20f), Ui.dp(20f), paint)
 
         paint.color = theme.grassAColor
         var y = h * 0.74f
         while (y < h) {
-            canvas.drawRoundRect(RectF(Ui.dp(14f), y, w - Ui.dp(14f), y + Ui.dp(3f)), Ui.dp(3f), Ui.dp(3f), paint)
+            scratch.set(Ui.dp(14f), y, w - Ui.dp(14f), y + Ui.dp(3f))
+            canvas.drawRoundRect(scratch, Ui.dp(3f), Ui.dp(3f), paint)
             y += Ui.dp(18f)
         }
     }

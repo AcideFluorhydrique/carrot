@@ -112,6 +112,8 @@ class Tower(
 
     private var animFrame = 0
     private val paint = Paint().apply { isAntiAlias = true }
+    /** 畫完就丟的形狀共用這個，避免每幀配置。 */
+    private val scratch = RectF()
 
     val isMaxLevel: Boolean get() = level >= MAX_LEVEL
 
@@ -208,20 +210,14 @@ class Tower(
 
         paint.style = Paint.Style.FILL
         paint.color = Colors.of("#55000000")
-        canvas.drawRoundRect(
-            RectF(px + inset, py + inset + cs * 0.05f, px + cs - inset, py + cs - inset + cs * 0.05f),
-            cs * 0.2f, cs * 0.2f, paint
-        )
+        scratch.set(px + inset, py + inset + cs * 0.05f, px + cs - inset, py + cs - inset + cs * 0.05f)
+        canvas.drawRoundRect(scratch, cs * 0.2f, cs * 0.2f, paint)
         paint.color = Colors.of(type.plateColor)
-        canvas.drawRoundRect(
-            RectF(px + inset, py + inset, px + cs - inset, py + cs - inset),
-            cs * 0.2f, cs * 0.2f, paint
-        )
+        scratch.set(px + inset, py + inset, px + cs - inset, py + cs - inset)
+        canvas.drawRoundRect(scratch, cs * 0.2f, cs * 0.2f, paint)
         paint.color = Colors.of("#33FFFFFF")
-        canvas.drawRoundRect(
-            RectF(px + inset * 1.6f, py + inset * 1.6f, px + cs - inset * 1.6f, py + cs * 0.42f),
-            cs * 0.16f, cs * 0.16f, paint
-        )
+        scratch.set(px + inset * 1.6f, py + inset * 1.6f, px + cs - inset * 1.6f, py + cs * 0.42f)
+        canvas.drawRoundRect(scratch, cs * 0.16f, cs * 0.16f, paint)
 
         if (fireFlash > 0) {
             paint.color = Colors.of(type.accentColor)
