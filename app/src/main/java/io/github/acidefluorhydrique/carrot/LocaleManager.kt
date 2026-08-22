@@ -39,11 +39,6 @@ object LocaleManager {
             .apply()
     }
 
-    fun next(tag: String): String {
-        val index = options.indexOf(tag)
-        return options[(index + 1) % options.size]
-    }
-
     /**
      * 各語言一律用自己的寫法顯示，
      * 這樣就算現在的介面語言看不懂，也找得到自己的語言。

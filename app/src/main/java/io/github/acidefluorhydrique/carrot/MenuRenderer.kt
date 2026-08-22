@@ -14,7 +14,7 @@ import kotlin.math.sin
 
 enum class MenuAction { NONE, CONTINUE, START, LEVELS, HELP, SETTINGS, BACK }
 
-enum class SettingsAction { NONE, TOGGLE_SOUND, TOGGLE_MUSIC, CYCLE_LANGUAGE, RESET_PROGRESS, BACK }
+enum class SettingsAction { NONE, TOGGLE_SOUND, TOGGLE_MUSIC, OPEN_LANGUAGE, RESET_PROGRESS, BACK }
 
 class MenuRenderer {
 
@@ -353,10 +353,48 @@ class MenuRenderer {
         Widgets.button(canvas, settingRect(w, h, 4), Strings.get(R.string.common_back), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(13f))
     }
 
+    // ---- 語言 ----
+
+    /**
+     * 語言選擇頁。
+     *
+     * 每個選項一律以該語言自己的寫法呈現（見 LocaleManager.displayName），
+     * 這樣就算目前的介面語言看不懂，玩家還是找得到自己的語言。
+     */
+    fun drawLanguage(canvas: Canvas, w: Int, h: Int, current: String) {
+        drawBackground(canvas, w, h)
+        Widgets.centered(
+            canvas, Strings.get(R.string.settings_language), w / 2f, h * 0.2f,
+            Ui.dp(24f), bold = true, color = Colors.of("#FFF7D6")
+        )
+        for (i in LocaleManager.options.indices) {
+            val tag = LocaleManager.options[i]
+            val selected = tag == current
+            Widgets.button(
+                canvas, languageRect(w, h, i), LocaleManager.displayName(tag),
+                if (selected) Widgets.GREEN_TOP else Widgets.GRAY_TOP,
+                if (selected) Widgets.GREEN_BOTTOM else Widgets.GRAY_BOTTOM,
+                textSize = Ui.dp(13f)
+            )
+        }
+        Widgets.button(
+            canvas, backButtonRect(w, h), Strings.get(R.string.common_back),
+            Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(13f)
+        )
+    }
+
+    /** 回傳被點到的語言標籤，沒點到任何一個回 null。 */
+    fun languageTap(x: Float, y: Float, w: Int, h: Int): String? {
+        for (i in LocaleManager.options.indices) {
+            if (languageRect(w, h, i).contains(x, y)) return LocaleManager.options[i]
+        }
+        return null
+    }
+
     fun settingsTap(x: Float, y: Float, w: Int, h: Int): SettingsAction = when {
         settingRect(w, h, 0).contains(x, y) -> SettingsAction.TOGGLE_SOUND
         settingRect(w, h, 1).contains(x, y) -> SettingsAction.TOGGLE_MUSIC
-        settingRect(w, h, 2).contains(x, y) -> SettingsAction.CYCLE_LANGUAGE
+        settingRect(w, h, 2).contains(x, y) -> SettingsAction.OPEN_LANGUAGE
         settingRect(w, h, 3).contains(x, y) -> SettingsAction.RESET_PROGRESS
         settingRect(w, h, 4).contains(x, y) -> SettingsAction.BACK
         else -> SettingsAction.NONE
@@ -521,6 +559,16 @@ class MenuRenderer {
 
         /** 設定頁列數：音效、音樂、語言、重置、返回。 */
         private const val SETTINGS_ROWS = 5
+
+        fun languageRect(w: Int, h: Int, index: Int): RectF {
+            val width = (w * 0.4f).coerceAtMost(Ui.dp(176f))
+            val height = Ui.dp(34f)
+            val gap = Ui.dp(10f)
+            val count = LocaleManager.options.size
+            val total = height * count + gap * (count - 1)
+            val top = h * 0.5f - total / 2f + Ui.dp(14f) + index * (height + gap)
+            return RectF((w - width) / 2f, top, (w + width) / 2f, top + height)
+        }
 
         fun settingRect(w: Int, h: Int, index: Int): RectF {
             val width = (w * 0.4f).coerceAtMost(Ui.dp(176f))

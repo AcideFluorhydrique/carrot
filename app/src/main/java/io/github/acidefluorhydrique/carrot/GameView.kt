@@ -13,7 +13,7 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
-enum class ScreenMode { MAIN_MENU, CHAPTER_SELECT, LEVEL_MAP, SETTINGS, HELP, PLAYING }
+enum class ScreenMode { MAIN_MENU, CHAPTER_SELECT, LEVEL_MAP, SETTINGS, LANGUAGE, HELP, PLAYING }
 
 class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
@@ -151,6 +151,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             leaveSettings()
             true
         }
+        ScreenMode.LANGUAGE -> {
+            screenMode = ScreenMode.SETTINGS
+            true
+        }
         ScreenMode.PLAYING -> {
             when (GameState.status) {
                 GameStatus.PLAYING -> pauseGame()
@@ -254,6 +258,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             ScreenMode.SETTINGS -> menu.drawSettings(
                 canvas, w, h, soundEngine.isSoundOn, soundEngine.isMusicOn, languageTag, resetArmed
             )
+            ScreenMode.LANGUAGE -> menu.drawLanguage(canvas, w, h, languageTag)
             ScreenMode.HELP -> menu.drawHelp(canvas, w, h)
             ScreenMode.PLAYING -> drawGame(canvas, w, h)
         }
@@ -331,6 +336,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             ScreenMode.CHAPTER_SELECT -> handleChapterTap(x, y)
             ScreenMode.LEVEL_MAP -> handleLevelMapTap(x, y)
             ScreenMode.SETTINGS -> handleSettingsTap(x, y)
+            ScreenMode.LANGUAGE -> handleLanguageTap(x, y)
             ScreenMode.HELP -> if (MenuRenderer.backButtonRect(screenWidth, screenHeight).contains(x, y)) {
                 screenMode = ScreenMode.MAIN_MENU
             }
@@ -379,6 +385,32 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         startLevel(level)
     }
 
+    /**
+     * 語言頁：一次點擊直接選定，不再逐一輪替。
+     *
+     * 舊的做法是每點一下換下一個語言並立刻重建 Activity —— 想選第四個要點四次、
+     * 重建四次，而且一旦跳到看不懂的語言，只能繼續盲點下去繞一圈。
+     */
+    private fun handleLanguageTap(x: Float, y: Float) {
+        if (menu.tappedBack(x, y, screenWidth, screenHeight)) {
+            screenMode = ScreenMode.SETTINGS
+            return
+        }
+        val tag = menu.languageTap(x, y, screenWidth, screenHeight) ?: return
+        if (tag == languageTag) {
+            // 已經是這個語言，沒必要付一次重建的代價
+            screenMode = ScreenMode.SETTINGS
+            return
+        }
+        languageTag = tag
+        LocaleManager.store(context, tag)
+        Audio.play(Sfx.BUILD)
+        // 語言是在 attachBaseContext 套用的，只能靠重建 Activity 生效。
+        // 先落地存檔，重建後可以從主選單「繼續遊戲」接回去。
+        saveCurrentGame()
+        (context as? Activity)?.recreate()
+    }
+
     private fun handleSettingsTap(x: Float, y: Float) {
         when (menu.settingsTap(x, y, screenWidth, screenHeight)) {
             SettingsAction.TOGGLE_SOUND -> {
@@ -394,16 +426,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 saveRepository.setMusicEnabled(next)
                 resetArmed = false
             }
-            SettingsAction.CYCLE_LANGUAGE -> {
+            SettingsAction.OPEN_LANGUAGE -> {
                 resetArmed = false
-                val nextTag = LocaleManager.next(languageTag)
-                languageTag = nextTag
-                LocaleManager.store(context, nextTag)
-                Audio.play(Sfx.BUILD)
-                // 語言是在 attachBaseContext 套用的，只能靠重建 Activity 生效。
-                // 先落地存檔，重建後可以從主選單「繼續遊戲」接回去。
-                saveCurrentGame()
-                (context as? Activity)?.recreate()
+                screenMode = ScreenMode.LANGUAGE
             }
             SettingsAction.RESET_PROGRESS -> {
                 if (resetArmed) {
