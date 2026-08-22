@@ -289,13 +289,46 @@ class TowerManager(private val gameMap: GameMap) {
         return sqrt(w * w + h * h)
     }
 
+    /**
+     * 清障：塔對障礙物開火。
+     *
+     * 不走 Bullet，因為障礙物不會移動，射出去必中，沒必要為它跑一趟飛行模擬。
+     * 但特效必須跟著塔種走 —— 這裡以前一律用 Fx.beam，那是電塔連鎖閃電的視覺，
+     * 結果箭塔打石頭也在放電，看起來像每座塔都變成了電塔。
+     */
     private fun strikeObstacle(tower: Tower, obstacle: Obstacle, enemies: List<Enemy>) {
-        Fx.beam(
-            tower.centerX, tower.centerY, obstacle.centerX, obstacle.centerY,
-            Colors.of(tower.type.accentColor), 8
-        )
+        val cx = obstacle.centerX
+        val cy = obstacle.centerY
+        val accent = Colors.of(tower.type.accentColor)
+
+        when (tower.type) {
+            // 電塔本來就是瞬發電弧，光束在這裡是對的
+            TowerType.LIGHT -> {
+                Fx.beam(tower.centerX, tower.centerY, cx, cy, accent, 9)
+                Fx.hitSpark(cx, cy, accent)
+                Audio.play(Sfx.ZAP)
+            }
+            TowerType.BOMB -> {
+                Fx.explosion(cx, cy, tower.splashRadius)
+                Audio.play(Sfx.EXPLODE)
+            }
+            TowerType.ICE -> {
+                Fx.frost(cx, cy, Ui.dp(14f))
+                Audio.play(Sfx.ICE)
+            }
+            TowerType.POISON -> {
+                Fx.burst(cx, cy, 8, Colors.of("#84CC16"), Ui.dp(1.4f), Ui.dp(2f), 20, gravity = -0.02f)
+                Audio.play(Sfx.POISON)
+            }
+            // 箭塔。塔身在開火前已經轉向目標（見 aimAt），配上撞擊火花就看得出是誰在打
+            else -> {
+                Fx.burst(cx, cy, 6, accent, Ui.dp(1.6f), Ui.dp(1.8f), 16)
+                Fx.hitSpark(cx, cy, accent)
+                Audio.play(Sfx.HIT)
+            }
+        }
+
         obstacle.takeDamage(tower.damage, enemies)
-        Audio.play(Sfx.HIT)
     }
 
     private fun pickTarget(tower: Tower, alive: List<Enemy>): Enemy? {
