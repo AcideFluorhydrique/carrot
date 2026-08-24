@@ -160,13 +160,26 @@ class Tower(
 
     val sellValue: Int get() = (invested * 0.65f).toInt()
 
-    /** 面板顯示用的每秒理論傷害（單一目標）。 */
+    /**
+     * 面板顯示用的每秒理論傷害（對單一目標）。
+     *
+     * 全程用浮點算完再四捨五入。整數除法會把小於 1 的輸出直接抹成 0 ——
+     * 月亮每次脈衝穩定造成 1 點傷害，卻因為攻擊間隔比 1 秒長而顯示成 0，
+     * 玩家看到會以為它根本不輸出。
+     */
     val dps: Int
-        get() = when (type) {
-            TowerType.POISON -> poisonDamage * 60 / Enemy.POISON_TICK_FRAMES
-            TowerType.LIGHT -> damage * chainTargets * 60 / attackInterval
-            TowerType.MOON -> 0
-            else -> damage * 60 / attackInterval
+        get() {
+            val perSecond = when (type) {
+                // 毒塔有兩段輸出：命中當下的直擊，加上之後的持續傷害
+                TowerType.POISON ->
+                    damage * 60f / attackInterval +
+                        poisonDamage * 60f / Enemy.POISON_TICK_FRAMES
+                // 電塔一次電到好幾個目標
+                TowerType.LIGHT -> damage * chainTargets * 60f / attackInterval
+                else -> damage * 60f / attackInterval
+            }
+            if (perSecond <= 0f) return 0
+            return kotlin.math.round(perSecond).toInt().coerceAtLeast(1)
         }
 
     val centerX: Float get() = gameMap.offsetX + col * gameMap.cellSize + gameMap.cellSize / 2f
