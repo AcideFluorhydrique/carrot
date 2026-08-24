@@ -75,9 +75,28 @@ class Enemy(
 
     // ---- 狀態效果 ----
 
+    /**
+     * 套用減速。factor 越小越慢。
+     *
+     * 較弱的減速不能延長較強的那一個。舊寫法是「強度取較強、時間取較長」，
+     * 但時間比的是「新的持續時間 vs 目前剩餘時間」，於是月亮那種每秒掃一次、
+     * 只有 0.80x 的微弱光環，會不斷把冰塔 0.54x 的計時器補滿，
+     * 讓一發冰彈的強控在月亮罩得到的範圍內變成永久狀態。
+     */
     fun applySlow(factor: Float, duration: Int) {
-        // 取更強的減速，時間取較長者
-        if (factor < slowFactor || slowTimer <= 0) slowFactor = factor
+        if (slowTimer <= 0) {
+            slowFactor = factor
+            slowTimer = duration
+            return
+        }
+        if (factor < slowFactor) {
+            // 更強的減速接管，時間取兩者較長者
+            slowFactor = factor
+            if (duration > slowTimer) slowTimer = duration
+            return
+        }
+        if (factor > slowFactor) return
+        // 同強度的來源：單純續期
         if (duration > slowTimer) slowTimer = duration
     }
 
