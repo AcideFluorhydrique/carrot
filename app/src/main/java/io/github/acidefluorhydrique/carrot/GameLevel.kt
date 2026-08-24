@@ -1081,7 +1081,11 @@ object GameLevels {
             id = 18,
             chapterId = 5,
             indexInChapter = 2,
-            startGold = 269,
+            // 第五章的第一波血量比第四章高一倍有餘，起始金卻幾乎沒動，
+            // 結果是開場買不出足夠的輸出、第一波就必敗（見 tools/balance.py）。
+            // 起始金提高 50%、第一波血量降 15%，兩邊各讓一步 ——
+            // 只砍血量的話會讓第一波和第二波脫節，全遊戲沒有別關落差那麼大。
+            startGold = 403,
             carrotHp = 8,
             path = listOf(
                 0 to 7, 1 to 7, 2 to 7, 2 to 6, 2 to 5, 2 to 4, 2 to 3, 2 to 2,
@@ -1105,7 +1109,7 @@ object GameLevels {
             waves = listOf(
                 WaveConfig(
                     listOf(
-                        WaveGroup(EnemyKind.GRUNT, 15, 111, 1.96f, 33, 39)
+                        WaveGroup(EnemyKind.GRUNT, 15, 94, 1.96f, 33, 39)
                     )
                 ),
                 WaveConfig(
@@ -1156,7 +1160,8 @@ object GameLevels {
             id = 19,
             chapterId = 5,
             indexInChapter = 3,
-            startGold = 276,
+            // 同 5-2：起始金 +50%、第一波血量 -15%。
+            startGold = 414,
             carrotHp = 8,
             path = listOf(
                 0 to 0, 1 to 0, 2 to 0, 2 to 1, 2 to 2, 2 to 3, 2 to 4, 2 to 5,
@@ -1180,7 +1185,7 @@ object GameLevels {
             waves = listOf(
                 WaveConfig(
                     listOf(
-                        WaveGroup(EnemyKind.GRUNT, 15, 133, 1.98f, 34, 39)
+                        WaveGroup(EnemyKind.GRUNT, 15, 113, 1.98f, 34, 39)
                     )
                 ),
                 WaveConfig(
@@ -1236,7 +1241,8 @@ object GameLevels {
             id = 20,
             chapterId = 5,
             indexInChapter = 4,
-            startGold = 283,
+            // 同 5-2：起始金 +50%、第一波血量 -15%。
+            startGold = 424,
             carrotHp = 7,
             path = listOf(
                 0 to 6, 1 to 6, 2 to 6, 2 to 5, 2 to 4, 2 to 3, 2 to 2, 2 to 1,
@@ -1261,7 +1267,7 @@ object GameLevels {
             waves = listOf(
                 WaveConfig(
                     listOf(
-                        WaveGroup(EnemyKind.GRUNT, 15, 160, 2.00f, 35, 38)
+                        WaveGroup(EnemyKind.GRUNT, 15, 136, 2.00f, 35, 38)
                     )
                 ),
                 WaveConfig(
