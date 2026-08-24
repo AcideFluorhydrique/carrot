@@ -1,0 +1,5 @@
+First release.
+
+A small lane tower defence game: four levels, three towers (Arrow, Bomb and Ice), each upgradable three times, and a carrot to defend at the end of the path.
+
+No ads, no trackers, no permissions and no network access.
