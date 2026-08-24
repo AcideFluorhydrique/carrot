@@ -17,6 +17,13 @@ DPG  DPS per Gold = DPS / 累計投入金幣。這是塔與塔之間唯一公平
 所以一波的可用傷害 ≈ Σ(塔DPS) × 交戰秒數，而交戰秒數 ≈ 生成跨度 + 弧線通過時間，
 不是整個波次窗口。用這個模型往前推 8 波，看蘿蔔血夠不夠扣。
 
+模型刻意不做的事（都是對玩家有利的方向，所以它說「不行」時可信，
+說「可以」時只代表理論上限）：
+  * 不模擬減速。冰塔／月亮拖慢敵人只會拉長「尾段」那一項，生成跨度不受影響，
+    上限約 +20%；完全沒有減速塔的關卡（例如 5-4）連這點都拿不到。
+  * 不算清障收入。障礙物動輒上千血，第一波根本來不及打掉換錢。
+  * 擺位假設 100% 覆蓋路徑，真人做不到。
+
 用法
 ----
     python3 tools/balance.py towers          # 塔的性價比表
@@ -208,25 +215,39 @@ def parse_levels():
 
 def pick_build(usable, gold, armor, spacing, count_cap):
     """
-    把手上的錢換成輸出：挑當下 DPG 最高的（塔, 等級）組合，能買幾座買幾座。
-    密度逐塔計算 —— 射程小的塔一次掃到的敵人本來就比較少，
-    用全關最大射程去估會嚴重高估太陽這類小圈範圍塔。
+    逐座買：每次挑「當下買得起、DPG 最高」的一座，直到錢不夠為止。
+
+    一次決定一種塔的舊寫法會低估玩家 —— 最佳選項買不起就整筆放棄，
+    或是買完幾座之後剩下的錢湊不出一整座就當作浪費掉。真人會混搭。
+
+    回傳 [(塔, 等級, dps, 掃描長度), ...]。
     """
-    best, best_dpg, best_dps = None, 0.0, 0.0
-    for t in usable:
-        for lv in range(1, MAX_LEVEL + 1):
-            if total_cost(t, lv) > gold:
-                continue                      # 買不起的組合不能列入考慮
-            d = max(1.0, min(count_cap, coverage_cells(t, lv) / spacing))
-            v = dpg(t, lv, armor, d)
-            if v > best_dpg:
-                best, best_dpg, best_dps = (t, lv), v, dps(t, lv, armor, d)
-    if not best:
-        return None, 0, 0.0
-    name, lv = best
-    unit = total_cost(name, lv)
-    n = int(gold // unit)
-    return best, n, n * best_dps
+    remaining = gold
+    build = []
+    while True:
+        best = None
+        for t in usable:
+            for lv in range(1, MAX_LEVEL + 1):
+                c = total_cost(t, lv)
+                if c > remaining:
+                    continue
+                d = max(1.0, min(count_cap, coverage_cells(t, lv) / spacing))
+                v = dpg(t, lv, armor, d)
+                if best is None or v > best[0]:
+                    best = (v, t, lv, c, dps(t, lv, armor, d))
+        if best is None:
+            break
+        _, t, lv, c, tower_dps = best
+        remaining -= c
+        build.append((t, lv, tower_dps, coverage_cells(t, lv)))
+        if len(build) > 200:            # 保險，避免出現零成本塔時空轉
+            break
+    return build
+
+
+def call_bonus(wave_number, rest_frames):
+    """EnemyManager.callBonus：提前叫下一波的獎勵金。好玩家一定會拿。"""
+    return 20 + wave_number * 6 + rest_frames // 8
 
 
 def simulate(level, coverage=1.0):
@@ -248,18 +269,22 @@ def simulate(level, coverage=1.0):
         engaged_total = 0.0
         leaked_damage = 0
 
+        # 提前叫波的獎勵金：第一波備戰 240 幀，之後每波間隔 restFrames
+        budget = gold + call_bonus(wi, PREP_FRAMES if wi == 1 else 110)
+
         for g in groups:
             # 敵人在路徑上的間距（格），決定範圍塔一次能掃到幾隻
             spacing = max(g.speed * g.interval / FPS, 0.3)
+            spawn_span = (g.count - 1) * g.interval / FPS
 
-            (name, lv), count, wave_dps = pick_build(usable, gold, g.armor, spacing, g.count)
-            if count == 0:
-                engaged = 0.0
-            else:
-                # 交戰時間：從第一隻進弧線到最後一隻離開弧線
-                engaged = (g.count - 1) * g.interval / FPS + chord_cells(name, lv) / g.speed
-            engaged_total += engaged
-            delivered += wave_dps * engaged * coverage
+            build = pick_build(usable, budget, g.armor, spacing, g.count)
+            # 每座塔各自算交戰時間：射程大的塔尾巴拖得比較長
+            best_engaged = 0.0
+            for _, _, tower_dps, cover in build:
+                engaged = spawn_span + cover / g.speed
+                delivered += tower_dps * engaged * coverage
+                best_engaged = max(best_engaged, engaged)
+            engaged_total += best_engaged
 
         # 傷害按順序吃掉敵人，殺不完的漏出去
         remaining = delivered
