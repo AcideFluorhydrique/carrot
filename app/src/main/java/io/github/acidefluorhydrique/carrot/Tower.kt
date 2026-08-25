@@ -117,7 +117,10 @@ class Tower(
 
     val isMaxLevel: Boolean get() = level >= MAX_LEVEL
 
-    val range: Float get() = gameMap.cellSize * type.rangeCells(level)
+    /** 射程，單位是格。面板顯示用的也是這個 —— 畫面上有格線，玩家看得懂。 */
+    val rangeCells: Float get() = type.rangeCells(level)
+
+    val range: Float get() = gameMap.cellSize * rangeCells
 
     val damage: Int
         get() = when (type) {
@@ -143,7 +146,10 @@ class Tower(
             TowerType.SUN -> max(40, 66 - level * 7)
         }
 
-    val splashRadius: Float get() = gameMap.cellSize * (1.2f + level * 0.2f)
+    /** 濺射半徑，單位是格。 */
+    val splashCells: Float get() = 1.2f + level * 0.2f
+
+    val splashRadius: Float get() = gameMap.cellSize * splashCells
     val slowFactor: Float get() = 0.62f - level * 0.08f
     val slowDuration: Int get() = 60 + level * 20
 

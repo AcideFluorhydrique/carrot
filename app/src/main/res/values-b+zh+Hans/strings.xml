@@ -76,10 +76,10 @@
 
     <!-- 塔面板 -->
     <string name="tower_panel_header">%1$s %2$s Lv.%3$d</string>
-    <string name="tower_panel_stats">伤害 %1$d · 每秒 %2$d · 范围 %3$d</string>
+    <string name="tower_panel_stats">伤害 %1$d · 每秒 %2$d · 范围 %3$s 格</string>
     <string name="tower_stat_rate">攻速 %1$s 次/秒</string>
     <string name="tower_stat_slow">减速 %1$d%% · %2$d 秒</string>
-    <string name="tower_stat_splash">爆炸范围 %1$d</string>
+    <string name="tower_stat_splash">爆炸范围 %1$s 格</string>
     <string name="tower_stat_poison">毒伤 %1$d/跳 · 无视护甲</string>
     <string name="tower_stat_chain">连锁 %1$d 个目标</string>
     <string name="tower_max_level">已满级</string>
@@ -152,9 +152,9 @@
     <string name="tower_rocket_tag">直线穿透，沿途通杀</string>
     <string name="tower_sun">太阳</string>
     <string name="tower_sun_tag">以自身为圆心的范围脉冲</string>
-    <string name="tower_stat_pulse">脉冲半径 %1$d</string>
-    <string name="tower_stat_aura">半径 %2$d 内减速 %1$d%%</string>
-    <string name="tower_stat_pierce">穿透长度 %1$d</string>
+    <string name="tower_stat_pulse">脉冲半径 %1$s 格</string>
+    <string name="tower_stat_aura">半径 %2$s 格内减速 %1$d%%</string>
+    <string name="tower_stat_pierce">穿透长度 %1$s 格</string>
     <string name="obstacle_mushroom">蘑菇</string>
     <string name="obstacle_rock">石头</string>
     <string name="obstacle_tree">大树</string>

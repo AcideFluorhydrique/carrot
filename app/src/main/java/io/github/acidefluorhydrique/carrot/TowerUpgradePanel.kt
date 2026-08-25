@@ -57,7 +57,7 @@ class TowerUpgradePanel {
             canvas,
             Strings.format(
                 R.string.tower_panel_stats,
-                tower.damage, tower.dps, (tower.range / Ui.dp(1f)).toInt()
+                tower.damage, tower.dps, cells(tower.rangeCells)
             ),
             panel.left + padding, panel.top + Ui.dp(29f), Ui.dp(9.5f),
             panel.width() - padding * 2f, statsColor
@@ -87,6 +87,16 @@ class TowerUpgradePanel {
         )
     }
 
+    /**
+     * 距離一律以「格」顯示。
+     *
+     * 這裡本來印的是 range / Ui.dp(1f)，也就是換算過縮放的內部像素值 ——
+     * 玩家看到的是「Range 101」這種沒有意義的數字，而且它會隨螢幕比例變動
+     * （cellSize 在窄螢幕由寬度決定、寬螢幕由高度決定），同一座塔在不同機器上
+     * 顯示不同數值。格線就畫在畫面上，用格當單位才對得起來。
+     */
+    private fun cells(value: Float): String = String.format(Locale.US, "%.1f", value)
+
     private fun extraStat(tower: Tower): String = when (tower.type) {
         TowerType.ARROW -> Strings.format(
             R.string.tower_stat_rate,
@@ -97,16 +107,16 @@ class TowerUpgradePanel {
             ((1f - tower.slowFactor) * 100).toInt(), tower.slowDuration / 60
         )
         TowerType.BOMB -> Strings.format(
-            R.string.tower_stat_splash, (tower.splashRadius / Ui.dp(1f)).toInt()
+            R.string.tower_stat_splash, cells(tower.splashCells)
         )
         TowerType.POISON -> Strings.format(R.string.tower_stat_poison, tower.poisonDamage)
         TowerType.LIGHT -> Strings.format(R.string.tower_stat_chain, tower.chainTargets)
-        TowerType.SUN -> Strings.format(R.string.tower_stat_pulse, (tower.range / Ui.dp(1f)).toInt())
+        TowerType.SUN -> Strings.format(R.string.tower_stat_pulse, cells(tower.rangeCells))
         TowerType.MOON -> Strings.format(
             R.string.tower_stat_aura,
-            ((1f - tower.auraSlowFactor) * 100).toInt(), (tower.range / Ui.dp(1f)).toInt()
+            ((1f - tower.auraSlowFactor) * 100).toInt(), cells(tower.rangeCells)
         )
-        TowerType.ROCKET -> Strings.format(R.string.tower_stat_pierce, (tower.range / Ui.dp(1f)).toInt())
+        TowerType.ROCKET -> Strings.format(R.string.tower_stat_pierce, cells(tower.rangeCells))
     }
 
     companion object {

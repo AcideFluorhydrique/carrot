@@ -76,10 +76,10 @@
 
     <!-- Tower panel -->
     <string name="tower_panel_header">%1$s %2$s Lv.%3$d</string>
-    <string name="tower_panel_stats">DMG %1$d · DPS %2$d · Range %3$d</string>
+    <string name="tower_panel_stats">DMG %1$d · DPS %2$d · Range %3$s tiles</string>
     <string name="tower_stat_rate">%1$s shots/sec</string>
     <string name="tower_stat_slow">Slow %1$d%% · %2$ds</string>
-    <string name="tower_stat_splash">Blast radius %1$d</string>
+    <string name="tower_stat_splash">Blast radius %1$s tiles</string>
     <string name="tower_stat_poison">Poison %1$d/tick · ignores armour</string>
     <string name="tower_stat_chain">Chains to %1$d targets</string>
     <string name="tower_max_level">MAX</string>
@@ -152,9 +152,9 @@
     <string name="tower_rocket_tag">Pierces everything in a straight line</string>
     <string name="tower_sun">Sun</string>
     <string name="tower_sun_tag">Pulses damage all around itself</string>
-    <string name="tower_stat_pulse">Pulse radius %1$d</string>
-    <string name="tower_stat_aura">Slows %1$d%% in radius %2$d</string>
-    <string name="tower_stat_pierce">Pierces along %1$d</string>
+    <string name="tower_stat_pulse">Pulse radius %1$s tiles</string>
+    <string name="tower_stat_aura">Slows %1$d%% within %2$s tiles</string>
+    <string name="tower_stat_pierce">Pierces along %1$s tiles</string>
     <string name="obstacle_mushroom">Mushroom</string>
     <string name="obstacle_rock">Rock</string>
     <string name="obstacle_tree">Tree</string>
