@@ -179,6 +179,18 @@ object Widgets {
         paint.isFakeBoldText = false
     }
 
+    /**
+     * 從 [start] 起算，寬度上限內最多放得下幾個字元。
+     *
+     * 走 Paint.breakText 而不是逐字元 substring 再量測：後者每試一個位置就配置
+     * 一個新字串，而這是每幀都會跑的選單繪製路徑。breakText 不配置任何東西。
+     */
+    fun fitChars(text: String, start: Int, size: Float, maxWidth: Float): Int {
+        paint.textSize = size
+        paint.isFakeBoldText = false
+        return paint.breakText(text, start, text.length, true, maxWidth, null)
+    }
+
     fun measure(text: String, size: Float, bold: Boolean = false): Float {
         paint.textSize = size
         paint.isFakeBoldText = bold

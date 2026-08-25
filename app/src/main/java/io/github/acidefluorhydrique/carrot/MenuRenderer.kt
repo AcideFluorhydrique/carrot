@@ -461,20 +461,48 @@ class MenuRenderer {
 
     // ---- 共用 ----
 
+    /**
+     * 在卡片內置中換行。
+     *
+     * 舊寫法從字串正中間逐字元往後推到超出寬度為止，斷點落在哪就切哪，
+     * 英文因此會被切在字中間（章節卡片上出現過「learn to fre / eze」）。
+     * 它也固定只畫兩行，更長的副標會被無聲截掉。
+     *
+     * 改成貪婪斷行，優先在空白處斷；單一詞本身就超寬時才退回逐字元切
+     * （中文沒有空白，一律走這條，逐字斷行本來就是正確的）。
+     * 行數上限由卡片剩餘高度算出來，不再寫死。
+     */
     private fun drawWrapped(canvas: Canvas, text: String, rect: RectF, size: Float, startY: Float, color: Int) {
         val maxWidth = rect.width() - Ui.dp(12f)
-        if (Widgets.measure(text, size) <= maxWidth) {
-            Widgets.centered(canvas, text, rect.centerX(), startY, size, color = color)
-            return
+        val lineHeight = size * 1.25f
+        val room = rect.bottom - Ui.dp(18f) - startY
+        val maxLines = (room / lineHeight).toInt().coerceIn(1, 4)
+
+        var y = startY
+        for (line in wrapLines(text, size, maxWidth, maxLines)) {
+            Widgets.centered(canvas, line, rect.centerX(), y, size, color = color)
+            y += lineHeight
         }
-        var split = text.length / 2
-        while (split < text.length && Widgets.measure(text.substring(0, split), size) < maxWidth) split++
-        val first = text.substring(0, split.coerceAtMost(text.length))
-        val second = text.substring(split.coerceAtMost(text.length))
-        Widgets.centered(canvas, first, rect.centerX(), startY, size, color = color)
-        if (second.isNotEmpty()) {
-            Widgets.centered(canvas, second, rect.centerX(), startY + size * 1.25f, size, color = color)
+    }
+
+    /** 貪婪斷行：每行盡量塞滿，能在空白處斷就在空白處斷。 */
+    private fun wrapLines(text: String, size: Float, maxWidth: Float, maxLines: Int): List<String> {
+        val lines = ArrayList<String>(maxLines)
+        var start = 0
+        while (start < text.length && lines.size < maxLines) {
+            val fit = Widgets.fitChars(text, start, size, maxWidth)
+            // 連一個字元都放不下（欄寬異常）就收手，別空轉
+            if (fit <= 0) break
+            var end = start + fit
+            if (end < text.length) {
+                val space = text.lastIndexOf(' ', end - 1)
+                if (space > start) end = space
+            }
+            lines.add(text.substring(start, end).trim())
+            start = end
+            while (start < text.length && text[start] == ' ') start++
         }
+        return lines
     }
 
     private fun drawBackground(canvas: Canvas, w: Int, h: Int) {
