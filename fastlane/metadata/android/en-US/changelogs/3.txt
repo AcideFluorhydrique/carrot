@@ -1,0 +1,9 @@
+Fix a freeze when changing the interface language.
+
+Switching language rebuilt the whole Activity. That saved the game twice, tore
+down and rebuilt the audio engine, and waited for the render thread to stop,
+all on the main thread, and Android forces pending preference writes to reach
+disk before the activity may pause. On slower storage the app could hang for
+seconds, sometimes long enough for an "isn't responding" dialog.
+
+The language now changes in place, so the switch is immediate.
