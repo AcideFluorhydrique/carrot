@@ -3,7 +3,6 @@
 
 package io.github.acidefluorhydrique.carrot
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.LinearGradient
@@ -129,7 +128,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     fun onActivityDestroy() {
-        // 語言切換會重建 Activity，新的 GameView 可能已經接手，別把它的引擎清掉
+        // 系統若重建 Activity，新的 GameView 可能已經接手，別把它的引擎清掉
         if (Audio.engine === soundEngine) Audio.engine = null
         soundEngine.release()
     }
@@ -386,10 +385,17 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     }
 
     /**
-     * 語言頁：一次點擊直接選定，不再逐一輪替。
+     * 語言頁：一次點擊直接選定。
      *
-     * 舊的做法是每點一下換下一個語言並立刻重建 Activity —— 想選第四個要點四次、
-     * 重建四次，而且一旦跳到看不懂的語言，只能繼續盲點下去繞一圈。
+     * 不重建 Activity。畫面全是 Canvas 自繪、沒有任何 layout 要 inflate，
+     * 而所有文字都經過 Strings，它的 Resources 是 LocaleManager.localized()
+     * 用 createConfigurationContext 產生的，本來就不依賴 attachBaseContext。
+     * 換掉那一份 Resources，下一幀就是新語言。
+     *
+     * 重建的代價全部落在主執行緒上：存兩次檔（這裡一次、surfaceDestroyed 再一次）、
+     * 釋放並重建音效引擎、join 掉繪製執行緒，然後整個 GameView 重來。
+     * SharedPreferences 的 apply() 還會在 onPause 被 QueuedWork 強制等到落盤，
+     * 在慢速儲存的裝置上足以拖出好幾秒的凍結，甚至觸發 ANR。
      */
     private fun handleLanguageTap(x: Float, y: Float) {
         if (menu.tappedBack(x, y, screenWidth, screenHeight)) {
@@ -398,17 +404,14 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         }
         val tag = menu.languageTap(x, y, screenWidth, screenHeight) ?: return
         if (tag == languageTag) {
-            // 已經是這個語言，沒必要付一次重建的代價
             screenMode = ScreenMode.SETTINGS
             return
         }
         languageTag = tag
         LocaleManager.store(context, tag)
+        Strings.init(LocaleManager.localized(context))
         Audio.play(Sfx.BUILD)
-        // 語言是在 attachBaseContext 套用的，只能靠重建 Activity 生效。
-        // 先落地存檔，重建後可以從主選單「繼續遊戲」接回去。
-        saveCurrentGame()
-        (context as? Activity)?.recreate()
+        screenMode = ScreenMode.SETTINGS
     }
 
     private fun handleSettingsTap(x: Float, y: Float) {
