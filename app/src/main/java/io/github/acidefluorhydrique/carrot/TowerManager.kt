@@ -211,7 +211,7 @@ class TowerManager(private val gameMap: GameMap) {
             }
 
             // 射程內沒有敵人時才去清障，避免玩家點一下障礙物就漏怪
-            val obstacle = obstacleManager.focusedInRange(tower.centerX, tower.centerY, tower.range)
+            val obstacle = obstacleManager.markedInRange(tower.centerX, tower.centerY, tower.range)
             if (obstacle != null) {
                 aimAt(tower, obstacle.centerX, obstacle.centerY)
                 if (tower.type.isPiercing) {

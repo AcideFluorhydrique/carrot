@@ -162,7 +162,7 @@
     <string name="obstacle_toxic">毒菇</string>
     <string name="obstacle_crate">寶箱</string>
     <string name="help_obstacles">障礙物</string>
-    <string name="help_obstacle_note_1">點一下障礙物指定集火。塔只有在射程內沒有敵人時才會去打它。</string>
+    <string name="help_obstacle_note_1">點障礙物可以標記集火，可以標好幾個。塔只有在射程內沒有敵人時才會去打，照標記的順序打。</string>
     <string name="help_obstacle_note_2">打掉會給金幣並空出建塔位，寶箱給得最多。</string>
     <string name="help_obstacle_note_3">太陽、月亮、火箭會自己掃到障礙物，不用指定。</string>
     <string name="help_loadout">每關只開放一部分的塔，用手上有的那幾把解題。</string>

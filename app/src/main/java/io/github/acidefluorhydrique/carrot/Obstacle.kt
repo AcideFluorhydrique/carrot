@@ -52,8 +52,9 @@ class Obstacle(
     var isDestroyed = false
         private set
 
-    /** 玩家指定為集火目標。 */
-    var isFocused = false
+    /** 玩家標記的集火順序，從 1 開始；0 表示沒被標記。由 ObstacleManager 維護。 */
+    var markOrder = 0
+    val isFocused: Boolean get() = markOrder > 0
 
     private var hitFlash = 0
     private var animFrame = 0
@@ -84,7 +85,7 @@ class Obstacle(
     private fun destroy(enemies: List<Enemy>) {
         hp = 0
         isDestroyed = true
-        isFocused = false
+        markOrder = 0
         gameMap.clearObstacle(col, row)
         GameState.addGold(goldReward)
         GameState.obstaclesCleared++
@@ -170,6 +171,21 @@ class Obstacle(
             paint.color = Colors.of(kind.tint)
             scratch.set(left, top, left + barW * hpRatio, top + barH)
             canvas.drawRoundRect(scratch, barH, barH, paint)
+        }
+
+        // 集火序號：左上角小圓牌，告訴玩家塔會先打哪個
+        if (isFocused) {
+            val r = cs * 0.15f
+            val bx = px + cs * 0.17f
+            val by = py + cs * 0.17f
+            paint.color = Colors.of("#FFE08A")
+            canvas.drawCircle(bx, by, r, paint)
+            val label = markOrder.toString()
+            paint.color = Colors.of("#3A2A00")
+            paint.textSize = r * 1.4f
+            paint.isFakeBoldText = true
+            canvas.drawText(label, bx - paint.measureText(label) / 2f, by + r * 0.5f, paint)
+            paint.isFakeBoldText = false
         }
     }
 }

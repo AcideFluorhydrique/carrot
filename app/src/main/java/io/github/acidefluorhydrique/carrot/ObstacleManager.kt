@@ -9,19 +9,21 @@ import kotlin.math.sqrt
 /**
  * 場上的可摧毀障礙物。
  *
- * 集火規則：同時只能指定一個目標，而且塔只有在「射程內沒有敵人」時才會去打它，
+ * 集火規則：可以同時標記多個，塔只有在「射程內沒有敵人」時才會去打，
  * 否則點錯一下就會漏怪，變成懲罰玩家的設計。
+ * 射程內有好幾個標記時照標記順序打：順序全場共用又不會變，
+ * 所以同一座塔不會在兩個目標之間來回切，夠得到的塔也會自然集中火力。
  */
 class ObstacleManager(private val gameMap: GameMap) {
 
     val obstacles = mutableListOf<Obstacle>()
 
-    var focused: Obstacle? = null
-        private set
+    /** 依標記先後排列，第一個優先。 */
+    private val marked = mutableListOf<Obstacle>()
 
     fun reset(level: LevelConfig) {
         obstacles.clear()
-        focused = null
+        marked.clear()
         val hpScale = obstacleHpScale(level)
         val goldScale = obstacleGoldScale(level)
         for (spec in level.obstacles) {
@@ -39,17 +41,17 @@ class ObstacleManager(private val gameMap: GameMap) {
         }
     }
 
-    /** 點擊障礙物格：指定或取消集火。回傳 true 表示這次點擊被吃掉。 */
+    /** 點擊障礙物格：標記（排到最後）或取消標記。回傳 true 表示這次點擊被吃掉。 */
     fun onTap(col: Int, row: Int): Boolean {
         val target = obstacles.firstOrNull { it.isAlive && it.col == col && it.row == row } ?: return false
-        if (focused === target) {
-            target.isFocused = false
-            focused = null
+        if (target.markOrder > 0) {
+            target.markOrder = 0
+            marked.remove(target)
+            renumberMarks()
             Audio.play(Sfx.SELL)
         } else {
-            focused?.isFocused = false
-            target.isFocused = true
-            focused = target
+            marked.add(target)
+            target.markOrder = marked.size
             Audio.play(Sfx.BUILD)
         }
         return true
@@ -57,22 +59,26 @@ class ObstacleManager(private val gameMap: GameMap) {
 
     fun update() {
         for (obstacle in obstacles) obstacle.tick()
-        val current = focused
-        if (current != null && !current.isAlive) focused = null
+        if (marked.removeAll { !it.isAlive }) renumberMarks()
         obstacles.removeAll { it.isDestroyed }
+    }
+
+    /** 前面的標記被打掉或取消後，後面的往前補，畫面上的序號才會從 1 開始連續。 */
+    private fun renumberMarks() {
+        marked.forEachIndexed { index, obstacle -> obstacle.markOrder = index + 1 }
     }
 
     fun aliveAt(col: Int, row: Int): Obstacle? =
         obstacles.firstOrNull { it.isAlive && it.col == col && it.row == row }
 
-    /** 指定目標若在射程內就回傳它，供「閒置時清障」使用。 */
-    fun focusedInRange(x: Float, y: Float, range: Float): Obstacle? {
-        val target = focused ?: return null
-        if (!target.isAlive) return null
-        val dx = target.centerX - x
-        val dy = target.centerY - y
-        return if (sqrt(dx * dx + dy * dy) <= range) target else null
-    }
+    /** 射程內最早標記的目標，供「閒置時清障」使用。 */
+    fun markedInRange(x: Float, y: Float, range: Float): Obstacle? =
+        marked.firstOrNull {
+            if (!it.isAlive) return@firstOrNull false
+            val dx = it.centerX - x
+            val dy = it.centerY - y
+            sqrt(dx * dx + dy * dy) <= range
+        }
 
     /** 範圍型武器會無差別掃到障礙物，不需要玩家指定。 */
     fun inRadius(x: Float, y: Float, radius: Float): List<Obstacle> =
@@ -107,7 +113,6 @@ class ObstacleManager(private val gameMap: GameMap) {
                 obstacle.restoreHp(saved.hp)
             }
         }
-        focused = null
     }
 
     companion object {

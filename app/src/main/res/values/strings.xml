@@ -162,7 +162,7 @@
     <string name="obstacle_toxic">Toxic Cap</string>
     <string name="obstacle_crate">Crate</string>
     <string name="help_obstacles">Obstacles</string>
-    <string name="help_obstacle_note_1">Tap an obstacle to mark it. Towers hit it only when no enemy is in range.</string>
+    <string name="help_obstacle_note_1">Tap obstacles to mark them; you can mark several. Towers hit them only when no enemy is in range, in the order you marked them.</string>
     <string name="help_obstacle_note_2">Breaking one pays gold and frees the tile. Crates pay the most.</string>
     <string name="help_obstacle_note_3">Sun, Moon and Rocket damage obstacles on their own, without marking.</string>
     <string name="help_loadout">Each level offers only some of your towers. Work with what it gives you.</string>
