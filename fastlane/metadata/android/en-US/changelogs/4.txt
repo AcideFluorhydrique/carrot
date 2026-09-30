@@ -1,0 +1,10 @@
+Mark several obstacles at once.
+
+Before, only one obstacle could be marked at a time. Once the wave passed, the
+towers near other obstacles just sat idle unless you kept switching the mark
+around by hand.
+
+Now tap as many obstacles as you like. A small badge shows each mark's number.
+Towers still shoot enemies first; with no enemy in range, they attack the
+earliest marked obstacle they can reach. Tap a marked obstacle again to unmark
+it, and the numbers after it move up.
