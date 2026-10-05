@@ -5,6 +5,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # 最後一根蘿蔔
 
+<p>
+  <a href="https://f-droid.org/en/packages/io.github.acidefluorhydrique.carrot/">
+    <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="在 F-Droid 上取得" height="70" />
+  </a>
+  <a href="https://github.com/AcideFluorhydrique/carrot/releases">
+    <img src="https://raw.githubusercontent.com/mmlado/GapSign/main/assets/badges/badge_github.png" alt="在 GitHub 上取得" height="70" />
+  </a>
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/AcideFluorhydrique/carrot/releases">
+    <img src="https://raw.githubusercontent.com/mmlado/GapSign/main/assets/badges/badge_obtainium.png" alt="在 Obtainium 上取得" height="70" />
+  </a>
+</p>
+
 [![Build APK](https://github.com/AcideFluorhydrique/carrot/actions/workflows/build.yml/badge.svg)](https://github.com/AcideFluorhydrique/carrot/actions/workflows/build.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
