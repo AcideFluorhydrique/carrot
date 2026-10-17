@@ -28,11 +28,14 @@ DPG  DPS per Gold = DPS / 累計投入金幣。這是塔與塔之間唯一公平
 ----
     python3 tools/balance.py towers          # 塔的性價比表
     python3 tools/balance.py levels          # 所有關卡的可行性掃描
+    python3 tools/balance.py levels hard     # 同上，困難模式
     python3 tools/balance.py level 15        # 單一關卡逐波拆解
+    python3 tools/balance.py level 15 hard   # 同上，困難模式
 
 Tower.kt 的公式改了，下面的 TOWERS 也要跟著改。
 """
 
+import copy
 import re
 import sys
 import math
@@ -328,12 +331,52 @@ def cmd_towers():
           % dpg("ARROW", 1))
 
 
-def cmd_levels():
+# ---------------------------------------------------------------- 難度（對應 Difficulty.kt）
+
+# Difficulty.HARD 的參數。Difficulty.kt 改了，這裡也要跟著改。
+HARD_HP_GROWTH = 1.15
+HARD_COUNT_GROWTH = 1.08
+MIN_SPAWN_INTERVAL = 8
+
+
+def kround(x):
+    """Kotlin 的 roundToInt：.5 一律往上。Python 的 round 是銀行家捨入，會差一。"""
+    return int(math.floor(x + 0.5))
+
+
+def harden(level):
+    """
+    Difficulty.HARD.apply 的 Python 版本：第 w 波（0 起算）的血量乘 HARD_HP_GROWTH^w，
+    數量乘 HARD_COUNT_GROWTH^w，生成間隔同比縮短；首領不放大數量，金幣不動。
+    """
+    lv = copy.deepcopy(level)
+    for w, groups in enumerate(lv.waves):
+        fh = HARD_HP_GROWTH ** w
+        fc = HARD_COUNT_GROWTH ** w
+        for g in groups:
+            g.raw_hp = max(1, kround(g.raw_hp * fh))
+            g.hp = max(1, int(g.raw_hp * KIND_STATS[g.kind][0]))
+            if g.kind == "BOSS":
+                continue
+            n = max(1, kround(g.count * fc))
+            g.interval = max(MIN_SPAWN_INTERVAL, kround(g.interval * g.count / n))
+            g.count = n
+    return lv
+
+
+def levels_for(difficulty):
+    levels = parse_levels()
+    return [harden(lv) for lv in levels] if difficulty == "hard" else levels
+
+
+def cmd_levels(difficulty="normal"):
+    if difficulty == "hard":
+        print(f"困難模式：血量 ×{HARD_HP_GROWTH}^w，數量 ×{HARD_COUNT_GROWTH}^w（w 為 0 起算的波次）\n")
     print("關卡可行性掃描。ratio = 可輸出傷害 / 該波總血量。")
     print("ratio < 1.0 表示這一波不可能清乾淨；看『剩餘蘿蔔血』是否歸零。\n")
     print(f"{'關卡':<7}{'可用塔':<36}{'最低ratio':>10}{'總漏怪傷':>10}{'蘿蔔血':>9}{'結果':>8}")
     print("-" * 82)
-    for lv in parse_levels():
+    for lv in levels_for(difficulty):
         res = simulate(lv)
         if not res:
             continue
@@ -347,8 +390,8 @@ def cmd_levels():
               f"{final:>9}{ok:>8}{mark}")
 
 
-def cmd_level(lid):
-    lv = next(l for l in parse_levels() if l.id == lid)
+def cmd_level(lid, difficulty="normal"):
+    lv = next(l for l in levels_for(difficulty) if l.id == lid)
     rows, usable = simulate(lv)
     print(f"=== {lv.name} (id={lv.id}) ===")
     print(f"起始金 {lv.start_gold} / 蘿蔔血 {lv.carrot_hp} / 路徑 {lv.path_len} 格")
@@ -374,8 +417,8 @@ if __name__ == "__main__":
     if cmd == "towers":
         cmd_towers()
     elif cmd == "levels":
-        cmd_levels()
+        cmd_levels(sys.argv[2] if len(sys.argv) > 2 else "normal")
     elif cmd == "level":
-        cmd_level(int(sys.argv[2]))
+        cmd_level(int(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "normal")
     else:
         print(__doc__)
