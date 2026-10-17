@@ -65,7 +65,9 @@ data class GameSave(
     val enemyManager: EnemyManagerSnapshot,
     val towers: List<TowerSnapshot>,
     val obstacles: List<ObstacleSnapshot>,
-    val savedAt: Long
+    val savedAt: Long,
+    /** [Difficulty] 的名稱。舊存檔沒有這個欄位，讀回來視為普通。 */
+    val difficulty: String = Difficulty.NORMAL.name
 )
 
 class SaveRepository(context: Context) {
@@ -123,36 +125,44 @@ class SaveRepository(context: Context) {
 
     // ---- 關卡進度（星等）----
 
-    fun recordResult(levelId: Int, stars: Int) {
+    fun recordResult(levelId: Int, stars: Int, difficulty: Difficulty) {
         if (stars <= 0) return
-        val current = starsFor(levelId)
+        val current = starsFor(levelId, difficulty)
         if (stars <= current) return
-        val map = starMap().toMutableMap()
+        val map = starMap(difficulty).toMutableMap()
         map[levelId] = stars
         prefs.edit()
-            .putStringSet(KEY_STARS, map.map { "${it.key}:${it.value}" }.toSet())
+            .putStringSet(starsKey(difficulty), map.map { "${it.key}:${it.value}" }.toSet())
             .apply()
     }
 
-    fun starsFor(levelId: Int): Int = starMap()[levelId] ?: 0
+    fun starsFor(levelId: Int, difficulty: Difficulty): Int = starMap(difficulty)[levelId] ?: 0
 
-    /** 一次取出全部星等，供畫面快取，避免每一影格重複解析。 */
-    fun allStars(): Map<Int, Int> = starMap()
+    /** 一次取出某個難度的全部星等，供畫面快取，避免每一影格重複解析。 */
+    fun allStars(difficulty: Difficulty): Map<Int, Int> = starMap(difficulty)
 
-    fun completedLevels(): Set<Int> = starMap().filterValues { it > 0 }.keys
+    fun completedLevels(difficulty: Difficulty): Set<Int> =
+        starMap(difficulty).filterValues { it > 0 }.keys
 
-    fun totalStars(): Int = starMap().values.sum()
+    fun totalStars(difficulty: Difficulty): Int = starMap(difficulty).values.sum()
 
     fun resetProgress() {
         prefs.edit()
             .remove(KEY_STARS)
+            .remove(KEY_STARS_HARD)
             .remove(KEY_ACTIVE_SAVE)
             .remove(KEY_ACTIVE_VERSION)
             .apply()
     }
 
-    private fun starMap(): Map<Int, Int> {
-        val raw = prefs.getStringSet(KEY_STARS, emptySet()).orEmpty()
+    /** 普通模式沿用原本的鍵，既有玩家的紀錄完全不受影響。 */
+    private fun starsKey(difficulty: Difficulty): String = when (difficulty) {
+        Difficulty.NORMAL -> KEY_STARS
+        Difficulty.HARD -> KEY_STARS_HARD
+    }
+
+    private fun starMap(difficulty: Difficulty): Map<Int, Int> {
+        val raw = prefs.getStringSet(starsKey(difficulty), emptySet()).orEmpty()
         val result = HashMap<Int, Int>()
         for (entry in raw) {
             val parts = entry.split(":")
@@ -178,6 +188,12 @@ class SaveRepository(context: Context) {
         prefs.edit().putBoolean(KEY_MUSIC, enabled).apply()
     }
 
+    fun difficulty(): Difficulty = Difficulty.fromName(prefs.getString(KEY_DIFFICULTY, null))
+
+    fun setDifficulty(difficulty: Difficulty) {
+        prefs.edit().putString(KEY_DIFFICULTY, difficulty.name).apply()
+    }
+
     fun lastLevelId(): Int = prefs.getInt(KEY_LAST_LEVEL, GameLevels.default.id)
 
     fun setLastLevelId(id: Int) {
@@ -198,6 +214,7 @@ class SaveRepository(context: Context) {
         .put("leaks", leaks)
         .put("speed", speed)
         .put("savedAt", savedAt)
+        .put("difficulty", difficulty)
         .put("enemyManager", enemyManager.toJson())
         .put("towers", JSONArray().also { array -> towers.forEach { array.put(it.toJson()) } })
         .put("obstacles", JSONArray().also { array -> obstacles.forEach { array.put(it.toJson()) } })
@@ -256,7 +273,8 @@ class SaveRepository(context: Context) {
         enemyManager = getJSONObject("enemyManager").toEnemyManagerSnapshot(),
         towers = getJSONArray("towers").mapObjects { it.toTowerSnapshot() },
         obstacles = optJSONArray("obstacles")?.mapObjects { it.toObstacleSnapshot() } ?: emptyList(),
-        savedAt = optLong("savedAt", 0L)
+        savedAt = optLong("savedAt", 0L),
+        difficulty = optString("difficulty", Difficulty.NORMAL.name)
     )
 
     private fun JSONObject.toEnemyManagerSnapshot(): EnemyManagerSnapshot = EnemyManagerSnapshot(
@@ -326,5 +344,9 @@ class SaveRepository(context: Context) {
         private const val KEY_SOUND = "sound_enabled"
         private const val KEY_MUSIC = "music_enabled"
         private const val KEY_LAST_LEVEL = "last_level"
+
+        /** 困難模式的星等。和 [KEY_STARS] 一樣，一旦發佈就永遠不要改名。 */
+        private const val KEY_STARS_HARD = "level_stars_hard"
+        private const val KEY_DIFFICULTY = "difficulty"
     }
 }

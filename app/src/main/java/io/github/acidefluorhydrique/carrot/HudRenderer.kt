@@ -65,7 +65,7 @@ class HudRenderer {
         val infoLeft = goldLeft + pillW + Ui.dp(10f)
         val infoRight = speedRect.left - Ui.dp(8f)
         if (infoRight - infoLeft > Ui.dp(60f)) {
-            val title = GameState.level.fullName
+            val title = GameState.levelTitle
             Widgets.left(canvas, title, infoLeft, barH * 0.44f, Ui.dp(12.5f), Colors.of("#FFF3D0"), bold = true)
             val waveText = Strings.format(
                 R.string.hud_wave, enemyManager.currentWaveNumber, enemyManager.totalWaves
@@ -192,7 +192,7 @@ class HudRenderer {
         Widgets.centered(canvas, Strings.get(R.string.pause_title), w / 2f, h * 0.26f, Ui.dp(30f), bold = true, color = Colors.of("#FFF7D6"))
         Widgets.centered(
             canvas,
-            Strings.format(R.string.pause_summary, GameState.level.fullName, GameState.wave, GameState.score),
+            Strings.format(R.string.pause_summary, GameState.levelTitle, GameState.wave, GameState.score),
             w / 2f, h * 0.26f + Ui.dp(24f), Ui.dp(12f), color = Colors.of("#BFD3C9")
         )
 

@@ -50,6 +50,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var cachedStars: Map<Int, Int> = emptyMap()
     private var cachedCompleted: Set<Int> = emptySet()
     private var cachedTotalStars = 0
+    /** 解鎖判斷用：任一難度通過的關卡都算。 */
+    private var cachedUnlocked: Set<Int> = emptySet()
     private var languageTag = LocaleManager.SYSTEM
     private var selectedChapter: Chapter = Chapters.default
 
@@ -69,16 +71,29 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
         languageTag = LocaleManager.stored(context)
 
+        GameState.difficulty = saveRepository.difficulty()
         val level = GameLevels.byId(saveRepository.lastLevelId())
         GameState.reset(level)
         refreshProgress()
     }
 
+    /** 星等與通關數依目前難度顯示；解鎖則兩種難度合併計算。 */
     private fun refreshProgress() {
         cachedHasSave = saveRepository.hasActiveSave()
-        cachedStars = saveRepository.allStars()
+        cachedStars = saveRepository.allStars(GameState.difficulty)
         cachedCompleted = cachedStars.filterValues { it > 0 }.keys
         cachedTotalStars = cachedStars.values.sum()
+        cachedUnlocked = Difficulty.values()
+            .flatMap { saveRepository.completedLevels(it) }
+            .toSet()
+    }
+
+    /** 章節頁與關卡地圖右下角的難度鍵。 */
+    private fun cycleDifficulty() {
+        GameState.difficulty = GameState.difficulty.next()
+        saveRepository.setDifficulty(GameState.difficulty)
+        refreshProgress()
+        Audio.play(Sfx.BUILD)
     }
 
     // ---- SurfaceHolder ----
@@ -198,9 +213,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             GameStatus.VICTORY -> {
                 resultRecorded = true
                 gameActive = false
-                bestStarsBefore = saveRepository.starsFor(GameState.level.id)
+                bestStarsBefore = saveRepository.starsFor(GameState.level.id, GameState.difficulty)
                 resultStars = GameState.stars
-                saveRepository.recordResult(GameState.level.id, resultStars)
+                saveRepository.recordResult(GameState.level.id, resultStars, GameState.difficulty)
                 saveRepository.clearActiveSave()
                 refreshProgress()
                 towerManager.clearBuildType()
@@ -211,7 +226,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             GameStatus.DEFEAT -> {
                 resultRecorded = true
                 gameActive = false
-                bestStarsBefore = saveRepository.starsFor(GameState.level.id)
+                bestStarsBefore = saveRepository.starsFor(GameState.level.id, GameState.difficulty)
                 resultStars = 0
                 saveRepository.clearActiveSave()
                 refreshProgress()
@@ -247,12 +262,16 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 canvas, w, h,
                 MenuRenderer.mainItems(cachedHasSave),
                 GameState.level,
+                GameState.difficulty,
                 cachedTotalStars,
                 cachedCompleted.size
             )
-            ScreenMode.CHAPTER_SELECT -> menu.drawChapters(canvas, w, h, cachedStars, cachedCompleted)
+            ScreenMode.CHAPTER_SELECT -> menu.drawChapters(
+                canvas, w, h, cachedStars, cachedUnlocked, GameState.difficulty
+            )
             ScreenMode.LEVEL_MAP -> menu.drawLevelMap(
-                canvas, w, h, selectedChapter, cachedStars, cachedCompleted
+                canvas, w, h, selectedChapter, cachedStars, cachedCompleted,
+                cachedUnlocked, GameState.difficulty
             )
             ScreenMode.SETTINGS -> menu.drawSettings(
                 canvas, w, h, soundEngine.isSoundOn, soundEngine.isMusicOn, languageTag, resetArmed
@@ -368,7 +387,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             screenMode = ScreenMode.MAIN_MENU
             return
         }
-        val chapter = menu.chapterTap(x, y, screenWidth, screenHeight, cachedCompleted) ?: return
+        if (menu.tappedDifficulty(x, y, screenWidth, screenHeight)) {
+            cycleDifficulty()
+            return
+        }
+        val chapter = menu.chapterTap(x, y, screenWidth, screenHeight, cachedUnlocked) ?: return
         selectedChapter = chapter
         screenMode = ScreenMode.LEVEL_MAP
     }
@@ -378,7 +401,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             screenMode = ScreenMode.CHAPTER_SELECT
             return
         }
-        val level = menu.levelMapTap(x, y, screenWidth, screenHeight, selectedChapter, cachedCompleted) ?: return
+        if (menu.tappedDifficulty(x, y, screenWidth, screenHeight)) {
+            cycleDifficulty()
+            return
+        }
+        val level = menu.levelMapTap(x, y, screenWidth, screenHeight, selectedChapter, cachedUnlocked) ?: return
         GameState.level = level
         saveRepository.setLastLevelId(level.id)
         startLevel(level)
@@ -540,7 +567,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     // ---- 流程 ----
 
-    private fun startLevel(level: LevelConfig) {
+    /**
+     * 開始一關。[selected] 可以是原始關卡，也可以是已經套過難度的版本
+     * （重開時傳進來的就是 GameState.level）—— [Difficulty.apply] 一律從原始資料推導，不會疊加。
+     */
+    private fun startLevel(selected: LevelConfig) {
+        val level = GameState.difficulty.apply(selected)
         selectedChapter = level.chapter
         saveRepository.clearActiveSave()
         saveRepository.setLastLevelId(level.id)
@@ -555,14 +587,18 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         gameActive = true
         resultRecorded = false
         resultStars = 0
-        bestStarsBefore = saveRepository.starsFor(level.id)
+        bestStarsBefore = saveRepository.starsFor(level.id, GameState.difficulty)
         autoSaveFrame = 0
         saveCurrentGame()
     }
 
     private fun continueSavedGame() {
         val save = saveRepository.loadGame() ?: return
-        val level = GameLevels.byId(save.levelId)
+        // 存檔是在哪個難度開的就用哪個難度接回去，並讓選單跟著切過去，
+        // 結算時星等才會記到對的那一份。
+        GameState.difficulty = Difficulty.fromName(save.difficulty)
+        saveRepository.setDifficulty(GameState.difficulty)
+        val level = GameState.difficulty.apply(GameLevels.byId(save.levelId))
         selectedChapter = level.chapter
         Fx.clear()
         GameState.reset(level)
@@ -586,7 +622,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         gameActive = true
         resultRecorded = false
         resultStars = 0
-        bestStarsBefore = saveRepository.starsFor(level.id)
+        bestStarsBefore = saveRepository.starsFor(level.id, GameState.difficulty)
         autoSaveFrame = 0
     }
 
@@ -638,7 +674,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 enemyManager = enemyManager.snapshot(),
                 towers = towerManager.snapshot(),
                 obstacles = obstacleManager.snapshot(),
-                savedAt = System.currentTimeMillis()
+                savedAt = System.currentTimeMillis(),
+                difficulty = GameState.difficulty.name
             )
         )
         cachedHasSave = true

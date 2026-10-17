@@ -24,8 +24,11 @@ class ObstacleManager(private val gameMap: GameMap) {
     fun reset(level: LevelConfig) {
         obstacles.clear()
         marked.clear()
-        val hpScale = obstacleHpScale(level)
-        val goldScale = obstacleGoldScale(level)
+        // 障礙物強度以原始關卡計算。困難模式第一波雖然沒有放大，
+        // 但障礙物不該跟著難度設定的細節連動。
+        val base = GameLevels.byId(level.id)
+        val hpScale = obstacleHpScale(base)
+        val goldScale = obstacleGoldScale(base)
         for (spec in level.obstacles) {
             if (!gameMap.isValidCell(spec.col, spec.row)) continue
             obstacles.add(

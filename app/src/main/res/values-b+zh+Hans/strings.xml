@@ -19,6 +19,12 @@
     <string name="menu_progress">已通关 %1$d/%2$d   ★ %3$d/%4$d</string>
     <string name="menu_current_level">当前关卡：%1$s</string>
 
+    <!-- Difficulty -->
+    <string name="difficulty_title">难度</string>
+    <string name="difficulty_normal">普通</string>
+    <string name="difficulty_hard">困难</string>
+    <string name="level_with_difficulty">%1$s · %2$s</string>
+
     <!-- 选关 -->
     <string name="common_back">返回</string>
 

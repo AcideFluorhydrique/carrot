@@ -10,6 +10,12 @@ object GameState {
     const val MAX_SPEED_STEP = 3
 
     var level: LevelConfig = GameLevels.default
+
+    /** 目前選定的難度。[reset] 不會動它：重開或換關都沿用玩家的選擇。 */
+    var difficulty: Difficulty = Difficulty.NORMAL
+
+    /** HUD 與暫停頁的標題，困難模式會加上註記。 */
+    val levelTitle: String get() = difficulty.decorate(level.fullName)
     var carrotHp: Int = 10
     var maxCarrotHp: Int = 10
     var gold: Int = 100

@@ -35,6 +35,7 @@ class MenuRenderer {
         h: Int,
         items: List<MenuAction>,
         currentLevel: LevelConfig,
+        difficulty: Difficulty,
         totalStars: Int,
         completedCount: Int
     ) {
@@ -66,7 +67,7 @@ class MenuRenderer {
             leftX, h * 0.76f, Ui.dp(11f), titleWidth, color = Colors.of("#C4D9C8")
         )
         Widgets.centeredFit(
-            canvas, Strings.format(R.string.menu_current_level, currentLevel.fullName),
+            canvas, Strings.format(R.string.menu_current_level, difficulty.decorate(currentLevel.fullName)),
             leftX, h * 0.83f, Ui.dp(10.5f), titleWidth, color = Colors.of("#9FBDA6")
         )
 
@@ -92,7 +93,18 @@ class MenuRenderer {
 
     // ---- 章節選擇 ----
 
-    fun drawChapters(canvas: Canvas, w: Int, h: Int, stars: Map<Int, Int>, completed: Set<Int>) {
+    /**
+     * [stars] 是目前難度的星等；[unlocked] 是用來判斷能不能進的關卡集合，
+     * 兩種難度任一個通過都算 —— 普通模式打過的玩家可以直接挑戰那些關的困難版。
+     */
+    fun drawChapters(
+        canvas: Canvas,
+        w: Int,
+        h: Int,
+        stars: Map<Int, Int>,
+        unlocked: Set<Int>,
+        difficulty: Difficulty
+    ) {
         drawBackground(canvas, w, h)
         Widgets.centered(
             canvas, Strings.get(R.string.chapters_title), w / 2f, h * 0.13f,
@@ -102,7 +114,7 @@ class MenuRenderer {
         for (i in Chapters.all.indices) {
             val chapter = Chapters.all[i]
             val rect = chapterCardRect(w, h, i)
-            val unlocked = Chapters.isUnlocked(chapter.id, completed)
+            val open = Chapters.isUnlocked(chapter.id, unlocked)
             val earned = Chapters.starsOf(chapter.id, stars)
             val maximum = Chapters.maxStarsOf(chapter.id)
             val theme = chapter.theme
@@ -110,12 +122,12 @@ class MenuRenderer {
             Widgets.panel(
                 canvas, rect,
                 radius = Ui.dp(10f),
-                topColor = if (unlocked) theme.skyMid else "#CC1B2320",
-                bottomColor = if (unlocked) theme.skyTop else "#CC121815",
-                borderColor = if (unlocked) theme.accent else "#33FFFFFF"
+                topColor = if (open) theme.skyMid else "#CC1B2320",
+                bottomColor = if (open) theme.skyTop else "#CC121815",
+                borderColor = if (open) theme.accent else "#33FFFFFF"
             )
 
-            if (!unlocked) {
+            if (!open) {
                 Widgets.centered(canvas, "🔒", rect.centerX(), rect.centerY(), Ui.dp(24f), color = Color.WHITE)
                 Widgets.centeredFit(
                     canvas, Strings.get(R.string.chapter_locked), rect.centerX(), rect.centerY() + Ui.dp(20f),
@@ -153,13 +165,14 @@ class MenuRenderer {
         }
 
         Widgets.button(canvas, backButtonRect(w, h), Strings.get(R.string.common_back), Widgets.GRAY_TOP, Widgets.GRAY_BOTTOM, textSize = Ui.dp(13f))
+        drawDifficultyButton(canvas, w, h, difficulty)
     }
 
-    fun chapterTap(x: Float, y: Float, w: Int, h: Int, completed: Set<Int>): Chapter? {
+    fun chapterTap(x: Float, y: Float, w: Int, h: Int, unlocked: Set<Int>): Chapter? {
         for (i in Chapters.all.indices) {
             if (!chapterCardRect(w, h, i).contains(x, y)) continue
             val chapter = Chapters.all[i]
-            if (!Chapters.isUnlocked(chapter.id, completed)) {
+            if (!Chapters.isUnlocked(chapter.id, unlocked)) {
                 Audio.play(Sfx.DENY)
                 return null
             }
@@ -176,7 +189,9 @@ class MenuRenderer {
         h: Int,
         chapter: Chapter,
         stars: Map<Int, Int>,
-        completed: Set<Int>
+        completed: Set<Int>,
+        unlocked: Set<Int>,
+        difficulty: Difficulty
     ) {
         drawThemedBackground(canvas, w, h, chapter.theme)
 
@@ -196,10 +211,11 @@ class MenuRenderer {
         drawTrack(canvas, w, h, levels, completed, chapter)
 
         for (i in levels.indices) {
-            drawLevelNode(canvas, w, h, i, count, levels[i], stars, completed, chapter)
+            drawLevelNode(canvas, w, h, i, count, levels[i], stars, completed, unlocked, chapter)
         }
 
         Widgets.button(canvas, backButtonRect(w, h), Strings.get(R.string.common_back), Widgets.GRAY_TOP, Widgets.GRAY_BOTTOM, textSize = Ui.dp(13f))
+        drawDifficultyButton(canvas, w, h, difficulty)
     }
 
     /** 節點之間的虛線小徑，走過的段落亮起來。 */
@@ -237,11 +253,12 @@ class MenuRenderer {
         level: LevelConfig,
         stars: Map<Int, Int>,
         completed: Set<Int>,
+        unlockedLevels: Set<Int>,
         chapter: Chapter
     ) {
         val (cx, cy) = levelNodeCenter(w, h, index, count)
         val r = levelNodeRadius()
-        val unlocked = GameLevels.isUnlocked(level.id, completed)
+        val unlocked = GameLevels.isUnlocked(level.id, unlockedLevels)
         val cleared = level.id in completed
         val earned = stars[level.id] ?: 0
         val isNext = unlocked && !cleared
@@ -293,14 +310,14 @@ class MenuRenderer {
         Widgets.stars(canvas, cx, cy + r + Ui.dp(15f), earned, Ui.dp(11f))
     }
 
-    fun levelMapTap(x: Float, y: Float, w: Int, h: Int, chapter: Chapter, completed: Set<Int>): LevelConfig? {
+    fun levelMapTap(x: Float, y: Float, w: Int, h: Int, chapter: Chapter, unlocked: Set<Int>): LevelConfig? {
         val levels = chapter.levels
         val r = levelNodeRadius() * 1.35f
         for (i in levels.indices) {
             val (cx, cy) = levelNodeCenter(w, h, i, levels.size)
             if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue
             val level = levels[i]
-            if (!GameLevels.isUnlocked(level.id, completed)) {
+            if (!GameLevels.isUnlocked(level.id, unlocked)) {
                 Audio.play(Sfx.DENY)
                 return null
             }
@@ -310,6 +327,20 @@ class MenuRenderer {
     }
 
     fun tappedBack(x: Float, y: Float, w: Int, h: Int): Boolean = backButtonRect(w, h).contains(x, y)
+
+    fun tappedDifficulty(x: Float, y: Float, w: Int, h: Int): Boolean = difficultyButtonRect(w, h).contains(x, y)
+
+    /** 章節頁與關卡地圖右下角的難度切換，和左下角的返回鍵對稱。 */
+    private fun drawDifficultyButton(canvas: Canvas, w: Int, h: Int, difficulty: Difficulty) {
+        val (top, bottom) = when (difficulty) {
+            Difficulty.NORMAL -> Widgets.GREEN_TOP to Widgets.GREEN_BOTTOM
+            Difficulty.HARD -> Widgets.RED_TOP to Widgets.RED_BOTTOM
+        }
+        Widgets.button(
+            canvas, difficultyButtonRect(w, h), Strings.get(R.string.difficulty_title), top, bottom,
+            textSize = Ui.dp(11f), subLabel = difficulty.label
+        )
+    }
 
     // ---- 設定 ----
 
@@ -606,6 +637,12 @@ class MenuRenderer {
             val total = height * count + gap * (count - 1)
             val top = h * 0.5f - total / 2f + Ui.dp(24f) + index * (height + gap)
             return RectF((w - width) / 2f, top, (w + width) / 2f, top + height)
+        }
+
+        fun difficultyButtonRect(w: Int, h: Int): RectF {
+            val width = Ui.dp(96f)
+            val height = Ui.dp(36f)
+            return RectF(w - Ui.dp(12f) - width, h - height - Ui.dp(10f), w - Ui.dp(12f), h - Ui.dp(10f))
         }
 
         fun backButtonRect(w: Int, h: Int): RectF {
