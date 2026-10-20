@@ -22,8 +22,11 @@ Garden Patch, Golden Fields, Night Woods, Frost Plains and Ember Crater — each
 
 Towers unlock as you go rather than all at once, and each one arrives just before the enemy it answers: ice before the sprinters, bombs before the swarms, poison before the armoured units, chain lightning before the big waves. Each level is scored one to three stars based on how much carrot you have left.
 
+<b>Hard mode and endless mode</b>
+Once you know the levels, switch to hard mode: the maps stay the same, but each wave grows stronger and denser than the last, and stars are tracked separately. Clear 4-3 to open endless mode, where the waves never stop and your score is how far you get. When it all goes wrong, a nuke clears the screen, at a price that doubles every time.
+
 <b>Breakable obstacles</b>
-Rocks, trees, mushrooms, ice blocks and crates sit around the map. Tap one to mark it and your towers will chip away at it whenever no enemy is in range, so clearing never costs you a leak. Breaking one pays gold and frees the tile to build on. Crates take the longest and pay the most. Sun, Moon and Rocket damage obstacles on their own, without being told.
+Rocks, trees, mushrooms, ice blocks and crates sit around the map. Tap to mark as many as you like, and your towers will chip away at them, earliest mark first, whenever no enemy is in range, so clearing never costs you a leak. Breaking one pays gold and frees the tile to build on. Crates take the longest and pay the most. Sun, Moon and Rocket damage obstacles on their own, without being told.
 
 <b>Also included</b>
 * Speed control - play at 1x, 2x or 3x

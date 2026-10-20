@@ -1,0 +1,5 @@
+Hard mode, endless mode, and much smoother rendering.
+
+* Hard mode: each wave in a level grows stronger and denser than the last. Switch it on the chapter or level screen; stars are kept separately.
+* Endless mode: opens after 4-3. The waves never stop, and your score is how far you get. A nuke clears the screen in an emergency, at a price that doubles each time.
+* The game now draws with the GPU. It used to draw every frame on the CPU, which made even fast phones stutter.
