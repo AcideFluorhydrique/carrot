@@ -22,6 +22,12 @@ android {
         release {
             isMinifyEnabled = false
         }
+        // CI 的測試版要能和 F-Droid 簽的正式版並存：不同包名才不會互相覆蓋、
+        // 也不會因為簽章不同而裝不上。存檔各自獨立，測試不會弄髒正式版的進度。
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
 
     compileOptions {

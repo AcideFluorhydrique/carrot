@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+    SPDX-License-Identifier: GPL-3.0-or-later
+
+    debug 版的桌面名稱，和正式版裝在同一台手機上時分得出來。
+-->
+<resources>
+    <string name="app_name">The Last Carrot (debug)</string>
+</resources>
