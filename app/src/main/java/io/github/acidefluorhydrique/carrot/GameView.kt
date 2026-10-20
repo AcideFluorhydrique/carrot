@@ -5,6 +5,7 @@ package io.github.acidefluorhydrique.carrot
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
@@ -36,6 +37,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var screenMode = ScreenMode.MAIN_MENU
 
     private val backgroundPaint = Paint().apply { isAntiAlias = true }
+
+    /** 背景漸層只在章節配色或畫面高度改變時重建，不必每幀配置一個新的 Shader。 */
+    private var backgroundShader: Shader? = null
+    private var backgroundShaderTheme: ChapterTheme? = null
+    private var backgroundShaderHeight = 0
 
     private var autoSaveFrame = 0
     private var resultRecorded = false
@@ -256,11 +262,19 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     // ---- 繪製 ----
 
-    override fun draw(canvas: Canvas) {
-        super.draw(canvas)
+    /**
+     * 由遊戲迴圈呼叫，畫一整幀。不覆寫 View.draw：那是給 view 階層用的，
+     * SurfaceView 的實作會在畫布上打洞，這裡畫的是自己的 surface，用不到。
+     *
+     * 硬體 Canvas 不保留上一幀，所以每個畫面都必須從整面背景畫起。
+     */
+    fun render(canvas: Canvas) {
         val w = screenWidth
         val h = screenHeight
-        if (w == 0 || h == 0) return
+        if (w == 0 || h == 0) {
+            canvas.drawColor(Color.BLACK)
+            return
+        }
 
         when (screenMode) {
             ScreenMode.MAIN_MENU -> menu.drawMain(
@@ -324,12 +338,17 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     private fun drawGameBackground(canvas: Canvas, w: Int, h: Int) {
         val theme = GameState.level.chapter.theme
-        backgroundPaint.shader = LinearGradient(
-            0f, 0f, 0f, h.toFloat(),
-            intArrayOf(theme.skyTopColor, theme.skyMidColor, theme.skyBottomColor),
-            floatArrayOf(0f, 0.52f, 1f),
-            Shader.TileMode.CLAMP
-        )
+        if (backgroundShader == null || backgroundShaderTheme !== theme || backgroundShaderHeight != h) {
+            backgroundShader = LinearGradient(
+                0f, 0f, 0f, h.toFloat(),
+                intArrayOf(theme.skyTopColor, theme.skyMidColor, theme.skyBottomColor),
+                floatArrayOf(0f, 0.52f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            backgroundShaderTheme = theme
+            backgroundShaderHeight = h
+        }
+        backgroundPaint.shader = backgroundShader
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), backgroundPaint)
         backgroundPaint.shader = null
 

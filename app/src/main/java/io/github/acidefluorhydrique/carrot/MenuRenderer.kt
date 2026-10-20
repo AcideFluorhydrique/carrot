@@ -563,14 +563,24 @@ class MenuRenderer {
         canvas.drawText("🥕", w * 0.88f, h * 0.9f, paint)
     }
 
+    /** 背景漸層只在配色或畫面高度改變時重建，選單每一幀都要畫它。 */
+    private var skyShader: Shader? = null
+    private var skyShaderTheme: ChapterTheme? = null
+    private var skyShaderHeight = 0
+
     private fun drawThemedBackground(canvas: Canvas, w: Int, h: Int, theme: ChapterTheme) {
         paint.style = Paint.Style.FILL
-        paint.shader = LinearGradient(
-            0f, 0f, 0f, h.toFloat(),
-            intArrayOf(theme.skyTopColor, theme.skyMidColor, theme.skyBottomColor),
-            floatArrayOf(0f, 0.56f, 1f),
-            Shader.TileMode.CLAMP
-        )
+        if (skyShader == null || skyShaderTheme !== theme || skyShaderHeight != h) {
+            skyShader = LinearGradient(
+                0f, 0f, 0f, h.toFloat(),
+                intArrayOf(theme.skyTopColor, theme.skyMidColor, theme.skyBottomColor),
+                floatArrayOf(0f, 0.56f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            skyShaderTheme = theme
+            skyShaderHeight = h
+        }
+        paint.shader = skyShader
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
         paint.shader = null
 

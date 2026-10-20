@@ -20,11 +20,16 @@ class GameThread(
 
             var canvas: Canvas? = null
             try {
-                canvas = surfaceHolder.lockCanvas()
+                // 硬體 Canvas：這條執行緒只錄製繪製指令，像素交給 GPU 算。
+                // 以前的 lockCanvas() 是軟體繪圖，每一幀都在這條執行緒上把整個螢幕的像素重算一遍；
+                // 在 2392×1080 的螢幕上實測，這條執行緒吃滿一顆核心，其中近九成花在 Skia 的軟體點陣化
+                // （全螢幕漸層、半透明混色、反鋸齒邊緣），遊戲邏輯不到一成。
+                // minSdk 26 正是這個 API 開始提供的版本。
+                canvas = surfaceHolder.lockHardwareCanvas()
                 if (canvas != null) {
                     synchronized(surfaceHolder) {
                         gameView.update()
-                        gameView.draw(canvas)
+                        gameView.render(canvas)
                     }
                 }
             } catch (e: IllegalStateException) {
