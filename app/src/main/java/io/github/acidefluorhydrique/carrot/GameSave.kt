@@ -67,7 +67,10 @@ data class GameSave(
     val obstacles: List<ObstacleSnapshot>,
     val savedAt: Long,
     /** [Difficulty] 的名稱。舊存檔沒有這個欄位，讀回來視為普通。 */
-    val difficulty: String = Difficulty.NORMAL.name
+    val difficulty: String = Difficulty.NORMAL.name,
+    /** 核彈狀態，只有無盡模式有意義。舊存檔沒有，讀回來是 0。 */
+    val nukeUses: Int = 0,
+    val nukeCooldown: Int = 0
 )
 
 class SaveRepository(context: Context) {
@@ -150,6 +153,7 @@ class SaveRepository(context: Context) {
         prefs.edit()
             .remove(KEY_STARS)
             .remove(KEY_STARS_HARD)
+            .remove(KEY_ENDLESS_BEST)
             .remove(KEY_ACTIVE_SAVE)
             .remove(KEY_ACTIVE_VERSION)
             .apply()
@@ -172,6 +176,16 @@ class SaveRepository(context: Context) {
             result[id] = stars
         }
         return result
+    }
+
+    // ---- 無盡模式 ----
+
+    /** 無盡模式撐到的最遠波次；沒玩過是 0。 */
+    fun endlessBest(): Int = prefs.getInt(KEY_ENDLESS_BEST, 0)
+
+    fun recordEndlessWave(wave: Int) {
+        if (wave <= endlessBest()) return
+        prefs.edit().putInt(KEY_ENDLESS_BEST, wave).apply()
     }
 
     // ---- 設定 ----
@@ -215,6 +229,8 @@ class SaveRepository(context: Context) {
         .put("speed", speed)
         .put("savedAt", savedAt)
         .put("difficulty", difficulty)
+        .put("nukeUses", nukeUses)
+        .put("nukeCooldown", nukeCooldown)
         .put("enemyManager", enemyManager.toJson())
         .put("towers", JSONArray().also { array -> towers.forEach { array.put(it.toJson()) } })
         .put("obstacles", JSONArray().also { array -> obstacles.forEach { array.put(it.toJson()) } })
@@ -274,7 +290,9 @@ class SaveRepository(context: Context) {
         towers = getJSONArray("towers").mapObjects { it.toTowerSnapshot() },
         obstacles = optJSONArray("obstacles")?.mapObjects { it.toObstacleSnapshot() } ?: emptyList(),
         savedAt = optLong("savedAt", 0L),
-        difficulty = optString("difficulty", Difficulty.NORMAL.name)
+        difficulty = optString("difficulty", Difficulty.NORMAL.name),
+        nukeUses = optInt("nukeUses", 0),
+        nukeCooldown = optInt("nukeCooldown", 0)
     )
 
     private fun JSONObject.toEnemyManagerSnapshot(): EnemyManagerSnapshot = EnemyManagerSnapshot(
@@ -348,5 +366,8 @@ class SaveRepository(context: Context) {
         /** 困難模式的星等。和 [KEY_STARS] 一樣，一旦發佈就永遠不要改名。 */
         private const val KEY_STARS_HARD = "level_stars_hard"
         private const val KEY_DIFFICULTY = "difficulty"
+
+        /** 無盡模式最佳紀錄。一旦發佈就不要改名。 */
+        private const val KEY_ENDLESS_BEST = "endless_best_wave"
     }
 }

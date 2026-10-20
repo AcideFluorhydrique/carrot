@@ -24,6 +24,7 @@ class HudRenderer {
         drawBossBar(canvas, w, enemyManager)
         if (GameState.status == GameStatus.PLAYING) {
             drawWaveCall(canvas, w, h, enemyManager)
+            if (GameState.isEndless) drawNuke(canvas, w, h)
         }
     }
 
@@ -67,9 +68,11 @@ class HudRenderer {
         if (infoRight - infoLeft > Ui.dp(60f)) {
             val title = GameState.levelTitle
             Widgets.left(canvas, title, infoLeft, barH * 0.44f, Ui.dp(12.5f), Colors.of("#FFF3D0"), bold = true)
-            val waveText = Strings.format(
-                R.string.hud_wave, enemyManager.currentWaveNumber, enemyManager.totalWaves
-            )
+            val waveText = if (GameState.isEndless) {
+                Strings.format(R.string.hud_wave_endless, enemyManager.currentWaveNumber)
+            } else {
+                Strings.format(R.string.hud_wave, enemyManager.currentWaveNumber, enemyManager.totalWaves)
+            }
             val remaining = enemyManager.enemies.size + enemyManager.pendingInWave
             val sub = if (remaining > 0) {
                 Strings.format(R.string.hud_wave_remaining, waveText, remaining)
@@ -185,6 +188,21 @@ class HudRenderer {
         }
     }
 
+    /** 核彈鍵：冷卻中顯示剩餘秒數，可用時顯示價格。 */
+    private fun drawNuke(canvas: Canvas, w: Int, h: Int) {
+        val price = Nuke.price(GameState.nukeUses)
+        val ready = GameState.nukeCooldown <= 0
+        val sub = if (ready) {
+            Strings.format(R.string.tower_price, price)
+        } else {
+            Strings.format(R.string.nuke_cooldown, (GameState.nukeCooldown + 59) / 60)
+        }
+        Widgets.button(
+            canvas, nukeRect(w, h), Strings.get(R.string.nuke_label), Widgets.RED_TOP, Widgets.RED_BOTTOM,
+            enabled = ready && GameState.gold >= price, textSize = Ui.dp(12f), subLabel = sub
+        )
+    }
+
     // ---- 覆蓋層 ----
 
     fun drawPauseOverlay(canvas: Canvas, w: Int, h: Int) {
@@ -209,7 +227,9 @@ class HudRenderer {
         victory: Boolean,
         stars: Int,
         bestStars: Int,
-        hasNextLevel: Boolean
+        hasNextLevel: Boolean,
+        /** 無盡模式這一局之前的最佳波次。 */
+        endlessBest: Int = 0
     ) {
         Widgets.scrim(canvas, w, h, if (victory) "#D80D2415" else "#D8180F12")
 
@@ -225,6 +245,18 @@ class HudRenderer {
                 Strings.format(R.string.result_best, bestStars)
             }
             Widgets.centered(canvas, note, w / 2f, h * 0.24f + Ui.dp(62f), Ui.dp(11f), color = Colors.of("#DCE9D9"))
+        } else if (GameState.isEndless) {
+            Widgets.centered(
+                canvas,
+                Strings.format(R.string.result_endless_reached, GameState.wave),
+                w / 2f, h * 0.24f + Ui.dp(30f), Ui.dp(13f), color = Colors.of("#E7C9C9")
+            )
+            val note = if (GameState.wave > endlessBest) {
+                Strings.get(R.string.result_new_record)
+            } else {
+                Strings.format(R.string.menu_endless_best, endlessBest)
+            }
+            Widgets.centered(canvas, note, w / 2f, h * 0.24f + Ui.dp(48f), Ui.dp(11f), color = Colors.of("#DCE9D9"))
         } else {
             Widgets.centered(
                 canvas,
@@ -233,7 +265,13 @@ class HudRenderer {
             )
         }
 
-        val statsY = h * 0.24f + Ui.dp(if (victory) 88f else 60f)
+        val statsY = h * 0.24f + Ui.dp(
+            when {
+                victory -> 88f
+                GameState.isEndless -> 72f
+                else -> 60f
+            }
+        )
         val stats = Strings.format(
             R.string.result_stats,
             GameState.kills, GameState.goldEarned, GameState.leaks, GameState.score
@@ -274,6 +312,13 @@ class HudRenderer {
             val right = w - Ui.dp(10f)
             val bottom = h - Ui.bottomBarHeight - Ui.dp(8f)
             return RectF(right - width, bottom - height, right, bottom)
+        }
+
+        /** 疊在「催下一波」上方，中間留出下一波預覽圖示的空間。 */
+        fun nukeRect(w: Int, h: Int): RectF {
+            val call = callWaveRect(w, h)
+            val bottom = call.top - Ui.dp(24f)
+            return RectF(call.left, bottom - call.height(), call.right, bottom)
         }
 
         /** 覆蓋層上水平排列的按鈕。 */

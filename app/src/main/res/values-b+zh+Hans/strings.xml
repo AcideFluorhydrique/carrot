@@ -25,6 +25,15 @@
     <string name="difficulty_hard">困难</string>
     <string name="level_with_difficulty">%1$s · %2$s</string>
 
+    <!-- Endless -->
+    <string name="endless_title">无尽模式</string>
+    <string name="menu_endless_locked">通过 %1$d-%2$d 解锁</string>
+    <string name="menu_endless_best">最佳：第 %1$d 波</string>
+    <string name="hud_wave_endless">第 %1$d 波</string>
+    <string name="nuke_label">☢️ 核弹</string>
+    <string name="nuke_cooldown">%1$d 秒</string>
+    <string name="result_endless_reached">撑到第 %1$d 波</string>
+
     <!-- 选关 -->
     <string name="common_back">返回</string>
 

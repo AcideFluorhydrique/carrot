@@ -19,6 +19,8 @@ class EnemyManager(private val gameMap: GameMap) {
     val enemies = mutableListOf<Enemy>()
 
     private var level = GameLevels.default
+    /** 無盡模式的波次沒有盡頭，逐波向 [Endless] 要；其他關卡讀 level.waves。 */
+    private var endless = false
     private var phase = PHASE_PREPARING
     private var waveIndex = 0
     private var groupIndex = 0
@@ -26,7 +28,8 @@ class EnemyManager(private val gameMap: GameMap) {
     private var spawnTimer = 0
     private var restTimer = PREP_FRAMES
 
-    val currentWaveNumber: Int get() = (waveIndex + 1).coerceAtMost(level.waves.size)
+    val currentWaveNumber: Int
+        get() = if (endless) waveIndex + 1 else (waveIndex + 1).coerceAtMost(level.waves.size)
     val totalWaves: Int get() = level.waves.size
     val isPreparing: Boolean get() = phase == PHASE_PREPARING
     val isResting: Boolean get() = phase == PHASE_RESTING
@@ -36,7 +39,7 @@ class EnemyManager(private val gameMap: GameMap) {
     val pendingInWave: Int
         get() {
             if (phase != PHASE_SPAWNING && phase != PHASE_PREPARING) return 0
-            val wave = level.waves.getOrNull(waveIndex) ?: return 0
+            val wave = waveAt(waveIndex) ?: return 0
             var pending = 0
             for (i in wave.groups.indices) {
                 val group = wave.groups[i]
@@ -75,8 +78,14 @@ class EnemyManager(private val gameMap: GameMap) {
         }
     }
 
+    private fun waveAt(index: Int): WaveConfig? =
+        if (endless) Endless.wave(index) else level.waves.getOrNull(index)
+
+    private fun isLastWave(index: Int): Boolean = !endless && index >= level.waves.size - 1
+
     fun reset(selectedLevel: LevelConfig) {
         level = selectedLevel
+        endless = Endless.isEndless(selectedLevel)
         enemies.clear()
         phase = PHASE_PREPARING
         waveIndex = 0
@@ -114,13 +123,13 @@ class EnemyManager(private val gameMap: GameMap) {
     }
 
     private fun updateSpawning() {
-        val wave = level.waves.getOrNull(waveIndex)
+        val wave = waveAt(waveIndex)
         if (wave == null) {
             phase = PHASE_DONE
             return
         }
         if (groupIndex >= wave.groups.size) {
-            phase = if (waveIndex >= level.waves.size - 1) PHASE_DONE else PHASE_RESTING
+            phase = if (isLastWave(waveIndex)) PHASE_DONE else PHASE_RESTING
             restTimer = wave.restFrames
             return
         }
@@ -159,14 +168,14 @@ class EnemyManager(private val gameMap: GameMap) {
         phase = PHASE_SPAWNING
         GameState.wave = currentWaveNumber
         Audio.play(Sfx.WAVE)
-        val wave = level.waves.getOrNull(index)
+        val wave = waveAt(index)
         if (wave != null && wave.hasBoss()) {
             Fx.shake(Ui.dp(3f), 24)
         }
     }
 
     private fun advanceWave() {
-        if (waveIndex >= level.waves.size - 1) {
+        if (isLastWave(waveIndex)) {
             phase = PHASE_DONE
             return
         }
@@ -174,11 +183,11 @@ class EnemyManager(private val gameMap: GameMap) {
     }
 
     /** HUD 波次預覽用。 */
-    fun currentWave(): WaveConfig? = level.waves.getOrNull(waveIndex)
+    fun currentWave(): WaveConfig? = waveAt(waveIndex)
 
     fun nextWavePreview(): WaveConfig? = when (phase) {
-        PHASE_PREPARING -> level.waves.getOrNull(0)
-        PHASE_RESTING -> level.waves.getOrNull(waveIndex + 1)
+        PHASE_PREPARING -> waveAt(0)
+        PHASE_RESTING -> waveAt(waveIndex + 1)
         else -> null
     }
 
@@ -201,9 +210,14 @@ class EnemyManager(private val gameMap: GameMap) {
 
     fun restore(selectedLevel: LevelConfig, snapshot: EnemyManagerSnapshot) {
         level = selectedLevel
+        endless = Endless.isEndless(selectedLevel)
         enemies.clear()
         phase = snapshot.phase.coerceIn(PHASE_PREPARING, PHASE_DONE)
-        waveIndex = snapshot.waveIndex.coerceIn(0, (level.waves.size - 1).coerceAtLeast(0))
+        waveIndex = if (endless) {
+            snapshot.waveIndex.coerceAtLeast(0)
+        } else {
+            snapshot.waveIndex.coerceIn(0, (level.waves.size - 1).coerceAtLeast(0))
+        }
         groupIndex = snapshot.groupIndex.coerceAtLeast(0)
         spawnedInGroup = snapshot.spawnedInGroup.coerceAtLeast(0)
         spawnTimer = snapshot.spawnTimer.coerceAtLeast(0)

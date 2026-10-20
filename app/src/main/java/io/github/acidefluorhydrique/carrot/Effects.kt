@@ -74,6 +74,10 @@ object Fx {
     private var shakeFrames = 0
     private var shakeAmp = 0f
 
+    /** 全螢幕閃光（核彈）。在螢幕座標畫，不跟著震動位移。 */
+    private var flashFrames = 0
+    private var flashMax = 1
+
     /** 螢幕震動位移，繪製場景前套用（HUD 不套用）。 */
     var offsetX = 0f
         private set
@@ -92,6 +96,12 @@ object Fx {
         shakeAmp = 0f
         offsetX = 0f
         offsetY = 0f
+        flashFrames = 0
+    }
+
+    fun flash(frames: Int) {
+        flashFrames = frames
+        flashMax = frames.coerceAtLeast(1)
     }
 
     fun shake(amp: Float, frames: Int) {
@@ -221,6 +231,8 @@ object Fx {
             i--
         }
 
+        if (flashFrames > 0) flashFrames--
+
         if (shakeFrames > 0) {
             shakeFrames--
             val decay = (shakeFrames / 10f).coerceAtMost(1f)
@@ -233,6 +245,17 @@ object Fx {
                 offsetY = 0f
             }
         }
+    }
+
+    /** 白光從全亮淡出。呼叫端在還原震動位移之後、畫 HUD 之前呼叫。 */
+    fun drawFlash(canvas: Canvas, w: Int, h: Int) {
+        if (flashFrames <= 0) return
+        val ratio = flashFrames.toFloat() / flashMax
+        paint.style = Paint.Style.FILL
+        paint.color = Color.WHITE
+        paint.alpha = (255 * ratio * ratio).toInt().coerceIn(0, 255)
+        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
+        paint.alpha = 255
     }
 
     fun draw(canvas: Canvas) {

@@ -12,7 +12,7 @@ import android.graphics.Shader
 import kotlin.math.PI
 import kotlin.math.sin
 
-enum class MenuAction { NONE, CONTINUE, START, LEVELS, HELP, SETTINGS, BACK }
+enum class MenuAction { NONE, CONTINUE, START, LEVELS, ENDLESS, HELP, SETTINGS, BACK }
 
 enum class SettingsAction { NONE, TOGGLE_SOUND, TOGGLE_MUSIC, OPEN_LANGUAGE, RESET_PROGRESS, BACK }
 
@@ -37,7 +37,9 @@ class MenuRenderer {
         currentLevel: LevelConfig,
         difficulty: Difficulty,
         totalStars: Int,
-        completedCount: Int
+        completedCount: Int,
+        endlessUnlocked: Boolean,
+        endlessBest: Int
     ) {
         drawBackground(canvas, w, h)
 
@@ -77,11 +79,28 @@ class MenuRenderer {
                 MenuAction.CONTINUE -> Widgets.button(canvas, rect, Strings.get(R.string.menu_continue), Widgets.AMBER_TOP, Widgets.AMBER_BOTTOM, textSize = Ui.dp(14f))
                 MenuAction.START -> Widgets.button(canvas, rect, Strings.get(R.string.menu_start), Widgets.GREEN_TOP, Widgets.GREEN_BOTTOM, textSize = Ui.dp(14f))
                 MenuAction.LEVELS -> Widgets.button(canvas, rect, Strings.get(R.string.menu_levels), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(14f))
+                MenuAction.ENDLESS -> drawEndlessButton(canvas, rect, endlessUnlocked, endlessBest)
                 MenuAction.HELP -> Widgets.button(canvas, rect, Strings.get(R.string.menu_help), Widgets.PURPLE_TOP, Widgets.PURPLE_BOTTOM, textSize = Ui.dp(14f))
                 MenuAction.SETTINGS -> Widgets.button(canvas, rect, Strings.get(R.string.menu_settings), Widgets.GRAY_TOP, Widgets.GRAY_BOTTOM, textSize = Ui.dp(14f))
                 else -> Unit
             }
         }
+    }
+
+    /** 未解鎖時灰掉並寫出解鎖條件；解鎖後若玩過，副標顯示最佳紀錄。 */
+    private fun drawEndlessButton(canvas: Canvas, rect: RectF, unlocked: Boolean, best: Int) {
+        val sub = when {
+            !unlocked -> {
+                val gate = GameLevels.byId(Endless.UNLOCK_AFTER_LEVEL)
+                Strings.format(R.string.menu_endless_locked, gate.chapterId, gate.indexInChapter)
+            }
+            best > 0 -> Strings.format(R.string.menu_endless_best, best)
+            else -> null
+        }
+        Widgets.button(
+            canvas, rect, Strings.get(R.string.endless_title), Widgets.RED_TOP, Widgets.RED_BOTTOM,
+            enabled = unlocked, textSize = Ui.dp(if (sub == null) 14f else 12f), subLabel = sub
+        )
     }
 
     fun mainTap(x: Float, y: Float, w: Int, h: Int, items: List<MenuAction>): MenuAction {
@@ -574,9 +593,12 @@ class MenuRenderer {
     companion object {
 
         fun mainItems(hasSave: Boolean): List<MenuAction> = if (hasSave) {
-            listOf(MenuAction.CONTINUE, MenuAction.START, MenuAction.LEVELS, MenuAction.HELP, MenuAction.SETTINGS)
+            listOf(
+                MenuAction.CONTINUE, MenuAction.START, MenuAction.LEVELS,
+                MenuAction.ENDLESS, MenuAction.HELP, MenuAction.SETTINGS
+            )
         } else {
-            listOf(MenuAction.START, MenuAction.LEVELS, MenuAction.HELP, MenuAction.SETTINGS)
+            listOf(MenuAction.START, MenuAction.LEVELS, MenuAction.ENDLESS, MenuAction.HELP, MenuAction.SETTINGS)
         }
 
         fun mainButtonRect(w: Int, h: Int, index: Int, count: Int): RectF {

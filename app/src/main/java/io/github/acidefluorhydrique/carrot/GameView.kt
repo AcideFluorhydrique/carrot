@@ -41,6 +41,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var resultRecorded = false
     private var resultStars = 0
     private var bestStarsBefore = 0
+    /** 無盡模式這一局開始前的最佳波次，結算畫面判斷是否破紀錄用。 */
+    private var endlessBestBefore = 0
     private var settingsFromPause = false
     private var resetArmed = false
     private var statusBeforePause = GameStatus.PLAYING
@@ -52,6 +54,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
     private var cachedTotalStars = 0
     /** 解鎖判斷用：任一難度通過的關卡都算。 */
     private var cachedUnlocked: Set<Int> = emptySet()
+    private var cachedEndlessBest = 0
     private var languageTag = LocaleManager.SYSTEM
     private var selectedChapter: Chapter = Chapters.default
 
@@ -86,6 +89,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         cachedUnlocked = Difficulty.values()
             .flatMap { saveRepository.completedLevels(it) }
             .toSet()
+        cachedEndlessBest = saveRepository.endlessBest()
     }
 
     /** 章節頁與關卡地圖右下角的難度鍵。 */
@@ -228,6 +232,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 gameActive = false
                 bestStarsBefore = saveRepository.starsFor(GameState.level.id, GameState.difficulty)
                 resultStars = 0
+                if (GameState.isEndless) saveRepository.recordEndlessWave(GameState.wave)
                 saveRepository.clearActiveSave()
                 refreshProgress()
                 towerManager.clearBuildType()
@@ -264,7 +269,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 GameState.level,
                 GameState.difficulty,
                 cachedTotalStars,
-                cachedCompleted.size
+                cachedCompleted.size,
+                Endless.isUnlocked(cachedUnlocked),
+                cachedEndlessBest
             )
             ScreenMode.CHAPTER_SELECT -> menu.drawChapters(
                 canvas, w, h, cachedStars, cachedUnlocked, GameState.difficulty
@@ -293,6 +300,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         enemyManager.draw(canvas)
         Fx.draw(canvas)
         canvas.restore()
+        Fx.drawFlash(canvas, w, h)
 
         hud.draw(canvas, w, h, enemyManager)
 
@@ -307,7 +315,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 canvas, w, h, true, resultStars, bestStarsBefore,
                 GameLevels.nextLevel(GameState.level.id) != null
             )
-            GameStatus.DEFEAT -> hud.drawResultOverlay(canvas, w, h, false, 0, bestStarsBefore, false)
+            GameStatus.DEFEAT -> hud.drawResultOverlay(
+                canvas, w, h, false, 0, bestStarsBefore, false, endlessBestBefore
+            )
             else -> Unit
         }
     }
@@ -367,6 +377,13 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         when (menu.mainTap(x, y, screenWidth, screenHeight, items)) {
             MenuAction.CONTINUE -> continueSavedGame()
             MenuAction.START -> startLevel(GameState.level)
+            MenuAction.ENDLESS -> {
+                if (Endless.isUnlocked(cachedUnlocked)) {
+                    startLevel(Endless.level)
+                } else {
+                    Audio.play(Sfx.DENY)
+                }
+            }
             MenuAction.LEVELS -> {
                 refreshProgress()
                 selectedChapter = GameState.level.chapter
@@ -510,6 +527,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             }
             return
         }
+        if (GameState.isEndless && HudRenderer.nukeRect(screenWidth, screenHeight).contains(x, y)) {
+            fireNuke()
+            return
+        }
         if (upgradePanel.onTap(x, y, screenWidth, screenHeight, towerManager)) return
         if (selectBar.onTap(x, y, screenWidth, screenHeight, towerManager)) return
 
@@ -521,6 +542,34 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             return
         }
         towerManager.onMapDown(x, y)
+    }
+
+    /** 見 [Nuke]：消滅畫面上所有敵人，首領最少扣一半；不給金幣、不碰障礙物。 */
+    private fun fireNuke() {
+        val price = Nuke.price(GameState.nukeUses)
+        val targets = enemyManager.enemies.filter { it.isAlive }
+        if (GameState.nukeCooldown > 0 || GameState.gold < price || targets.isEmpty()) {
+            Audio.play(Sfx.DENY)
+            return
+        }
+        GameState.spendGold(price)
+        GameState.nukeUses++
+        GameState.nukeCooldown = Nuke.COOLDOWN_FRAMES
+        towerManager.cancelPlacement()
+
+        for (enemy in targets) enemy.nuke(Nuke.bossFraction(price, enemy.maxHp))
+
+        val cx = gameMap.offsetX + gameMap.cellSize * GameMap.COLS / 2f
+        val cy = gameMap.offsetY + gameMap.cellSize * GameMap.ROWS / 2f
+        val span = gameMap.cellSize * GameMap.COLS
+        Fx.flash(34)
+        Fx.shake(Ui.dp(10f), 40)
+        Fx.ring(cx, cy, span * 0.35f, Colors.of("#FFF3C4"), 30, Ui.dp(8f))
+        Fx.ring(cx, cy, span * 0.6f, Colors.of("#FFB547"), 40, Ui.dp(6f))
+        Fx.ring(cx, cy, span * 0.85f, Colors.of("#FF6B3D"), 50, Ui.dp(4f))
+        Fx.explosion(cx, cy, gameMap.cellSize * 3f)
+        Fx.burst(cx, cy, 60, Colors.of("#FFD27A"), Ui.dp(4f), Ui.dp(3.2f), 60, gravity = -0.03f)
+        Audio.play(Sfx.EXPLODE)
     }
 
     private fun handlePauseTap(x: Float, y: Float) {
@@ -572,10 +621,12 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
      * （重開時傳進來的就是 GameState.level）—— [Difficulty.apply] 一律從原始資料推導，不會疊加。
      */
     private fun startLevel(selected: LevelConfig) {
-        val level = GameState.difficulty.apply(selected)
+        // 無盡模式不分難度，也不改「上次玩的關卡」：主選單的「開始」仍然指向劇情進度。
+        val endless = Endless.isEndless(selected)
+        val level = if (endless) Endless.level else GameState.difficulty.apply(selected)
         selectedChapter = level.chapter
         saveRepository.clearActiveSave()
-        saveRepository.setLastLevelId(level.id)
+        if (!endless) saveRepository.setLastLevelId(level.id)
         Fx.clear()
         GameState.reset(level)
         gameMap.loadLevel(level)
@@ -588,6 +639,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         resultRecorded = false
         resultStars = 0
         bestStarsBefore = saveRepository.starsFor(level.id, GameState.difficulty)
+        endlessBestBefore = saveRepository.endlessBest()
         autoSaveFrame = 0
         saveCurrentGame()
     }
@@ -598,7 +650,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         // 結算時星等才會記到對的那一份。
         GameState.difficulty = Difficulty.fromName(save.difficulty)
         saveRepository.setDifficulty(GameState.difficulty)
-        val level = GameState.difficulty.apply(GameLevels.byId(save.levelId))
+        val base = GameLevels.byId(save.levelId)
+        val level = if (Endless.isEndless(base)) base else GameState.difficulty.apply(base)
         selectedChapter = level.chapter
         Fx.clear()
         GameState.reset(level)
@@ -611,6 +664,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         GameState.leaks = save.leaks
         GameState.speed = save.speed.coerceIn(1, GameState.MAX_SPEED_STEP)
         GameState.status = GameStatus.PLAYING
+        GameState.nukeUses = save.nukeUses.coerceAtLeast(0)
+        GameState.nukeCooldown = save.nukeCooldown.coerceIn(0, Nuke.COOLDOWN_FRAMES)
 
         gameMap.loadLevel(level)
         gameMap.initSize(screenWidth, screenHeight)
@@ -623,11 +678,13 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         resultRecorded = false
         resultStars = 0
         bestStarsBefore = saveRepository.starsFor(level.id, GameState.difficulty)
+        endlessBestBefore = saveRepository.endlessBest()
         autoSaveFrame = 0
     }
 
     private fun goToMainMenu() {
         gameActive = false
+        if (GameState.isEndless) GameState.level = GameLevels.byId(saveRepository.lastLevelId())
         towerManager.clearBuildType()
         towerManager.clearSelection()
         Fx.clear()
@@ -675,7 +732,9 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 towers = towerManager.snapshot(),
                 obstacles = obstacleManager.snapshot(),
                 savedAt = System.currentTimeMillis(),
-                difficulty = GameState.difficulty.name
+                difficulty = GameState.difficulty.name,
+                nukeUses = GameState.nukeUses,
+                nukeCooldown = GameState.nukeCooldown
             )
         )
         cachedHasSave = true

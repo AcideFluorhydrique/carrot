@@ -131,7 +131,10 @@ class ObstacleManager(private val gameMap: GameMap) {
          */
         fun obstacleGoldScale(level: LevelConfig): Float {
             val firstWaveReward = level.waves.firstOrNull()?.groups?.firstOrNull()?.reward ?: 12
-            return firstWaveReward * (1f + level.id * 0.12f)
+            // id 在這裡代表劇情進度。無盡模式的 id 只是存檔用的標記（1000），
+            // 照算會讓一個箱子值好幾千金，所以改用它借來的那張版圖的進度。
+            val progress = if (Endless.isEndless(level)) Endless.MAP_LEVEL_ID else level.id
+            return firstWaveReward * (1f + progress * 0.12f)
         }
     }
 }

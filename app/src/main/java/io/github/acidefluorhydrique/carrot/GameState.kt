@@ -14,8 +14,17 @@ object GameState {
     /** 目前選定的難度。[reset] 不會動它：重開或換關都沿用玩家的選擇。 */
     var difficulty: Difficulty = Difficulty.NORMAL
 
-    /** HUD 與暫停頁的標題，困難模式會加上註記。 */
-    val levelTitle: String get() = difficulty.decorate(level.fullName)
+    val isEndless: Boolean get() = Endless.isEndless(level)
+
+    /** HUD 與暫停頁的標題。困難模式加上註記；無盡模式不分難度。 */
+    val levelTitle: String
+        get() = if (isEndless) Strings.get(R.string.endless_title) else difficulty.decorate(level.fullName)
+
+    /** 本局用過幾次核彈，決定下一顆的價格。只有無盡模式會用到。 */
+    var nukeUses: Int = 0
+
+    /** 核彈剩餘冷卻，單位是遊戲影格。 */
+    var nukeCooldown: Int = 0
     var carrotHp: Int = 10
     var maxCarrotHp: Int = 10
     var gold: Int = 100
@@ -58,6 +67,8 @@ object GameState {
         leaks = 0
         obstaclesCleared = 0
         carrotHurtTimer = 0
+        nukeUses = 0
+        nukeCooldown = 0
     }
 
     fun cycleSpeed() {
@@ -89,7 +100,9 @@ object GameState {
         }
     }
 
+    /** 每個模擬步呼叫一次，所以計時跟著遊戲速度走。 */
     fun tickTimers() {
         if (carrotHurtTimer > 0) carrotHurtTimer--
+        if (nukeCooldown > 0) nukeCooldown--
     }
 }

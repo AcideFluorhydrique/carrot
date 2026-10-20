@@ -114,14 +114,32 @@ class Enemy(
         if (hp <= 0) die()
     }
 
-    private fun die() {
+    /**
+     * 核彈：一般敵人直接消滅，首領扣掉最大血量的 [bossFraction]。都不給金幣，見 [Nuke]。
+     */
+    fun nuke(bossFraction: Float) {
+        if (!isAlive) return
+        if (!kind.isBoss) {
+            die(grantGold = false)
+            return
+        }
+        val amount = (maxHp * bossFraction).toInt().coerceAtLeast(1)
+        hp -= amount
+        hitFlash = 6
+        Fx.damage(x, y - radius, amount, critical = true)
+        if (hp <= 0) die(grantGold = false)
+    }
+
+    private fun die(grantGold: Boolean = true) {
         if (isDead) return
         hp = 0
         isDead = true
         GameState.kills++
-        GameState.addGold(goldReward)
         Fx.deathPuff(x, y, Colors.of(kind.auraColor), kind.sizeScale)
-        Fx.goldGain(x, y - radius, goldReward)
+        if (grantGold) {
+            GameState.addGold(goldReward)
+            Fx.goldGain(x, y - radius, goldReward)
+        }
         if (kind.isBoss) {
             Fx.explosion(x, y, gameMap.cellSize * 1.6f)
             Fx.shake(Ui.dp(6f), 22)

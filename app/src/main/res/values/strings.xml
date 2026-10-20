@@ -25,6 +25,15 @@
     <string name="difficulty_hard">Hard</string>
     <string name="level_with_difficulty">%1$s · %2$s</string>
 
+    <!-- Endless -->
+    <string name="endless_title">Endless</string>
+    <string name="menu_endless_locked">Clear %1$d-%2$d</string>
+    <string name="menu_endless_best">Best: wave %1$d</string>
+    <string name="hud_wave_endless">Wave %1$d</string>
+    <string name="nuke_label">☢️ Nuke</string>
+    <string name="nuke_cooldown">%1$ds</string>
+    <string name="result_endless_reached">Reached wave %1$d</string>
+
     <!-- Level select -->
     <string name="common_back">Back</string>
 

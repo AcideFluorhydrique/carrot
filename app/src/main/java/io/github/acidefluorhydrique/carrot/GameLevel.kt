@@ -1323,7 +1323,9 @@ object GameLevels {
 
     val default: LevelConfig = all.first()
 
-    fun byId(id: Int): LevelConfig = all.firstOrNull { it.id == id } ?: default
+    /** 無盡模式不在 [all] 裡（章節、通關數與星等都只算劇情關卡），但存檔要能用 id 找回它。 */
+    fun byId(id: Int): LevelConfig =
+        all.firstOrNull { it.id == id } ?: if (id == Endless.LEVEL_ID) Endless.level else default
 
     /** 第一關永遠開放，之後每一關需要通過前一關。 */
     fun isUnlocked(levelId: Int, completed: Set<Int>): Boolean =
