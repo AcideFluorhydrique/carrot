@@ -31,6 +31,7 @@ DPG  DPS per Gold = DPS / 累計投入金幣。這是塔與塔之間唯一公平
     python3 tools/balance.py levels hard     # 同上，困難模式
     python3 tools/balance.py level 15        # 單一關卡逐波拆解
     python3 tools/balance.py level 15 hard   # 同上，困難模式
+    python3 tools/balance.py endless         # 無盡模式：逐波模擬，看在第幾波結束
 
 Tower.kt 的公式改了，下面的 TOWERS 也要跟著改。
 """
@@ -412,6 +413,147 @@ def cmd_level(lid, difficulty="normal"):
           f"DPG={dpg('ARROW',1,density=3):.4f} 花費50")
 
 
+# ---------------------------------------------------------------- 無盡模式（對應 Endless.kt）
+
+# Endless.kt 改了，這裡也要跟著改。
+ENDLESS_START_GOLD = 350
+ENDLESS_CARROT_HP = 10
+ENDLESS_BASE_HP = 30
+ENDLESS_HP_GROWTH = 1.12
+ENDLESS_BASE_COUNT = 10
+ENDLESS_COUNT_GROWTH = 1.03
+ENDLESS_BASE_REWARD = 6
+ENDLESS_REWARD_GROWTH = 1.06
+ENDLESS_BASE_SPEED = 1.5
+ENDLESS_SPEED_STEP = 0.01
+ENDLESS_MAX_SPEED = 2.1
+ENDLESS_MAX_GROUP = 40
+ENDLESS_MAX_HP = 200_000_000
+ENDLESS_PATTERN = [
+    [("GRUNT", 1.0)],
+    [("RUNNER", 1.0)],
+    [("SWARM", 1.0)],
+    [("GRUNT", 0.6), ("RUNNER", 0.6)],
+    [("TANK", 1.0)],
+    [("SWARM", 0.7), ("GRUNT", 0.5)],
+    [("RUNNER", 0.7), ("TANK", 0.6)],
+    [("SWARM", 1.3)],
+    [("TANK", 0.7), ("GRUNT", 0.6)],
+    [("BOSS", 1.0), ("GRUNT", 0.7)],
+]
+ENDLESS_COUNT_FACTOR = {"SWARM": 2.2, "TANK": 0.45}
+ENDLESS_INTERVAL = {"GRUNT": 42, "RUNNER": 32, "SWARM": 14, "TANK": 56, "BOSS": 150}
+
+
+def endless_wave(index):
+    """Endless.build 的 Python 版本。"""
+    hp = max(1, kround(min(ENDLESS_BASE_HP * ENDLESS_HP_GROWTH ** index, ENDLESS_MAX_HP)))
+    count = ENDLESS_BASE_COUNT * ENDLESS_COUNT_GROWTH ** index
+    reward = max(1, kround(ENDLESS_BASE_REWARD * ENDLESS_REWARD_GROWTH ** index))
+    speed = min(ENDLESS_BASE_SPEED + ENDLESS_SPEED_STEP * index, ENDLESS_MAX_SPEED)
+    groups = []
+    for kind, weight in ENDLESS_PATTERN[index % len(ENDLESS_PATTERN)]:
+        if kind == "BOSS":
+            n = 1
+        else:
+            n = min(ENDLESS_MAX_GROUP, max(1, kround(count * weight * ENDLESS_COUNT_FACTOR.get(kind, 1.0))))
+        groups.append(Group(kind, n, hp, speed, reward, ENDLESS_INTERVAL[kind]))
+    return groups
+
+
+def capped_build(usable, gold, armor, spacing, count_cap, slots):
+    """
+    有格子上限的建塔。pick_build 不限塔數，只看每金幣的 DPS，所以永遠只蓋 1 級塔；
+    格子有限時，到了某個點升級才是唯一能花錢的地方。這裡每一步在「蓋新塔」和
+    「升級既有的塔」之間挑每金幣多出最多 DPS 的那一個。
+    """
+    def tower_dps(t, lv):
+        d = max(1.0, min(count_cap, coverage_cells(t, lv) / spacing))
+        return dps(t, lv, armor, d)
+
+    towers = []
+    remaining = gold
+    while True:
+        best = None
+        if len(towers) < slots:
+            for t in usable:
+                c = total_cost(t, 1)
+                if c <= remaining:
+                    v = tower_dps(t, 1) / c
+                    if best is None or v > best[0]:
+                        best = (v, "build", t, c)
+        for i, (t, lv) in enumerate(towers):
+            if lv >= MAX_LEVEL:
+                continue
+            c = total_cost(t, lv + 1) - total_cost(t, lv)
+            if c <= remaining:
+                v = (tower_dps(t, lv + 1) - tower_dps(t, lv)) / c
+                if best is None or v > best[0]:
+                    best = (v, "upgrade", i, c)
+        if best is None:
+            return towers
+        _, action, ref, c = best
+        remaining -= c
+        if action == "build":
+            towers.append((ref, 1))
+        else:
+            towers[ref] = (towers[ref][0], towers[ref][1] + 1)
+
+
+def simulate_endless(slots, max_waves=200, rows=None):
+    """逐波前推到蘿蔔歸零，回傳結束的波次。rows 給一個 list 就會收集每波的明細。"""
+    usable = list(TOWERS)
+    gold = ENDLESS_START_GOLD
+    carrot = ENDLESS_CARROT_HP
+    for w in range(max_waves):
+        groups = endless_wave(w)
+        budget = gold + call_bonus(w + 1, PREP_FRAMES if w == 0 else 110)
+        delivered = 0.0
+        built = 0
+        for g in groups:
+            spacing = max(g.speed * g.interval / FPS, 0.3)
+            span = (g.count - 1) * g.interval / FPS
+            towers = capped_build(usable, budget, g.armor, spacing, g.count, slots)
+            built = max(built, len(towers))
+            for t, lv in towers:
+                d = max(1.0, min(g.count, coverage_cells(t, lv) / spacing))
+                delivered += dps(t, lv, g.armor, d) * (span + coverage_cells(t, lv) / g.speed)
+        remaining = delivered
+        earned = leaked = 0
+        for g in groups:
+            k = min(g.count, int(remaining // g.hp))
+            remaining -= k * g.hp
+            earned += k * g.reward
+            leaked += (g.count - k) * g.leak
+        total = sum(g.total_hp for g in groups)
+        gold += earned
+        carrot -= leaked
+        if rows is not None:
+            rows.append((w + 1, total, budget, built, delivered / total, leaked, carrot))
+        if carrot <= 0:
+            return w + 1
+    return max_waves
+
+
+def cmd_endless():
+    print("無盡模式。玩家上限是格子數；格子填滿之後只能升級，血量遲早追上輸出。")
+    print("不模擬核彈、減速與地形，偏保守。\n")
+    slots = 40
+    rows = []
+    end = simulate_endless(slots, rows=rows)
+    print(f"格子上限 {slots} 座：")
+    print(f"{'波':>4}{'總血量':>10}{'可用金':>9}{'塔數':>6}{'ratio':>8}{'漏怪傷':>7}{'蘿蔔':>6}")
+    print("-" * 50)
+    for wave, total, budget, built, ratio, leaked, carrot in rows:
+        if wave <= 10 or wave % 5 == 0 or leaked:
+            mark = "  ⚠️" if ratio < 1.0 else ""
+            print(f"{wave:>4}{total:>10}{budget:>9}{built:>6}{ratio:>8.2f}{leaked:>7}{carrot:>6}{mark}")
+    print(f"\n→ 第 {end} 波結束\n")
+    print("格子上限的影響（越不敏感，代表結局越是由血量成長決定）：")
+    for s in (25, 30, 40, 50, 60):
+        print(f"  {s:>2} 座 → 第 {simulate_endless(s)} 波")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "towers"
     if cmd == "towers":
@@ -420,5 +562,7 @@ if __name__ == "__main__":
         cmd_levels(sys.argv[2] if len(sys.argv) > 2 else "normal")
     elif cmd == "level":
         cmd_level(int(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "normal")
+    elif cmd == "endless":
+        cmd_endless()
     else:
         print(__doc__)
