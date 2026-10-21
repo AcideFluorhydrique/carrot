@@ -88,7 +88,7 @@ class TowerSelectBar {
         paint.alpha = if (unlocked) 255 else 110
         paint.textSize = rect.height() * 0.36f
         val emoji = if (unlocked) type.emoji else "🔒"
-        canvas.drawText(emoji, rect.centerX() - paint.measureText(emoji) / 2f, rect.top + rect.height() * 0.42f, paint)
+        Glyphs.draw(canvas, emoji, rect.centerX() - Glyphs.width(emoji, paint) / 2f, rect.top + rect.height() * 0.42f, paint)
         paint.alpha = 255
 
         val inner = rect.width() - Ui.dp(5f)

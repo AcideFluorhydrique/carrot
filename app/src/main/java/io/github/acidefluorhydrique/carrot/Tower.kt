@@ -247,19 +247,19 @@ class Tower(
 
         paint.textSize = cs * 0.5f
         val emoji = type.emoji
-        val textWidth = paint.measureText(emoji)
+        val textWidth = Glyphs.width(emoji, paint)
         val recoil = if (fireFlash > 0) cs * 0.04f else 0f
 
         if (type.rotatesToTarget) {
             canvas.save()
             canvas.rotate(aimAngle + 45f, centerX, centerY)
-            canvas.drawText(emoji, centerX - textWidth / 2f - recoil, centerY + cs * 0.18f, paint)
+            Glyphs.draw(canvas, emoji, centerX - textWidth / 2f - recoil, centerY + cs * 0.18f, paint)
             canvas.restore()
         } else {
             val float = if (type == TowerType.LIGHT || type.isAreaPulse) {
                 sin(animFrame * 0.12f) * cs * 0.03f
             } else 0f
-            canvas.drawText(emoji, centerX - textWidth / 2f, centerY + cs * 0.18f + float, paint)
+            Glyphs.draw(canvas, emoji, centerX - textWidth / 2f, centerY + cs * 0.18f + float, paint)
         }
 
         drawLevelPips(canvas, px, py, cs)

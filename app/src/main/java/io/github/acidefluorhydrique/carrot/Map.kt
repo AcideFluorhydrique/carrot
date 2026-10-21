@@ -7,8 +7,10 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Picture
 import android.graphics.RectF
 import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.sin
 
@@ -51,6 +53,24 @@ class GameMap {
     private val scratchInner = RectF()
     private val arrowPath = Path()
 
+    /**
+     * 外框與棋盤格錄好的繪圖指令。它們只取決於路徑與永久地形的位置、配色和尺寸，
+     * 塔、障礙物都是另外畫在上面的，所以整局都不會變。每幀重播錄好的指令，
+     * 不必再逐格發出上百個繪圖呼叫；畫出來的東西與直接畫完全相同。
+     *
+     * 用來錄製的數值記在下面這幾個欄位，任何一個不同就重錄。
+     * surfaceChanged 不在遊戲執行緒上，靠比對而不是失效旗標，萬一錄到一半尺寸變了，下一幀也會重錄。
+     */
+    private var staticLayer: Picture? = null
+    private var staticTheme: ChapterTheme? = null
+    private var staticVersion = -1
+    private var staticCellSize = 0f
+    private var staticOffsetX = 0f
+    private var staticOffsetY = 0f
+    private var staticDp = 0f
+    /** 每次 [loadLevel] 完成加一。 */
+    private var levelVersion = 0
+
     /** 目前關卡所屬章節的配色。 */
     private val theme: ChapterTheme get() = GameState.level.chapter.theme
 
@@ -72,6 +92,7 @@ class GameMap {
                 grid[spec.row][spec.col] = OBSTACLE
             }
         }
+        levelVersion++
     }
 
     fun initSize(screenWidth: Int, screenHeight: Int) {
@@ -124,11 +145,42 @@ class GameMap {
     // ---- 繪製 ----
 
     fun draw(canvas: Canvas) {
-        drawFrame(canvas)
-        drawCells(canvas)
+        drawStaticLayer(canvas)
         drawPathArrows(canvas)
         drawStart(canvas)
         drawCarrot(canvas)
+    }
+
+    private fun drawStaticLayer(canvas: Canvas) {
+        val theme = theme
+        val version = levelVersion
+        val size = cellSize
+        val ox = offsetX
+        val oy = offsetY
+        val dp = Ui.dp(1f)
+        var layer = staticLayer
+        if (layer == null || staticTheme !== theme || staticVersion != version ||
+            staticCellSize != size || staticOffsetX != ox || staticOffsetY != oy || staticDp != dp
+        ) {
+            layer = Picture()
+            // 外框比棋盤多出 5dp，陰影再往下 4dp；錄製畫布會裁掉範圍外的東西，所以多留一點。
+            val margin = Ui.dp(16f)
+            val recording = layer.beginRecording(
+                ceil(ox + size * COLS + margin).toInt(),
+                ceil(oy + size * ROWS + margin).toInt()
+            )
+            drawFrame(recording)
+            drawCells(recording)
+            layer.endRecording()
+            staticLayer = layer
+            staticTheme = theme
+            staticVersion = version
+            staticCellSize = size
+            staticOffsetX = ox
+            staticOffsetY = oy
+            staticDp = dp
+        }
+        canvas.drawPicture(layer)
     }
 
     private fun drawFrame(canvas: Canvas) {
@@ -274,6 +326,6 @@ class GameMap {
         paint.style = Paint.Style.FILL
         paint.textSize = cellSize * 0.55f
         val carrot = "🥕"
-        canvas.drawText(carrot, cx - paint.measureText(carrot) / 2f, cy + cellSize * 0.2f, paint)
+        Glyphs.draw(canvas, carrot, cx - Glyphs.width(carrot, paint) / 2f, cy + cellSize * 0.2f, paint)
     }
 }

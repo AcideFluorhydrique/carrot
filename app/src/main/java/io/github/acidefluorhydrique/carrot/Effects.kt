@@ -35,7 +35,10 @@ private class FloatText(
     val maxLife: Int,
     val size: Float,
     val bold: Boolean
-)
+) {
+    /** 文字與字級在整個生命週期都不變，寬度第一次畫時量一次就好。 */
+    var width = -1f
+}
 
 private class Ring(
     val x: Float,
@@ -291,7 +294,8 @@ object Fx {
             val ratio = t.life.toFloat() / t.maxLife
             paint.textSize = t.size
             paint.isFakeBoldText = t.bold
-            val width = paint.measureText(t.text)
+            if (t.width < 0f) t.width = paint.measureText(t.text)
+            val width = t.width
             paint.color = Color.BLACK
             paint.alpha = (150 * ratio).toInt().coerceIn(0, 255)
             canvas.drawText(t.text, t.x - width / 2f + Ui.dp(0.8f), t.y + Ui.dp(0.8f), paint)
