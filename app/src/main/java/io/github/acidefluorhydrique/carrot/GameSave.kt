@@ -202,6 +202,12 @@ class SaveRepository(context: Context) {
         prefs.edit().putBoolean(KEY_MUSIC, enabled).apply()
     }
 
+    fun damageNumbersEnabled(): Boolean = prefs.getBoolean(KEY_DAMAGE_NUMBERS, true)
+
+    fun setDamageNumbersEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DAMAGE_NUMBERS, enabled).apply()
+    }
+
     fun difficulty(): Difficulty = Difficulty.fromName(prefs.getString(KEY_DIFFICULTY, null))
 
     fun setDifficulty(difficulty: Difficulty) {
@@ -361,6 +367,7 @@ class SaveRepository(context: Context) {
         private val LEGACY_STAR_KEYS = listOf("level_stars_v3")
         private const val KEY_SOUND = "sound_enabled"
         private const val KEY_MUSIC = "music_enabled"
+        private const val KEY_DAMAGE_NUMBERS = "damage_numbers_enabled"
         private const val KEY_LAST_LEVEL = "last_level"
 
         /** 困難模式的星等。和 [KEY_STARS] 一樣，一旦發佈就永遠不要改名。 */

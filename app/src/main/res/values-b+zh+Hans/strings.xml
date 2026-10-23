@@ -41,6 +41,7 @@
     <string name="settings_title">设置</string>
     <string name="settings_sound">音效</string>
     <string name="settings_music">音乐</string>
+    <string name="settings_damage_numbers">伤害数字</string>
     <string name="settings_language">语言</string>
     <string name="settings_language_system">跟随系统</string>
     <string name="settings_on">开启</string>

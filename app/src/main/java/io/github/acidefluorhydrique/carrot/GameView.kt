@@ -77,6 +77,7 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         Audio.engine = soundEngine
         soundEngine.setSoundEnabled(saveRepository.soundEnabled())
         soundEngine.setMusicEnabled(saveRepository.musicEnabled())
+        Fx.showDamageNumbers = saveRepository.damageNumbersEnabled()
 
         languageTag = LocaleManager.stored(context)
 
@@ -295,7 +296,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 cachedUnlocked, GameState.difficulty
             )
             ScreenMode.SETTINGS -> menu.drawSettings(
-                canvas, w, h, soundEngine.isSoundOn, soundEngine.isMusicOn, languageTag, resetArmed
+                canvas, w, h, soundEngine.isSoundOn, soundEngine.isMusicOn, Fx.showDamageNumbers,
+                languageTag, resetArmed
             )
             ScreenMode.LANGUAGE -> menu.drawLanguage(canvas, w, h, languageTag)
             ScreenMode.HELP -> menu.drawHelp(canvas, w, h)
@@ -490,6 +492,13 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 val next = !soundEngine.isMusicOn
                 soundEngine.setMusicEnabled(next)
                 saveRepository.setMusicEnabled(next)
+                resetArmed = false
+            }
+            SettingsAction.TOGGLE_DAMAGE_NUMBERS -> {
+                val next = !Fx.showDamageNumbers
+                Fx.showDamageNumbers = next
+                saveRepository.setDamageNumbersEnabled(next)
+                Audio.play(Sfx.BUILD)
                 resetArmed = false
             }
             SettingsAction.OPEN_LANGUAGE -> {

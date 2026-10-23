@@ -77,6 +77,14 @@ object Fx {
     private var shakeFrames = 0
     private var shakeAmp = 0f
 
+    /**
+     * 設定頁的「傷害數字」開關。只擋傷害數字，金幣與提示文字照常顯示：
+     * 那些是玩家需要的資訊，一隻敵人也只跳一次；又多又亂的是每一下攻擊的傷害。
+     * 在觸控處理裡切換、在遊戲執行緒上讀取。
+     */
+    @Volatile
+    var showDamageNumbers = true
+
     /** 全螢幕閃光（核彈）。在螢幕座標畫，不跟著震動位移。 */
     private var flashFrames = 0
     private var flashMax = 1
@@ -191,6 +199,7 @@ object Fx {
     }
 
     fun damage(x: Float, y: Float, amount: Int, critical: Boolean = false) {
+        if (!showDamageNumbers) return
         val color = if (critical) Colors.of("#FF7A7A") else Colors.of("#FFFFFF")
         text(x, y, amount.toString(), color, Ui.dp(if (critical) 13f else 11f), 32)
     }

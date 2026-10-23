@@ -41,6 +41,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_sound">Sound</string>
     <string name="settings_music">Music</string>
+    <string name="settings_damage_numbers">Damage Numbers</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system">System default</string>
     <string name="settings_on">On</string>

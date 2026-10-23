@@ -14,7 +14,7 @@ import kotlin.math.sin
 
 enum class MenuAction { NONE, CONTINUE, START, LEVELS, ENDLESS, HELP, SETTINGS, BACK }
 
-enum class SettingsAction { NONE, TOGGLE_SOUND, TOGGLE_MUSIC, OPEN_LANGUAGE, RESET_PROGRESS, BACK }
+enum class SettingsAction { NONE, TOGGLE_SOUND, TOGGLE_MUSIC, TOGGLE_DAMAGE_NUMBERS, OPEN_LANGUAGE, RESET_PROGRESS, BACK }
 
 class MenuRenderer {
 
@@ -369,6 +369,7 @@ class MenuRenderer {
         h: Int,
         soundOn: Boolean,
         musicOn: Boolean,
+        damageNumbersOn: Boolean,
         languageTag: String,
         resetArmed: Boolean
     ) {
@@ -390,17 +391,23 @@ class MenuRenderer {
             textSize = Ui.dp(13f), subLabel = if (musicOn) on else off
         )
         Widgets.button(
-            canvas, settingRect(w, h, 2), Strings.get(R.string.settings_language),
+            canvas, settingRect(w, h, 2), Strings.get(R.string.settings_damage_numbers),
+            if (damageNumbersOn) Widgets.GREEN_TOP else Widgets.GRAY_TOP,
+            if (damageNumbersOn) Widgets.GREEN_BOTTOM else Widgets.GRAY_BOTTOM,
+            textSize = Ui.dp(13f), subLabel = if (damageNumbersOn) on else off
+        )
+        Widgets.button(
+            canvas, settingRect(w, h, 3), Strings.get(R.string.settings_language),
             Widgets.PURPLE_TOP, Widgets.PURPLE_BOTTOM,
             textSize = Ui.dp(13f), subLabel = LocaleManager.displayName(languageTag)
         )
         Widgets.button(
-            canvas, settingRect(w, h, 3),
+            canvas, settingRect(w, h, 4),
             Strings.get(if (resetArmed) R.string.settings_reset_confirm else R.string.settings_reset),
             Widgets.RED_TOP, Widgets.RED_BOTTOM, textSize = Ui.dp(13f),
             subLabel = if (resetArmed) Strings.get(R.string.settings_reset_warning) else null
         )
-        Widgets.button(canvas, settingRect(w, h, 4), Strings.get(R.string.common_back), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(13f))
+        Widgets.button(canvas, settingRect(w, h, 5), Strings.get(R.string.common_back), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM, textSize = Ui.dp(13f))
     }
 
     // ---- 語言 ----
@@ -444,9 +451,10 @@ class MenuRenderer {
     fun settingsTap(x: Float, y: Float, w: Int, h: Int): SettingsAction = when {
         settingRect(w, h, 0).contains(x, y) -> SettingsAction.TOGGLE_SOUND
         settingRect(w, h, 1).contains(x, y) -> SettingsAction.TOGGLE_MUSIC
-        settingRect(w, h, 2).contains(x, y) -> SettingsAction.OPEN_LANGUAGE
-        settingRect(w, h, 3).contains(x, y) -> SettingsAction.RESET_PROGRESS
-        settingRect(w, h, 4).contains(x, y) -> SettingsAction.BACK
+        settingRect(w, h, 2).contains(x, y) -> SettingsAction.TOGGLE_DAMAGE_NUMBERS
+        settingRect(w, h, 3).contains(x, y) -> SettingsAction.OPEN_LANGUAGE
+        settingRect(w, h, 4).contains(x, y) -> SettingsAction.RESET_PROGRESS
+        settingRect(w, h, 5).contains(x, y) -> SettingsAction.BACK
         else -> SettingsAction.NONE
     }
 
@@ -648,8 +656,13 @@ class MenuRenderer {
             return Pair(x, y)
         }
 
-        /** 設定頁列數：音效、音樂、語言、重置、返回。 */
-        private const val SETTINGS_ROWS = 5
+        /**
+         * 設定頁兩欄三列，依 index 由左到右、由上到下：
+         * 音效、音樂 / 傷害數字、語言 / 重置、返回。
+         * 單欄放六顆會在矮螢幕上壓到標題，兩欄反而比原本的五顆單欄還矮。
+         */
+        private const val SETTINGS_COLUMNS = 2
+        private const val SETTINGS_ROWS = 3
 
         fun languageRect(w: Int, h: Int, index: Int): RectF {
             val width = (w * 0.4f).coerceAtMost(Ui.dp(176f))
@@ -662,13 +675,17 @@ class MenuRenderer {
         }
 
         fun settingRect(w: Int, h: Int, index: Int): RectF {
-            val width = (w * 0.4f).coerceAtMost(Ui.dp(176f))
+            val gapX = Ui.dp(12f)
+            val width = ((w * 0.8f - gapX) / SETTINGS_COLUMNS).coerceAtMost(Ui.dp(176f))
             val height = Ui.dp(34f)
-            val gap = Ui.dp(10f)
-            val count = SETTINGS_ROWS
-            val total = height * count + gap * (count - 1)
-            val top = h * 0.5f - total / 2f + Ui.dp(24f) + index * (height + gap)
-            return RectF((w - width) / 2f, top, (w + width) / 2f, top + height)
+            val gapY = Ui.dp(10f)
+            val col = index % SETTINGS_COLUMNS
+            val row = index / SETTINGS_COLUMNS
+            val totalW = width * SETTINGS_COLUMNS + gapX * (SETTINGS_COLUMNS - 1)
+            val totalH = height * SETTINGS_ROWS + gapY * (SETTINGS_ROWS - 1)
+            val left = (w - totalW) / 2f + col * (width + gapX)
+            val top = h * 0.5f - totalH / 2f + Ui.dp(24f) + row * (height + gapY)
+            return RectF(left, top, left + width, top + height)
         }
 
         fun difficultyButtonRect(w: Int, h: Int): RectF {
