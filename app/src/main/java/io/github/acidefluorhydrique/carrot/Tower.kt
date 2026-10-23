@@ -4,6 +4,7 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import kotlin.math.max
@@ -245,6 +246,8 @@ class Tower(
             paint.alpha = 255
         }
 
+        // 彩色 emoji 會套用畫筆的透明度，上面底板反光留下的 #33FFFFFF 會讓塔只剩兩成不透明
+        paint.color = Color.WHITE
         paint.textSize = cs * 0.5f
         val emoji = type.emoji
         val textWidth = Glyphs.width(emoji, paint)

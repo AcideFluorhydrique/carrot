@@ -148,6 +148,7 @@ class Obstacle(
         }
 
         paint.style = Paint.Style.FILL
+        paint.color = Color.WHITE
         paint.textSize = cs * 0.58f
         val shake = if (hitFlash > 0) sin(animFrame * 2.2f) * cs * 0.04f else 0f
         Glyphs.draw(canvas, kind.emoji, centerX - Glyphs.width(kind.emoji, paint) / 2f + shake, centerY + cs * 0.2f, paint)

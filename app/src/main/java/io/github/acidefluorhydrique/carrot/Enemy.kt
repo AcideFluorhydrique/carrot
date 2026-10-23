@@ -271,7 +271,8 @@ class Enemy(
             canvas.drawCircle(x, y + bob, r * 1.5f, paint)
         }
 
-        // 本體
+        // 本體。彩色 emoji 會套用畫筆的透明度，不重設的話會沿用影子或光暈的半透明色
+        paint.color = Color.WHITE
         paint.textSize = r * 2.1f
         val emoji = kind.emoji
         Glyphs.draw(canvas, emoji, x - Glyphs.width(emoji, paint) / 2f, y + bob + r * 0.72f, paint)

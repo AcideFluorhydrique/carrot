@@ -324,6 +324,7 @@ class GameMap {
         canvas.drawArc(scratch, -90f, 360f * ratio, false, paint)
 
         paint.style = Paint.Style.FILL
+        paint.color = Color.WHITE
         paint.textSize = cellSize * 0.55f
         val carrot = "🥕"
         Glyphs.draw(canvas, carrot, cx - Glyphs.width(carrot, paint) / 2f, cy + cellSize * 0.2f, paint)
