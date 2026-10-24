@@ -179,7 +179,7 @@ object Widgets {
         paint.textSize = size
         paint.isFakeBoldText = bold
         if (color != null) paint.color = color
-        Glyphs.draw(canvas, text, centerX - Glyphs.width(text, paint) / 2f, baselineY, paint)
+        canvas.drawText(text, centerX - TextWidths.of(text, paint) / 2f, baselineY, paint)
         paint.isFakeBoldText = false
     }
 
@@ -197,7 +197,7 @@ object Widgets {
         paint.textSize = size
         paint.isFakeBoldText = bold
         paint.color = color
-        Glyphs.draw(canvas, text, x, baselineY, paint)
+        canvas.drawText(text, x, baselineY, paint)
         paint.isFakeBoldText = false
     }
 
@@ -216,7 +216,7 @@ object Widgets {
     fun measure(text: String, size: Float, bold: Boolean = false): Float {
         paint.textSize = size
         paint.isFakeBoldText = bold
-        val w = Glyphs.width(text, paint)
+        val w = TextWidths.of(text, paint)
         paint.isFakeBoldText = false
         return w
     }

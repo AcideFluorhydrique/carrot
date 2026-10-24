@@ -275,7 +275,7 @@ class Enemy(
         paint.color = Color.WHITE
         paint.textSize = r * 2.1f
         val emoji = kind.emoji
-        Glyphs.draw(canvas, emoji, x - Glyphs.width(emoji, paint) / 2f, y + bob + r * 0.72f, paint)
+        canvas.drawText(emoji, x - TextWidths.of(emoji, paint) / 2f, y + bob + r * 0.72f, paint)
 
         // 受擊白光
         if (hitFlash > 0) {
@@ -288,7 +288,7 @@ class Enemy(
         // 護甲標記
         if (kind.armor > 0) {
             paint.textSize = r * 0.7f
-            Glyphs.draw(canvas, "🛡", x + r * 0.55f, y + bob - r * 0.35f, paint)
+            canvas.drawText("🛡", x + r * 0.55f, y + bob - r * 0.35f, paint)
         }
 
         drawHealthBar(canvas, r, bob)

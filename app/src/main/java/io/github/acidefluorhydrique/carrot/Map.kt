@@ -327,6 +327,6 @@ class GameMap {
         paint.color = Color.WHITE
         paint.textSize = cellSize * 0.55f
         val carrot = "🥕"
-        Glyphs.draw(canvas, carrot, cx - Glyphs.width(carrot, paint) / 2f, cy + cellSize * 0.2f, paint)
+        canvas.drawText(carrot, cx - TextWidths.of(carrot, paint) / 2f, cy + cellSize * 0.2f, paint)
     }
 }

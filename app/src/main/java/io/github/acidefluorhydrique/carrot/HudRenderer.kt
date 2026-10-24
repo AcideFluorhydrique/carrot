@@ -111,7 +111,7 @@ class HudRenderer {
         canvas.drawCircle(rect.left + radius, rect.centerY(), radius * 0.82f, paint)
 
         paint.textSize = rect.height() * 0.66f
-        Glyphs.draw(canvas, icon, rect.left + radius - Glyphs.width(icon, paint) / 2f, rect.centerY() + rect.height() * 0.24f, paint)
+        canvas.drawText(icon, rect.left + radius - TextWidths.of(icon, paint) / 2f, rect.centerY() + rect.height() * 0.24f, paint)
 
         Widgets.left(
             canvas, value, rect.left + radius * 2f + Ui.dp(2f),
@@ -158,7 +158,7 @@ class HudRenderer {
             paint.shader = null
             paint.textSize = Ui.dp(13f)
             for (kind in preview.kinds) {
-                Glyphs.draw(canvas, kind.emoji, chipX, chipY, paint)
+                canvas.drawText(kind.emoji, chipX, chipY, paint)
                 chipX += Ui.dp(16f)
             }
             if (preview.hasBoss()) {

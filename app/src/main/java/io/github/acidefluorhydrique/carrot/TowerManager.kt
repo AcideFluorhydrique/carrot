@@ -501,7 +501,7 @@ class TowerManager(private val gameMap: GameMap) {
         paint.alpha = 190
         paint.textSize = cs * 0.5f
         val emoji = type.emoji
-        Glyphs.draw(canvas, emoji, cx - Glyphs.width(emoji, paint) / 2f, cy + cs * 0.18f, paint)
+        canvas.drawText(emoji, cx - TextWidths.of(emoji, paint) / 2f, cy + cs * 0.18f, paint)
         paint.alpha = 255
     }
 
