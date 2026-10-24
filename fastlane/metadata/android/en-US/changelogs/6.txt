@@ -1,0 +1,5 @@
+Clearer towers and enemies, and lighter on low-end phones.
+
+* Towers, enemies and obstacles are drawn fully opaque again. A bug had left them faded.
+* New setting: Settings → Damage Numbers turns off the floating damage numbers.
+* The map, labels and buttons take less work each frame, so late endless waves run smoother on slower phones.
