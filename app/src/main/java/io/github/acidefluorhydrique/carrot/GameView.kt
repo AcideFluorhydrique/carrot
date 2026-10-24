@@ -12,6 +12,7 @@ import android.graphics.Shader
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import kotlin.math.round
 
 enum class ScreenMode { MAIN_MENU, CHAPTER_SELECT, LEVEL_MAP, SETTINGS, LANGUAGE, HELP, PLAYING }
 
@@ -309,7 +310,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         drawGameBackground(canvas, w, h)
 
         canvas.save()
-        canvas.translate(Fx.offsetX, Fx.offsetY)
+        // 取整數像素：錄好的文字與地圖要在整數位置重播，GPU 的文字快取才會命中（見 Glyphs.draw）。
+        canvas.translate(round(Fx.offsetX), round(Fx.offsetY))
         gameMap.draw(canvas)
         obstacleManager.draw(canvas)
         towerManager.draw(canvas)

@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Picture
 import kotlin.math.ceil
+import kotlin.math.round
 
 /**
  * 文字的「印章」：塔、敵人、障礙物上的 emoji，以及 HUD、按鈕上的字。
@@ -62,12 +63,20 @@ object Glyphs {
         return stamp(text, paint).width
     }
 
-    /** 等同 `canvas.drawText(text, x, y, paint)`（靠左對齊、無 shader）。 */
+    /**
+     * 等同 `canvas.drawText(text, x, y, paint)`（靠左對齊、無 shader）。
+     *
+     * 位置會對齊到整數像素。GPU 的文字快取以「錄好的字形 + 位置的小數部分」為鍵：
+     * 同一份字形在幾十個不同的小數位置重播，就會存成幾十份，每次查找都要逐一比對，
+     * 實測反而讓 RenderThread 比直接 drawText 還忙。小數部分固定為 0 時永遠命中同一份。
+     * 字形本來就會落在整數像素上，對齊只讓位置差不到半個像素。
+     * 外層的平移也必須是整數，見 GameView 的震動位移。
+     */
     fun draw(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
         val s = stamp(text, paint)
         // 錄製時基線放在 (size, size * 2)，見 [record]。
         canvas.save()
-        canvas.translate(x - s.size, y - s.size * 2f)
+        canvas.translate(round(x - s.size), round(y - s.size * 2f))
         canvas.drawPicture(s.picture)
         canvas.restore()
     }
