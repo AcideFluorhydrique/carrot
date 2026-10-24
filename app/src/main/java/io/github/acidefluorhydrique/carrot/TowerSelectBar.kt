@@ -4,10 +4,8 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Shader
 
 /**
  * 底部選塔列。所有矩形都由畫面尺寸即時算出，
@@ -40,10 +38,7 @@ class TowerSelectBar {
     fun draw(canvas: Canvas, w: Int, h: Int, selectedType: TowerType?) {
         val top = barTop(h)
         paint.style = Paint.Style.FILL
-        paint.shader = LinearGradient(
-            0f, top, 0f, h.toFloat(),
-            Colors.of("#E6172523"), Colors.of("#F40C1312"), Shader.TileMode.CLAMP
-        )
+        paint.shader = Widgets.gradient(top, h.toFloat(), Colors.of("#E6172523"), Colors.of("#F40C1312"))
         scratch.set(0f, top, w.toFloat(), h.toFloat())
         canvas.drawRect(scratch, paint)
         paint.shader = null

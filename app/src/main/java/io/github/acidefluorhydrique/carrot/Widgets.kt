@@ -45,10 +45,7 @@ object Widgets {
         paint.color = Colors.of("#66000000")
         shadow.set(rect.left, rect.top + Ui.dp(3f), rect.right, rect.bottom + Ui.dp(3f))
         canvas.drawRoundRect(shadow, radius, radius, paint)
-        paint.shader = LinearGradient(
-            rect.left, rect.top, rect.left, rect.bottom,
-            Colors.of(topColor), Colors.of(bottomColor), Shader.TileMode.CLAMP
-        )
+        paint.shader = gradient(rect.top, rect.bottom, Colors.of(topColor), Colors.of(bottomColor))
         canvas.drawRoundRect(rect, radius, radius, paint)
         paint.shader = null
         paint.style = Paint.Style.STROKE
@@ -76,10 +73,7 @@ object Widgets {
         canvas.drawRoundRect(shadow, radius, radius, paint)
 
         if (enabled) {
-            paint.shader = LinearGradient(
-                rect.left, rect.top, rect.left, rect.bottom,
-                Colors.of(topColor), Colors.of(bottomColor), Shader.TileMode.CLAMP
-            )
+            paint.shader = gradient(rect.top, rect.bottom, Colors.of(topColor), Colors.of(bottomColor))
         } else {
             paint.color = Colors.of("#77404A45")
         }
@@ -104,6 +98,34 @@ object Widgets {
             val subSize = fitSize(subLabel, textSize * 0.7f, inner)
             centered(canvas, subLabel, rect.centerX(), rect.centerY() + textSize * 1.05f, subSize, bold = false)
         }
+    }
+
+    private class Gradient(val top: Float, val bottom: Float, val topColor: Int, val bottomColor: Int, val shader: Shader)
+
+    /** 最近用過的漸層，依使用順序排列，最久沒用的在最後。一個畫面上的按鈕與面板不超過這個數。 */
+    private val gradients = ArrayList<Gradient>(GRADIENT_CACHE)
+    private const val GRADIENT_CACHE = 32
+
+    /**
+     * 上下兩色的垂直漸層。按鈕每一幀都在同一個位置、用同樣的顏色，
+     * 每幀 new 一個 LinearGradient 只是多一次原生配置再丟給 GC，所以記住最近用過的。
+     * 垂直漸層與 x 無關，鍵只需要上下緣與顏色。
+     */
+    fun gradient(top: Float, bottom: Float, topColor: Int, bottomColor: Int): Shader {
+        for (i in gradients.indices) {
+            val g = gradients[i]
+            if (g.top == top && g.bottom == bottom && g.topColor == topColor && g.bottomColor == bottomColor) {
+                if (i > 0) {
+                    gradients.removeAt(i)
+                    gradients.add(0, g)
+                }
+                return g.shader
+            }
+        }
+        val shader = LinearGradient(0f, top, 0f, bottom, topColor, bottomColor, Shader.TileMode.CLAMP)
+        if (gradients.size >= GRADIENT_CACHE) gradients.removeAt(gradients.size - 1)
+        gradients.add(0, Gradient(top, bottom, topColor, bottomColor, shader))
+        return shader
     }
 
     /**
@@ -157,7 +179,7 @@ object Widgets {
         paint.textSize = size
         paint.isFakeBoldText = bold
         if (color != null) paint.color = color
-        canvas.drawText(text, centerX - paint.measureText(text) / 2f, baselineY, paint)
+        Glyphs.draw(canvas, text, centerX - Glyphs.width(text, paint) / 2f, baselineY, paint)
         paint.isFakeBoldText = false
     }
 
@@ -175,7 +197,7 @@ object Widgets {
         paint.textSize = size
         paint.isFakeBoldText = bold
         paint.color = color
-        canvas.drawText(text, x, baselineY, paint)
+        Glyphs.draw(canvas, text, x, baselineY, paint)
         paint.isFakeBoldText = false
     }
 
@@ -194,7 +216,7 @@ object Widgets {
     fun measure(text: String, size: Float, bold: Boolean = false): Float {
         paint.textSize = size
         paint.isFakeBoldText = bold
-        val w = paint.measureText(text)
+        val w = Glyphs.width(text, paint)
         paint.isFakeBoldText = false
         return w
     }

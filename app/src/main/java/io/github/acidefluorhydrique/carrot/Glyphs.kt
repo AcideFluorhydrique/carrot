@@ -9,17 +9,20 @@ import android.graphics.Picture
 import kotlin.math.ceil
 
 /**
- * 塔、敵人、障礙物上的 emoji「印章」。
+ * 文字的「印章」：塔、敵人、障礙物上的 emoji，以及 HUD、按鈕上的字。
  *
  * 每一次 drawText / measureText 都要走一遍文字排版（雙向文字分析、字型回退、字形查找），
- * 後期一個畫面上有上百個 emoji，排版吃掉遊戲執行緒約一成五的時間。
- * 這些 emoji 都是固定字串、大小只有幾種，所以第一次畫的時候把結果錄成 [Picture]，
+ * 一個畫面上有上百段文字，排版吃掉遊戲執行緒相當大的一塊。
+ * 但這些文字幀與幀之間幾乎不變，所以第一次畫的時候把結果錄成 [Picture]，
  * 之後只是重播錄好的字形 —— 畫出來的東西不變，只是省掉重複的排版。
  *
  * 錄製時連同畫筆的顏色與透明度一起錄進去，所以快取的鍵包含這些狀態；
  * 呼叫端畫筆的樣子和原本 drawText 時完全相同，畫面也就相同。
  *
- * 只給固定字串用。傷害數字之類每次都不一樣的文字放進來只會撐大快取。
+ * 金幣、分數這類會變的文字也走這裡：舊的字串一段時間沒畫就會被擠出去（[MAX_TEXTS]），
+ * 變動時多付的只是錄一次的成本，和原本直接畫差不多。
+ * 每次都不同、只活幾十幀的傷害數字則不該放進來。
+ *
  * 只在遊戲執行緒上使用，沒有加鎖。
  */
 object Glyphs {
@@ -33,15 +36,33 @@ object Glyphs {
         val picture: Picture
     )
 
-    /** 同一個字串保留的變化數。螢幕尺寸不會在遊戲中途變，實際上只用得到幾種。 */
+    /** 同一個字串保留的變化數（字級、顏色）。 */
     private const val MAX_VARIANTS = 16
 
-    private val stamps = HashMap<String, ArrayList<Stamp>>()
+    /** 保留的字串數。HUD 加選塔列一幀大約五十段，留足餘裕給選單。 */
+    private const val MAX_TEXTS = 256
 
-    /** 等同 `paint.measureText(text)`。 */
-    fun width(text: String, paint: Paint): Float = stamp(text, paint).width
+    /** 依最近使用排序，超過上限時丟掉最久沒畫的字串。 */
+    private val stamps = object : LinkedHashMap<String, ArrayList<Stamp>>(MAX_TEXTS, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ArrayList<Stamp>>): Boolean =
+            size > MAX_TEXTS
+    }
 
-    /** 等同 `canvas.drawText(text, x, y, paint)`（靠左對齊）。 */
+    /** 等同 `paint.measureText(text)`。寬度只看字級與粗體，不必為了量寬度另外錄一份。 */
+    fun width(text: String, paint: Paint): Float {
+        val list = stamps[text]
+        if (list != null) {
+            val size = paint.textSize
+            val bold = paint.isFakeBoldText
+            for (i in list.indices) {
+                val s = list[i]
+                if (s.size == size && s.bold == bold) return s.width
+            }
+        }
+        return stamp(text, paint).width
+    }
+
+    /** 等同 `canvas.drawText(text, x, y, paint)`（靠左對齊、無 shader）。 */
     fun draw(canvas: Canvas, text: String, x: Float, y: Float, paint: Paint) {
         val s = stamp(text, paint)
         // 錄製時基線放在 (size, size * 2)，見 [record]。
@@ -52,7 +73,11 @@ object Glyphs {
     }
 
     private fun stamp(text: String, paint: Paint): Stamp {
-        val list = stamps.getOrPut(text) { ArrayList(4) }
+        var list = stamps[text]
+        if (list == null) {
+            list = ArrayList(4)
+            stamps[text] = list
+        }
         val size = paint.textSize
         val color = paint.color
         val bold = paint.isFakeBoldText

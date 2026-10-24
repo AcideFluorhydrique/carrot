@@ -5,6 +5,7 @@ package io.github.acidefluorhydrique.carrot
 
 import android.content.Context
 import android.content.res.Resources
+import android.util.SparseArray
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -21,9 +22,20 @@ object Strings {
     /** 無參數字串每影格都會被查，快取起來省掉重複配置。 */
     private val cache = ConcurrentHashMap<Int, String>()
 
+    private class Formatted(val args: Array<out Any>, val value: String)
+
+    /**
+     * 帶參數字串的最近結果，依資源 id 分組。HUD 每一幀都會格式化「第 7 波 · 剩 8」、
+     * 塔價、分數，而 java.util.Formatter 很慢，參數卻多半和上一幀一樣。
+     * 同一個 id 一幀內可能用不同參數呼叫好幾次（選塔列八座塔的價格），所以每組留幾筆。
+     */
+    private val formatted = SparseArray<ArrayList<Formatted>>()
+    private const val FORMATTED_PER_ID = 12
+
     fun init(context: Context) {
         resources = context.resources
         cache.clear()
+        synchronized(formatted) { formatted.clear() }
     }
 
     fun get(id: Int): String {
@@ -35,7 +47,26 @@ object Strings {
     }
 
     fun format(id: Int, vararg args: Any): String {
+        synchronized(formatted) {
+            val list = formatted.get(id)
+            if (list != null) {
+                for (i in list.indices) {
+                    if (list[i].args.contentEquals(args)) return list[i].value
+                }
+            }
+        }
         val res = resources ?: return ""
-        return runCatching { res.getString(id, *args) }.getOrDefault("")
+        val value = runCatching { res.getString(id, *args) }.getOrDefault("")
+        if (value.isEmpty()) return value
+        synchronized(formatted) {
+            var list = formatted.get(id)
+            if (list == null) {
+                list = ArrayList(4)
+                formatted.put(id, list)
+            }
+            if (list.size >= FORMATTED_PER_ID) list.removeAt(0)
+            list.add(Formatted(args, value))
+        }
+        return value
     }
 }

@@ -4,10 +4,8 @@
 package io.github.acidefluorhydrique.carrot
 
 import android.graphics.Canvas
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Shader
 
 class HudRenderer {
 
@@ -31,10 +29,7 @@ class HudRenderer {
     private fun drawTopBar(canvas: Canvas, w: Int, enemyManager: EnemyManager) {
         val barH = Ui.topBarHeight
         paint.style = Paint.Style.FILL
-        paint.shader = LinearGradient(
-            0f, 0f, 0f, barH,
-            Colors.of("#F21A2A2B"), Colors.of("#D2131D20"), Shader.TileMode.CLAMP
-        )
+        paint.shader = Widgets.gradient(0f, barH, Colors.of("#F21A2A2B"), Colors.of("#D2131D20"))
         scratch.set(0f, 0f, w.toFloat(), barH)
         canvas.drawRect(scratch, paint)
         paint.shader = null
@@ -116,7 +111,7 @@ class HudRenderer {
         canvas.drawCircle(rect.left + radius, rect.centerY(), radius * 0.82f, paint)
 
         paint.textSize = rect.height() * 0.66f
-        canvas.drawText(icon, rect.left + radius - paint.measureText(icon) / 2f, rect.centerY() + rect.height() * 0.24f, paint)
+        Glyphs.draw(canvas, icon, rect.left + radius - Glyphs.width(icon, paint) / 2f, rect.centerY() + rect.height() * 0.24f, paint)
 
         Widgets.left(
             canvas, value, rect.left + radius * 2f + Ui.dp(2f),
@@ -163,7 +158,7 @@ class HudRenderer {
             paint.shader = null
             paint.textSize = Ui.dp(13f)
             for (kind in preview.kinds) {
-                canvas.drawText(kind.emoji, chipX, chipY, paint)
+                Glyphs.draw(canvas, kind.emoji, chipX, chipY, paint)
                 chipX += Ui.dp(16f)
             }
             if (preview.hasBoss()) {
