@@ -103,8 +103,8 @@ object Widgets {
     private class Gradient(val top: Float, val bottom: Float, val topColor: Int, val bottomColor: Int, val shader: Shader)
 
     /** 最近用過的漸層，依使用順序排列，最久沒用的在最後。一個畫面上的按鈕與面板不超過這個數。 */
-    private val gradients = ArrayList<Gradient>(GRADIENT_CACHE)
     private const val GRADIENT_CACHE = 32
+    private val gradients = ArrayList<Gradient>(GRADIENT_CACHE)
 
     /**
      * 上下兩色的垂直漸層。按鈕每一幀都在同一個位置、用同樣的顏色，
