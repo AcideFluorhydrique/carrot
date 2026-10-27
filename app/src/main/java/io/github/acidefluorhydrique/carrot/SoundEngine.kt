@@ -16,50 +16,77 @@ import kotlin.math.exp
 import kotlin.math.sin
 import kotlin.random.Random
 
-enum class Sfx(val key: String) {
-    SHOOT("shoot"),
-    HIT("hit"),
-    EXPLODE("explode"),
-    ICE("ice"),
-    ZAP("zap"),
-    POISON("poison"),
-    DIE("die"),
-    COIN("coin"),
-    BUILD("build"),
-    SELL("sell"),
-    UPGRADE("upgrade"),
-    DENY("deny"),
-    HURT("hurt"),
-    WAVE("wave"),
-    WIN("win"),
-    LOSE("lose")
+/**
+ * [seconds] 是合成出來的長度，[SoundEngine] 合成時也讀這個值。
+ * [minGapMs] 只對戰鬥音效（[combat]）有意義：同一個音效兩次之間至少隔多久。
+ */
+enum class Sfx(val key: String, val seconds: Float, val combat: Boolean = false, val minGapMs: Long = 0L) {
+    SHOOT("shoot", 0.09f, combat = true, minGapMs = 80L),
+    HIT("hit", 0.06f, combat = true, minGapMs = 80L),
+    // 最長、低頻最重的一個。隔 250ms 讓它最多兩層重疊，否則太陽塔和炸彈一起響時會糊成持續的轟隆聲。
+    EXPLODE("explode", 0.5f, combat = true, minGapMs = 250L),
+    ICE("ice", 0.28f, combat = true, minGapMs = 140L),
+    ZAP("zap", 0.22f, combat = true, minGapMs = 110L),
+    POISON("poison", 0.34f, combat = true, minGapMs = 170L),
+    DIE("die", 0.18f, combat = true, minGapMs = 90L),
+    COIN("coin", 0.24f, combat = true, minGapMs = 120L),
+    BUILD("build", 0.26f),
+    SELL("sell", 0.26f),
+    UPGRADE("upgrade", 0.44f),
+    DENY("deny", 0.22f),
+    HURT("hurt", 0.4f),
+    WAVE("wave", 0.55f),
+    WIN("win", 1.0f),
+    LOSE("lose", 1.1f);
+
+    val durationMs: Long get() = (seconds * 1000f).toLong()
 }
 
 /**
  * 全域音效入口，讓任何實體都能直接發聲。
- * 高頻音效（射擊、命中）加上最小間隔，避免同一影格疊出刺耳的爆音。
+ *
+ * 後期一秒有上百次射擊、命中、爆炸，全部播出來只會糊成一團，所以戰鬥音效有三道限制：
+ *
+ * - 同一個音效兩次之間至少隔 [Sfx.minGapMs]。
+ * - 戰鬥音效同時最多 [MAX_COMBAT_VOICES] 個，名額滿了這次就不播。
+ *   介面與事件音效（建塔、升級、波次開始、蘿蔔受傷、勝負）不佔名額，永遠會播。
+ * - 每次音高隨機偏移一點。同一段聲音以固定間隔、完全相同的音高疊在一起，
+ *   會互相抵銷又加強，聽起來像嗡嗡作響的馬達；音高稍微錯開就聽不出來了。
+ *
+ * 時間用真實時間而不是遊戲影格：3x 速度下事件變三倍，耳朵能分辨的密度卻沒變。
  */
 object Audio {
 
     @Volatile
     var engine: SoundEngine? = null
 
-    private val lastPlayed = HashMap<Sfx, Long>()
+    private const val MAX_COMBAT_VOICES = 4
+    private const val PITCH_SPREAD = 0.06f
 
+    private val lastPlayed = LongArray(Sfx.values().size)
+    /** 每個戰鬥音效名額預計播完的時間。 */
+    private val combatVoiceEnds = LongArray(MAX_COMBAT_VOICES)
+
+    @Synchronized
     fun play(sfx: Sfx) {
-        val minGapMs = when (sfx) {
-            Sfx.SHOOT, Sfx.HIT, Sfx.ICE, Sfx.POISON, Sfx.ZAP -> 70L
-            Sfx.DIE, Sfx.COIN -> 55L
-            Sfx.EXPLODE -> 90L
-            else -> 0L
+        val target = engine ?: return
+        if (!sfx.combat) {
+            target.play(sfx, 1f)
+            return
         }
-        if (minGapMs > 0L) {
-            val now = android.os.SystemClock.uptimeMillis()
-            val last = lastPlayed[sfx] ?: 0L
-            if (now - last < minGapMs) return
-            lastPlayed[sfx] = now
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastPlayed[sfx.ordinal] < sfx.minGapMs) return
+        var voice = -1
+        for (i in combatVoiceEnds.indices) {
+            if (combatVoiceEnds[i] <= now) {
+                voice = i
+                break
+            }
         }
-        engine?.play(sfx)
+        if (voice < 0) return
+        combatVoiceEnds[voice] = now + sfx.durationMs
+        lastPlayed[sfx.ordinal] = now
+        target.play(sfx, 1f + (Random.nextFloat() * 2f - 1f) * PITCH_SPREAD)
     }
 }
 
@@ -114,7 +141,8 @@ class SoundEngine(context: Context) {
 
     // ---- 對外 API ----
 
-    fun play(sfx: Sfx) {
+    /** [rate] 是播放速率，同時改變音高（1 = 原音）。節流與名額由 [Audio] 負責。 */
+    fun play(sfx: Sfx, rate: Float) {
         if (!soundOn || released) return
         val id = soundIds[sfx.key] ?: return
         val volume = when (sfx) {
@@ -124,7 +152,9 @@ class SoundEngine(context: Context) {
             Sfx.COIN -> 0.4f
             else -> 0.7f
         }
-        runCatching { soundPool.play(id, volume, volume, 1, 0, 1f) }
+        // 戰鬥音效優先權較低：串流不夠時 SoundPool 先犧牲它們，不會把建塔、波次開始的聲音擠掉。
+        val priority = if (sfx.combat) 0 else 1
+        runCatching { soundPool.play(id, volume, volume, priority, 0, rate) }
     }
 
     fun setSoundEnabled(enabled: Boolean) {
@@ -202,69 +232,69 @@ class SoundEngine(context: Context) {
     private fun synthesize(sfx: Sfx): FloatArray {
         val rnd = Random(sfx.ordinal * 977 + 13)
         return when (sfx) {
-            Sfx.SHOOT -> buffer(0.09f).also {
+            Sfx.SHOOT -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.09f, 1150f, 420f, 0.34f, SHAPE_SQUARE, 38f)
             }
-            Sfx.HIT -> buffer(0.06f).also {
+            Sfx.HIT -> buffer(sfx.seconds).also {
                 addNoise(it, 0f, 0.05f, 0.22f, 70f, 0.6f, rnd)
                 addTone(it, 0f, 0.05f, 1900f, 1200f, 0.14f, SHAPE_SINE, 60f)
             }
-            Sfx.EXPLODE -> buffer(0.5f).also {
+            Sfx.EXPLODE -> buffer(sfx.seconds).also {
                 addNoise(it, 0f, 0.45f, 0.5f, 9f, 0.16f, rnd)
                 addTone(it, 0f, 0.35f, 150f, 45f, 0.4f, SHAPE_SINE, 11f)
                 addTone(it, 0f, 0.12f, 700f, 180f, 0.2f, SHAPE_SAW, 26f)
             }
-            Sfx.ICE -> buffer(0.28f).also {
+            Sfx.ICE -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.26f, 1500f, 2700f, 0.2f, SHAPE_SINE, 12f)
                 addTone(it, 0.04f, 0.2f, 2300f, 3400f, 0.1f, SHAPE_SINE, 15f)
             }
-            Sfx.ZAP -> buffer(0.22f).also {
+            Sfx.ZAP -> buffer(sfx.seconds).also {
                 addNoise(it, 0f, 0.18f, 0.3f, 26f, 0.55f, rnd)
                 addTone(it, 0f, 0.16f, 2600f, 900f, 0.22f, SHAPE_SQUARE, 24f)
             }
-            Sfx.POISON -> buffer(0.34f).also {
+            Sfx.POISON -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.32f, 420f, 210f, 0.24f, SHAPE_TRIANGLE, 9f)
                 addNoise(it, 0f, 0.3f, 0.1f, 12f, 0.1f, rnd)
             }
-            Sfx.DIE -> buffer(0.18f).also {
+            Sfx.DIE -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.16f, 520f, 110f, 0.32f, SHAPE_SQUARE, 16f)
             }
-            Sfx.COIN -> buffer(0.24f).also {
+            Sfx.COIN -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.07f, 1318f, 1318f, 0.26f, SHAPE_SQUARE, 12f)
                 addTone(it, 0.06f, 0.17f, 1976f, 1976f, 0.26f, SHAPE_SQUARE, 9f)
             }
-            Sfx.BUILD -> buffer(0.26f).also {
+            Sfx.BUILD -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.09f, 330f, 330f, 0.3f, SHAPE_TRIANGLE, 12f)
                 addTone(it, 0.08f, 0.16f, 494f, 494f, 0.3f, SHAPE_TRIANGLE, 9f)
             }
-            Sfx.SELL -> buffer(0.26f).also {
+            Sfx.SELL -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.09f, 660f, 660f, 0.26f, SHAPE_TRIANGLE, 12f)
                 addTone(it, 0.08f, 0.16f, 440f, 440f, 0.26f, SHAPE_TRIANGLE, 9f)
             }
-            Sfx.UPGRADE -> buffer(0.44f).also {
+            Sfx.UPGRADE -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.1f, 523f, 523f, 0.24f, SHAPE_SQUARE, 11f)
                 addTone(it, 0.09f, 0.1f, 659f, 659f, 0.24f, SHAPE_SQUARE, 11f)
                 addTone(it, 0.18f, 0.24f, 784f, 784f, 0.26f, SHAPE_SQUARE, 7f)
             }
-            Sfx.DENY -> buffer(0.22f).also {
+            Sfx.DENY -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.2f, 170f, 130f, 0.28f, SHAPE_SQUARE, 8f)
             }
-            Sfx.HURT -> buffer(0.4f).also {
+            Sfx.HURT -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.36f, 420f, 80f, 0.4f, SHAPE_SAW, 8f)
                 addNoise(it, 0f, 0.18f, 0.18f, 16f, 0.3f, rnd)
             }
-            Sfx.WAVE -> buffer(0.55f).also {
+            Sfx.WAVE -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.2f, 330f, 330f, 0.24f, SHAPE_SAW, 6f)
                 addTone(it, 0.16f, 0.36f, 440f, 440f, 0.26f, SHAPE_SAW, 4.5f)
             }
-            Sfx.WIN -> buffer(1.0f).also {
+            Sfx.WIN -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.14f, 523f, 523f, 0.22f, SHAPE_SQUARE, 9f)
                 addTone(it, 0.12f, 0.14f, 659f, 659f, 0.22f, SHAPE_SQUARE, 9f)
                 addTone(it, 0.24f, 0.14f, 784f, 784f, 0.22f, SHAPE_SQUARE, 9f)
                 addTone(it, 0.36f, 0.6f, 1047f, 1047f, 0.26f, SHAPE_SQUARE, 4f)
                 addTone(it, 0.36f, 0.6f, 659f, 659f, 0.16f, SHAPE_TRIANGLE, 4f)
             }
-            Sfx.LOSE -> buffer(1.1f).also {
+            Sfx.LOSE -> buffer(sfx.seconds).also {
                 addTone(it, 0f, 0.2f, 392f, 392f, 0.24f, SHAPE_SAW, 6f)
                 addTone(it, 0.18f, 0.2f, 349f, 349f, 0.24f, SHAPE_SAW, 6f)
                 addTone(it, 0.36f, 0.2f, 311f, 311f, 0.24f, SHAPE_SAW, 6f)
