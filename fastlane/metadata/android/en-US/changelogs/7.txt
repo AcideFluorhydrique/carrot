@@ -1,0 +1,4 @@
+Calmer sound in big fights.
+
+* Late waves no longer turn into a buzzing drone: combat sounds share a few voices, explosions overlap less, and each one varies slightly in pitch.
+* Building, upgrading, wave and carrot sounds always come through, even in the middle of a fight.
