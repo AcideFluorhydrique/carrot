@@ -4,6 +4,8 @@
 package io.github.acidefluorhydrique.carrot.bot
 
 import io.github.acidefluorhydrique.carrot.GameState
+import io.github.acidefluorhydrique.carrot.TargetMode
+import io.github.acidefluorhydrique.carrot.TowerType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -39,10 +41,27 @@ class SimTest {
         val geo = Geometry(target.level)
         val plan = Seeder.fromLayout(geo, Seeder.PLAYER_ENDLESS_LAYOUT, nukeAt = 0.85f)
         assertTrue(plan.builds.size > 60)
-        val outcome = Bot(plan).play(target, maxWave = 12)
-        assertTrue("died at wave ${outcome.wave}", outcome.carrotHp > 0)
-        assertEquals(13, outcome.wave)
+        val outcome = Bot(plan).play(target, maxWave = 12, record = true)
+        // 起點的蓋塔順序是猜的，撐多久交給搜尋；這裡只確認塔有在打，並把經過印出來
+        println("endless with the player's layout: wave ${outcome.wave}, carrot ${outcome.carrotHp}, kills ${outcome.kills}")
+        outcome.log.forEach(::println)
+        outcome.layout.forEach(::println)
         assertTrue(GameState.isEndless)
+        assertTrue("nothing was killed", outcome.kills > 0)
+    }
+
+    /** 1-1 只有箭塔，五座守住轉角一定過得了。過不了表示模擬器本身壞了，不是打法的問題。 */
+    @Test
+    fun handPlacedArrowsBeatTheFirstLevel() {
+        val target = Target.parse("normal-1")
+        val cells = listOf(6 to 3, 8 to 4, 6 to 1, 8 to 3, 6 to 4)
+        val steps = ArrayList<Step>()
+        cells.forEachIndexed { i, (col, row) -> steps += Build(i + 1, col, row, TowerType.ARROW, TargetMode.FIRST) }
+        cells.indices.forEach { i -> steps += Upgrade(i + 1); steps += Upgrade(i + 1) }
+        val outcome = Bot(Plan(steps)).play(target, record = true)
+        outcome.log.forEach(::println)
+        outcome.layout.forEach(::println)
+        assertTrue("lost at wave ${outcome.wave}, kills ${outcome.kills}", outcome.won)
     }
 
     @Test

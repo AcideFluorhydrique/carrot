@@ -46,7 +46,7 @@ class BalanceScriptTest {
                         emit(d, lv.id, lv.waves)
             """.trimIndent()
             val process = runCatching {
-                ProcessBuilder("python3", "-c", code, script.parentFile.absolutePath)
+                ProcessBuilder("python3", "-c", code, script.absoluteFile.parent)
                     .redirectErrorStream(true)
                     .start()
             }.getOrNull() ?: return
