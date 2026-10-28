@@ -31,6 +31,21 @@ object Nuke {
     /** 首領門檻 = 這次付的價格 × 此倍率。越貴的核彈也越有力，兩件事走同一條曲線。 */
     private const val BOSS_THRESHOLD_PER_GOLD = 3f
 
+    /**
+     * 發射一顆：付錢、記次數、進冷卻，再對場上每個活著的敵人套用 [Enemy.nuke]。
+     * 冷卻中、買不起或場上沒有敵人時什麼都不做，回傳 false。特效與音效由呼叫端負責。
+     */
+    fun tryFire(enemies: List<Enemy>): Boolean {
+        val price = price(GameState.nukeUses)
+        val targets = enemies.filter { it.isAlive }
+        if (GameState.nukeCooldown > 0 || GameState.gold < price || targets.isEmpty()) return false
+        GameState.spendGold(price)
+        GameState.nukeUses++
+        GameState.nukeCooldown = COOLDOWN_FRAMES
+        for (enemy in targets) enemy.nuke(bossFraction(price, enemy.maxHp))
+        return true
+    }
+
     fun price(uses: Int): Int {
         val value = BASE_PRICE * PRICE_GROWTH.pow(uses)
         return if (value >= Int.MAX_VALUE) Int.MAX_VALUE else value.toInt()

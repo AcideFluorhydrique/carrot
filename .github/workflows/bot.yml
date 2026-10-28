@@ -1,0 +1,115 @@
+# SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Bot player: searches for the best build order and layout under the current rules,
+# by playing the real game logic headlessly (app/src/test/.../bot).
+# Run it from the Actions tab. Each level is its own job, so they run in parallel.
+
+name: Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'all, normal, hard, endless, or a list like "normal-5 hard-12 endless"'
+        default: 'all'
+      minutes:
+        description: 'Search time per level (minutes)'
+        default: '15'
+      endless_minutes:
+        description: 'Search time for endless (minutes, max ~330)'
+        default: '120'
+
+permissions:
+  contents: read
+
+jobs:
+  targets:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.pick.outputs.list }}
+    steps:
+      - id: pick
+        env:
+          SELECTION: ${{ inputs.targets }}
+        run: |
+          list=()
+          for word in ${SELECTION:-all}; do
+            case "$word" in
+              all) for i in $(seq 1 20); do list+=("normal-$i" "hard-$i"); done; list+=("endless") ;;
+              normal|hard) for i in $(seq 1 20); do list+=("$word-$i"); done ;;
+              endless) list+=("endless") ;;
+              normal-*|hard-*)
+                n="${word#*-}"
+                if [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= 20 )); then list+=("$word"); else echo "::error::bad target $word"; exit 1; fi ;;
+              *) echo "::error::bad target $word"; exit 1 ;;
+            esac
+          done
+          echo "list=$(printf '%s\n' "${list[@]}" | jq -R . | jq -cs 'unique')" >> "$GITHUB_OUTPUT"
+
+  play:
+    needs: targets
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.targets.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Search
+        env:
+          TARGET: ${{ matrix.target }}
+          MINUTES: ${{ inputs.minutes }}
+          ENDLESS_MINUTES: ${{ inputs.endless_minutes }}
+        run: |
+          if [ "$TARGET" = endless ]; then m="${ENDLESS_MINUTES:-120}"; else m="${MINUTES:-15}"; fi
+          ./gradlew :app:testDebugUnitTest --tests '*.BotRun' "-Pbot.target=$TARGET" "-Pbot.minutes=$m"
+          cat "app/build/bot/$TARGET.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: bot-${{ matrix.target }}
+          path: app/build/bot/
+          if-no-files-found: error
+
+  report:
+    needs: play
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: bot-*
+          merge-multiple: true
+          path: bot
+
+      - name: Summary
+        run: |
+          report="$RUNNER_TEMP/REPORT.md"
+          {
+            echo "# Bot report"
+            echo
+            echo "| target | best result | same plan, reacting every 1 / 15 / 30 / 60 / 120 frames | towers | games simulated |"
+            echo "|---|---|---|---|---|"
+            ls bot/*.row.md | sort -V | xargs cat
+            echo
+            for f in $(ls bot/*.md | grep -v '\.row\.md$' | sort -V); do cat "$f"; done
+          } > "$report"
+          mv "$report" bot/REPORT.md
+          sed -n '1,/^## /p' bot/REPORT.md | head -n -1 >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: bot-report
+          path: bot/

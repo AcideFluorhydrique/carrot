@@ -574,18 +574,11 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
 
     /** 見 [Nuke]：消滅畫面上所有敵人，首領最少扣一半；不給金幣、不碰障礙物。 */
     private fun fireNuke() {
-        val price = Nuke.price(GameState.nukeUses)
-        val targets = enemyManager.enemies.filter { it.isAlive }
-        if (GameState.nukeCooldown > 0 || GameState.gold < price || targets.isEmpty()) {
+        if (!Nuke.tryFire(enemyManager.enemies)) {
             Audio.play(Sfx.DENY)
             return
         }
-        GameState.spendGold(price)
-        GameState.nukeUses++
-        GameState.nukeCooldown = Nuke.COOLDOWN_FRAMES
         towerManager.cancelPlacement()
-
-        for (enemy in targets) enemy.nuke(Nuke.bossFraction(price, enemy.maxHp))
 
         val cx = gameMap.offsetX + gameMap.cellSize * GameMap.COLS / 2f
         val cy = gameMap.offsetY + gameMap.cellSize * GameMap.ROWS / 2f

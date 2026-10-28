@@ -52,9 +52,29 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // 單元測試直接跑真正的遊戲邏輯（見 src/test 的 bot）。Android 的繪圖、音效類別在 JVM 上只是空殼，
+    // 讓它們回傳預設值而不是丟例外，特效與音效就成了無害的空操作。
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "2g"
+    testLogging {
+        showStandardStreams = true
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    // 機器人玩家的參數，例如 -Pbot.target=hard-12 -Pbot.minutes=15。沒給 bot.target 時 BotRun 會跳過。
+    for (key in listOf("bot.target", "bot.minutes", "bot.out")) {
+        project.findProperty(key)?.let { systemProperty(key, it.toString()) }
+    }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    testImplementation("junit:junit:4.13.2")
 }
