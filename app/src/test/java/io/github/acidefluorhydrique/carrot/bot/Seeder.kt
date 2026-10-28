@@ -229,6 +229,26 @@ object Seeder {
         return Plan(steps, CallPolicy.NEVER, nukeAt)
     }
 
+    /** 固定陣型的比較對象，見 [Target]。 */
+    val LAYOUTS: Map<String, List<String>> by lazy {
+        mapOf("player" to PLAYER_ENDLESS_LAYOUT, "bot" to BOT_ENDLESS_LAYOUT)
+    }
+
+    /**
+     * 機器人第一次跑 120 分鐘找到的無盡模式陣型（第 50 波，4 顆核彈）。
+     * 外圍與直路兩端放火箭，雙線夾縫混放太陽、炸彈、冰與月亮。
+     */
+    val BOT_ENDLESS_LAYOUT = listOf(
+        "BR---LBRRIR---B#",
+        "SS-I-A---PL-R---",
+        "BB-S-S-I-BB-A--#",
+        "IM-R-R-B-SM-B--R",
+        "RL-M-S-S-RL-L--I",
+        "#R-S-S-M-SS-I--R",
+        "---I-R-R----RIMS",
+        "#SMR---RPSSRLPRL"
+    )
+
     /** 玩家自己排出來、撐到第 46 波的無盡模式陣型（1.2.2）。- 是路徑，# 是永久地形。 */
     val PLAYER_ENDLESS_LAYOUT = listOf(
         "RR---RRRRRR---R#",

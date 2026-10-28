@@ -81,13 +81,15 @@ class Search(
         var call = plan.call
         var nukeAt = plan.nukeAt
         repeat(1 + rng.nextInt(3)) {
-            when (rng.nextInt(11)) {
+            // 固定陣型：只能調順序、升級、瞄準與兩條臨場規則，不能換塔、搬塔、加塔、拆塔
+            val op = if (target.layout != null) FIXED_LAYOUT_OPS.random(rng) else rng.nextInt(11)
+            when (op) {
                 0 -> retype(steps)
                 1, 2 -> move(steps)
                 3 -> swapNearby(steps)
                 4 -> relocate(steps)
                 5 -> insertBuild(steps)
-                6 -> delete(steps)
+                6 -> if (target.layout != null) deleteUpgrade(steps) else delete(steps)
                 7 -> insertUpgrade(steps)
                 8 -> retarget(steps)
                 9 -> relocate(steps, upgradesOnly = true)
@@ -164,6 +166,11 @@ class Search(
         if (step is Build) steps.removeAll { it is Upgrade && it.buildId == step.id }
     }
 
+    private fun deleteUpgrade(steps: MutableList<Step>) {
+        val i = steps.indices.filter { steps[it] is Upgrade }.randomOrNull(rng) ?: return
+        steps.removeAt(i)
+    }
+
     private fun insertUpgrade(steps: MutableList<Step>) {
         val i = buildIndices(steps).randomOrNull(rng) ?: return
         val b = steps[i] as Build
@@ -181,5 +188,10 @@ class Search(
             counts[step.buildId] = n
             n <= io.github.acidefluorhydrique.carrot.Tower.MAX_LEVEL - 1
         }
+    }
+
+    companion object {
+        /** 固定陣型時可用的突變，對應 [mutate] 裡的編號。 */
+        private val FIXED_LAYOUT_OPS = listOf(3, 4, 6, 7, 8, 9, 10)
     }
 }

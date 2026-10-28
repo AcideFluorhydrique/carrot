@@ -37,7 +37,14 @@ class BotRun {
         val seeds = ArrayList<Plan>()
         val saved = File("../tools/bot/plans/${target.name}.plan.txt")
         if (saved.isFile) seeds += Plan.parse(saved.readText())
-        seeds += Seeder.seeds(geo, target.endless)
+        val layout = target.layout
+        if (layout == null) {
+            seeds += Seeder.seeds(geo, target.endless)
+        } else {
+            val base = Seeder.fromLayout(geo, layout, nukeAt = 0.85f)
+            seeds += base
+            seeds += base.copy(call = CallPolicy.WHEN_CLEAR)
+        }
 
         val search = Search(target, geo, Random(target.name.hashCode())) { println("[${target.name}] $it") }
         val (plan, outcome) = search.run(seeds, deadline)

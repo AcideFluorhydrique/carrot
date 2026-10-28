@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: 'all, normal, hard, endless, or a list like "normal-5 hard-12 endless"'
+        description: 'all, normal, hard, endless, compare, or a list like "normal-5 hard-12 endless@player"'
         default: 'all'
       minutes:
         description: 'Search time per level (minutes)'
@@ -39,6 +39,10 @@ jobs:
               all) for i in $(seq 1 20); do list+=("normal-$i" "hard-$i"); done; list+=("endless") ;;
               normal|hard) for i in $(seq 1 20); do list+=("$word-$i"); done ;;
               endless) list+=("endless") ;;
+              # The player's endless layout against the bot's, each with its layout fixed,
+              # plus the levels the first full run did not clear with three stars.
+              compare) list+=("endless@player" "endless@bot" "normal-20" "hard-18" "hard-20") ;;
+              endless@player|endless@bot) list+=("$word") ;;
               normal-*|hard-*)
                 n="${word#*-}"
                 if [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= 20 )); then list+=("$word"); else echo "::error::bad target $word"; exit 1; fi ;;
@@ -73,7 +77,7 @@ jobs:
           MINUTES: ${{ inputs.minutes }}
           ENDLESS_MINUTES: ${{ inputs.endless_minutes }}
         run: |
-          if [ "$TARGET" = endless ]; then m="${ENDLESS_MINUTES:-120}"; else m="${MINUTES:-15}"; fi
+          case "$TARGET" in endless*) m="${ENDLESS_MINUTES:-120}" ;; *) m="${MINUTES:-15}" ;; esac
           ./gradlew :app:testDebugUnitTest --tests '*.BotRun' "-Pbot.target=$TARGET" "-Pbot.minutes=$m"
           cat "app/build/bot/$TARGET.md" >> "$GITHUB_STEP_SUMMARY"
 

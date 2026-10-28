@@ -28,6 +28,9 @@ enum class CallPolicy { NEVER, WHEN_CLEAR }
  *
  * - [call]：場上清空時提前叫下一波，換提前獎勵金。
  * - [nukeAt]：無盡模式中，有敵人走完路徑的這個比例時發射核彈（買得起、沒在冷卻時）。1 表示不用核彈。
+ *
+ * 無盡模式裡計畫做完之後，剩下的錢自動拿去升級最便宜的塔。只看撐到第幾波時，
+ * 搜尋會把「多升幾座小塔」這種不改變波數的升級刪掉，留著錢不花；真人不會這樣。
  */
 data class Plan(val steps: List<Step>, val call: CallPolicy = CallPolicy.NEVER, val nukeAt: Float = 1f) {
 
@@ -171,6 +174,14 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
                         note("upgrade ${b.type.name} (${b.col},${b.row}) -> L${tower.level}")
                         pending.removeAt(i)
                     }
+                }
+            }
+
+            if (target.endless && pending.none { it is Build || it is Upgrade }) {
+                while (true) {
+                    val tower = sim.towerManager.towers.filter { !it.isMaxLevel }.minByOrNull { it.upgradeCost } ?: break
+                    if (GameState.gold < tower.upgradeCost || !sim.upgrade(tower)) break
+                    note("upgrade ${tower.type.name} (${tower.col},${tower.row}) -> L${tower.level} (leftover gold)")
                 }
             }
 

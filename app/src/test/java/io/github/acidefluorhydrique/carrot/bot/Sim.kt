@@ -19,8 +19,18 @@ import io.github.acidefluorhydrique.carrot.Tower
 import io.github.acidefluorhydrique.carrot.TowerManager
 import io.github.acidefluorhydrique.carrot.TowerType
 
-/** 要打的關卡：`normal-5`、`hard-12` 或 `endless`。 */
-data class Target(val name: String, val level: LevelConfig, val difficulty: Difficulty) {
+/**
+ * 要打的關卡：`normal-5`、`hard-12` 或 `endless`。
+ *
+ * `endless@player`、`endless@bot` 固定一張陣型（[Seeder.LAYOUTS]），搜尋只調蓋塔與升級的先後、
+ * 瞄準方式、核彈與叫波時機，不能換塔也不能搬塔，用來公平比較兩張陣型。
+ */
+data class Target(
+    val name: String,
+    val level: LevelConfig,
+    val difficulty: Difficulty,
+    val layout: List<String>? = null
+) {
 
     val endless: Boolean get() = Endless.isEndless(level)
 
@@ -28,6 +38,11 @@ data class Target(val name: String, val level: LevelConfig, val difficulty: Diff
         fun parse(text: String): Target {
             val name = text.trim().lowercase()
             if (name == "endless") return Target(name, Endless.level, Difficulty.NORMAL)
+            if (name.startsWith("endless@")) {
+                val layout = Seeder.LAYOUTS[name.substringAfter('@')]
+                    ?: throw IllegalArgumentException("unknown layout in $text, known: ${Seeder.LAYOUTS.keys}")
+                return Target(name, Endless.level, Difficulty.NORMAL, layout)
+            }
             val parts = name.split("-")
             require(parts.size == 2) { "target must be endless, normal-N or hard-N: $text" }
             val difficulty = when (parts[0]) {
