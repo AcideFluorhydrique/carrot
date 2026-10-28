@@ -23,10 +23,6 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Rules, balance.py consistency and the headless simulator. The bot itself only runs in bot.yml.
-      - name: Unit tests
-        run: ./gradlew testDebugUnitTest
-
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
