@@ -19,9 +19,14 @@ on:
       endless_minutes:
         description: 'Search time for endless (minutes, max ~330)'
         default: '120'
+      from_run:
+        description: 'Start from the plans of an earlier Bot run (its run id, the number in its URL). Empty = tools/bot/plans only'
+        default: ''
 
 permissions:
   contents: read
+  # from_run: download artifacts of an earlier run
+  actions: read
 
 jobs:
   targets:
@@ -70,6 +75,36 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      # The earlier run's best plan for this target becomes a seed, so the search picks up where it stopped
+      # instead of starting over. A target that earlier run did not play is simply skipped.
+      - name: Fetch the earlier run's plan
+        if: inputs.from_run != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          name: bot-${{ matrix.target }}
+          run-id: ${{ inputs.from_run }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/previous
+
+      - name: Use the earlier run's plan
+        if: inputs.from_run != ''
+        env:
+          TARGET: ${{ matrix.target }}
+          PREVIOUS: ${{ runner.temp }}/previous
+          FROM_RUN: ${{ inputs.from_run }}
+        run: |
+          if [ -f "$PREVIOUS/$TARGET.plan.txt" ]; then
+            # Keep the committed plan as a second seed; BotRun reads both
+            if [ -f "tools/bot/plans/$TARGET.plan.txt" ]; then
+              cp "tools/bot/plans/$TARGET.plan.txt" "tools/bot/plans/$TARGET.committed.plan.txt"
+            fi
+            cp "$PREVIOUS/$TARGET.plan.txt" "tools/bot/plans/$TARGET.plan.txt"
+            echo "Seeded from run $FROM_RUN: $(head -n 1 "$PREVIOUS/$TARGET.plan.txt")"
+          else
+            echo "::notice::run $FROM_RUN has no plan for $TARGET"
+          fi
 
       - name: Search
         env:

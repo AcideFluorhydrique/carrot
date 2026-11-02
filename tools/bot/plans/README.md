@@ -5,3 +5,6 @@ Best plans found by the bot (`.github/workflows/bot.yml`).
 
 Copy `<target>.plan.txt` from a bot run's artifact here and the next run starts its search from it,
 so results only get better over time. Plans are plain text: one action per line, in the order they are carried out.
+
+Or skip the copying: run the Bot workflow with `from_run` set to the earlier run's id (the number in its URL).
+Each target then starts from that run's plan, plus the one committed here if there is one.
