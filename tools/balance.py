@@ -31,6 +31,8 @@ DPG  DPS per Gold = DPS / 累計投入金幣。這是塔與塔之間唯一公平
     python3 tools/balance.py levels hard     # 同上，困難模式
     python3 tools/balance.py level 15        # 單一關卡逐波拆解
     python3 tools/balance.py level 15 hard   # 同上，困難模式
+    python3 tools/balance.py boss            # 每個首領波：全部的錢單挑首領，打不打得死
+    python3 tools/balance.py boss hard       # 同上，困難模式
     python3 tools/balance.py endless         # 無盡模式：逐波模擬，看在第幾波結束
 
 Tower.kt 的公式改了，下面的 TOWERS 也要跟著改。
@@ -210,8 +212,12 @@ def parse_levels():
                               r"WaveGroup\(EnemyKind\.(\w+),\s*(\d+),\s*(\d+),\s*([\d.]+)f,\s*(\d+),\s*(\d+)\)", wb)]
                 if groups:
                     waves.append(groups)
-        levels.append(Level(num("id"), num("chapterId"), num("indexInChapter"),
-                            num("startGold"), num("carrotHp"), path_len, obstacles, allowed, waves))
+        lv = Level(num("id"), num("chapterId"), num("indexInChapter"),
+                   num("startGold"), num("carrotHp"), path_len, obstacles, allowed, waves)
+        lv.path = [(int(c), int(r)) for c, r in re.findall(r"(\d+)\s+to\s+(\d+)", pm.group(1))] if pm else []
+        km = re.search(r"permanent = listOf\((.*?)\)", b, re.S)
+        lv.permanent = [(int(c), int(r)) for c, r in re.findall(r"(\d+)\s+to\s+(\d+)", km.group(1))] if km else []
+        levels.append(lv)
     return levels
 
 
@@ -500,8 +506,11 @@ def capped_build(usable, gold, armor, spacing, count_cap, slots):
             towers[ref] = (towers[ref][0], towers[ref][1] + 1)
 
 
-def simulate_endless(slots, max_waves=200, rows=None):
-    """逐波前推到蘿蔔歸零，回傳結束的波次。rows 給一個 list 就會收集每波的明細。"""
+def simulate_endless(slots, max_waves=200, rows=None, stop_at_death=True):
+    """
+    逐波前推到蘿蔔歸零，回傳結束的波次。rows 給一個 list 就會收集每波的明細。
+    stop_at_death=False 時蘿蔔歸零也繼續推，只為了估後面幾波手上會有多少錢。
+    """
     usable = list(TOWERS)
     gold = ENDLESS_START_GOLD
     carrot = ENDLESS_CARROT_HP
@@ -530,9 +539,184 @@ def simulate_endless(slots, max_waves=200, rows=None):
         carrot -= leaked
         if rows is not None:
             rows.append((w + 1, total, budget, built, delivered / total, leaked, carrot))
-        if carrot <= 0:
+        if carrot <= 0 and stop_at_death:
             return w + 1
     return max_waves
+
+
+# ---------------------------------------------------------------- 首領單挑
+
+# 前面的模型把整波血量加總：範圍塔乘上 density、射程只算一段直路的弦長。
+# 首領是單獨一隻、血量集中，這兩件事在它身上都不成立：density 加成消失，
+# 而彎來彎去的路徑又能讓一座塔罩到好幾段。所以這裡改用真正的地圖幾何。
+
+COLS, ROWS = 16, 8                          # GameMap.COLS / ROWS
+BOSS_ARMOR = KIND_STATS["BOSS"][3]
+SLOW = {                                    # 最強的減速（倍率越小越強），減速不疊加，見 Enemy.applySlow
+    "ICE": lambda L: 0.62 - L * 0.08,       # Tower.slowFactor
+    "MOON": lambda L: 0.86 - L * 0.06,      # Tower.auraSlowFactor
+    "SUN": lambda L: 0.86 - L * 0.06,
+}
+
+
+def path_coverage(path, cell, radius, step=0.05):
+    """路徑（格中心連線）落在 cell 中心 radius 格以內的長度。"""
+    cx, cy = cell[0] + 0.5, cell[1] + 0.5
+    r2 = radius * radius
+    total = 0.0
+    for (a, b), (c, d) in zip(path, path[1:]):
+        ax, ay, bx, by = a + 0.5, b + 0.5, c + 0.5, d + 0.5
+        seg = math.hypot(bx - ax, by - ay)
+        n = max(1, int(seg / step))
+        for i in range(n):
+            t = (i + 0.5) / n
+            x, y = ax + (bx - ax) * t, ay + (by - ay) * t
+            if (x - cx) ** 2 + (y - cy) ** 2 <= r2:
+                total += seg / n
+    return total
+
+
+class BossMap:
+    """一張地圖上每一格、每種射程能罩到多長的路徑。障礙物格視為已清掉（樂觀）。"""
+
+    def __init__(self, path, permanent):
+        self.path = path
+        blocked = set(path) | set(permanent)
+        self.cells = [(c, r) for c in range(COLS) for r in range(ROWS) if (c, r) not in blocked]
+        self.cache = {}
+
+    def coverage(self, cell, radius):
+        key = (cell, round(radius, 3))
+        if key not in self.cache:
+            self.cache[key] = path_coverage(self.path, cell, radius)
+        return self.cache[key]
+
+
+def boss_hit_dps(t, lv):
+    """單體、扣護甲、不含毒的持續傷害（毒不疊加，另外算一次）。"""
+    _, dmg_f, itv_f, _, _ = TOWERS[t]
+    return max(1, dmg_f(lv) - BOSS_ARMOR) * FPS / itv_f(lv)
+
+
+def boss_build(usable, gold, speed, bmap, slots=None):
+    """
+    把錢全部拿來打一隻首領。每一步在「把某種塔蓋在還空著的最佳格子」和「升級既有的塔」
+    之間，挑每金幣多出最多傷害的那一個。傷害 = 單體 DPS × 這一格罩到的路徑長 / 首領速度。
+
+    樂觀的地方（所以 ratio < 1 才可信）：
+      * 首領全程吃著場上最強的減速，減速塔本身不花錢。
+      * 毒塔的持續傷害算一份、從入口毒到終點。
+      * 不扣同一波小兵分走的火力，障礙物格當作已經清掉。
+    """
+    slow = min([1.0] + [SLOW[t](MAX_LEVEL) for t in usable if t in SLOW])
+    eff_speed = speed * slow
+    path_len = max(1, len(bmap.path) - 1)
+    poison = (1 + MAX_LEVEL) * FPS / POISON_TICK_FRAMES * path_len / eff_speed if "POISON" in usable else 0.0
+
+    def damage(t, lv, cell):
+        return boss_hit_dps(t, lv) * bmap.coverage(cell, TOWERS[t][3](lv)) / eff_speed
+
+    free = list(bmap.cells)
+    towers = []                                 # (塔, 等級, 格子)
+    remaining = gold
+    while True:
+        best = None
+        if free and (slots is None or len(towers) < slots):
+            for t in usable:
+                c = total_cost(t, 1)
+                if c > remaining:
+                    continue
+                cell = max(free, key=lambda x: damage(t, 1, x))
+                v = damage(t, 1, cell) / c
+                if best is None or v > best[0]:
+                    best = (v, "build", (t, cell), c)
+        for i, (t, lv, cell) in enumerate(towers):
+            if lv >= MAX_LEVEL:
+                continue
+            c = total_cost(t, lv + 1) - total_cost(t, lv)
+            if c <= remaining:
+                v = (damage(t, lv + 1, cell) - damage(t, lv, cell)) / c
+                if best is None or v > best[0]:
+                    best = (v, "upgrade", i, c)
+        if best is None or best[0] <= 0:
+            total = poison + sum(damage(t, lv, cell) for t, lv, cell in towers)
+            return [(t, lv) for t, lv, _ in towers], total, slow
+        _, action, ref, c = best
+        remaining -= c
+        if action == "build":
+            t, cell = ref
+            free.remove(cell)
+            towers.append((t, 1, cell))
+        else:
+            t, lv, cell = towers[ref]
+            towers[ref] = (t, lv + 1, cell)
+
+
+def boss_check(level):
+    """
+    每個首領波：首領血量 vs 全部財產拿來單挑首領的傷害上限。
+    財產 = simulate 估的開場金 + 提前叫波獎金 + 清光障礙物的金幣。
+    回傳 [(波, 首領血量, 可用金, 單挑傷害, ratio, 減速, 塔)]。ratio < 1 表示首領一定會漏。
+    """
+    res = simulate(level)
+    if not res:
+        return []
+    rows, usable = res
+    bmap = BossMap(level.path, level.permanent)
+    out = []
+    for wi, groups in enumerate(level.waves, 1):
+        for g in groups:
+            if g.kind != "BOSS" or wi > len(rows):
+                continue
+            budget = rows[wi - 1][2] + call_bonus(wi, PREP_FRAMES if wi == 1 else 110) + level.obstacle_gold()
+            towers, dmg, slow = boss_build(usable, budget, g.speed, bmap)
+            out.append((wi, g.hp, budget, dmg, dmg / g.hp, slow, towers))
+    return out
+
+
+def describe_towers(towers):
+    counts = {}
+    for t, lv in towers:
+        counts[(t, lv)] = counts.get((t, lv), 0) + 1
+    return " ".join(f"{t}L{lv}×{n}" for (t, lv), n in sorted(counts.items(), key=lambda x: -x[1]))
+
+
+def cmd_boss(difficulty="normal"):
+    print(f"首領單挑檢查：可用的錢全部拿來打首領一隻（單體 DPS、扣護甲 {BOSS_ARMOR}、真實路徑幾何）。")
+    print("樂觀假設：全程吃最強減速、毒算一份從頭毒到尾、不扣小兵分走的火力、障礙物已清。")
+    print(f"ratio < 1：連這樣都打不死，首領必漏 {KIND_STATS['BOSS'][4]} 滴血。ratio ≥ 1 只代表理論上可能。\n")
+    print(f"{'關卡':<7}{'波':>3}{'首領血':>9}{'可用金':>9}{'單挑傷害':>10}{'ratio':>8}{'減速':>6}  最划算的組合")
+    print("-" * 96)
+    for lv in levels_for(difficulty):
+        for wi, hp, budget, dmg, ratio, slow, towers in boss_check(lv):
+            mark = "  ⚠️" if ratio < 1.0 else ""
+            print(f"{lv.name:<7}{wi:>3}{hp:>9}{budget:>9}{dmg:>10.0f}{ratio:>8.2f}{slow:>6.2f}  {describe_towers(towers)}{mark}")
+
+
+def endless_boss_rows(slots=40, max_wave=80):
+    """
+    無盡模式的首領波：格子上限內的最佳單挑，加上核彈。
+    首領走完路徑的時間比核彈冷卻（60 秒）短，所以一隻首領最多吃一顆；
+    第 n 顆的價格是 800×2^(n-1)，假設每個首領波都用一顆、錢另外算（偏樂觀）。
+    """
+    base = next(l for l in parse_levels() if l.id == 20)
+    bmap = BossMap(base.path, base.permanent)
+    budgets = []
+    simulate_endless(slots, max_waves=max_wave, rows=budgets, stop_at_death=False)
+    out = []
+    nukes = 0
+    for w in range(9, max_wave, 10):
+        if w >= len(budgets):
+            break
+        boss = next(g for g in endless_wave(w) if g.kind == "BOSS")
+        budget = budgets[w][2]
+        _, dmg, slow = boss_build(list(TOWERS), budget, boss.speed, bmap, slots)
+        price = int(800 * 2 ** nukes)
+        frac = min(1.0, max(0.5, price * 3 / boss.hp))
+        nukes += 1
+        left = boss.hp * (1 - frac)
+        out.append((w + 1, boss.hp, budget, dmg, price, frac, dmg / left if left > 0 else float("inf")))
+    return out
 
 
 def cmd_endless():
@@ -552,6 +736,12 @@ def cmd_endless():
     print("格子上限的影響（越不敏感，代表結局越是由血量成長決定）：")
     for s in (25, 30, 40, 50, 60):
         print(f"  {s:>2} 座 → 第 {simulate_endless(s)} 波")
+    print("\n首領波單挑（40 座、真實路徑、樂觀假設同 boss 指令；每隻首領配一顆核彈，錢不扣核彈）：")
+    print(f"{'波':>4}{'首領血':>10}{'可用金':>9}{'塔傷害':>10}{'核彈價':>8}{'核彈扣':>7}{'ratio':>8}")
+    print("-" * 58)
+    for wave, hp, budget, dmg, price, frac, ratio in endless_boss_rows():
+        mark = "  ⚠️" if ratio < 1.0 else ""
+        print(f"{wave:>4}{hp:>10}{budget:>9}{dmg:>10.0f}{price:>8}{frac:>7.0%}{ratio:>8.2f}{mark}")
 
 
 if __name__ == "__main__":
@@ -562,6 +752,8 @@ if __name__ == "__main__":
         cmd_levels(sys.argv[2] if len(sys.argv) > 2 else "normal")
     elif cmd == "level":
         cmd_level(int(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "normal")
+    elif cmd == "boss":
+        cmd_boss(sys.argv[2] if len(sys.argv) > 2 else "normal")
     elif cmd == "endless":
         cmd_endless()
     else:

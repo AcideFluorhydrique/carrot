@@ -35,8 +35,11 @@ class BotRun {
         val deadline = started + (minutes * 60_000).toLong()
 
         val seeds = ArrayList<Plan>()
-        val saved = File("../tools/bot/plans/${target.name}.plan.txt")
-        if (saved.isFile) seeds += Plan.parse(saved.readText())
+        // bot.yml 的 from_run 會把上一輪的計畫放成 <target>.plan.txt，原本提交的那份改名成 .committed，兩份都當起點
+        for (suffix in listOf("plan.txt", "committed.plan.txt")) {
+            val saved = File("../tools/bot/plans/${target.name}.$suffix")
+            if (saved.isFile) seeds += Plan.parse(saved.readText())
+        }
         val layout = target.layout
         if (layout == null) {
             seeds += Seeder.seeds(geo, target.endless)
