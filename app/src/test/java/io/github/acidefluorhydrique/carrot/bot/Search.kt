@@ -72,7 +72,7 @@ class Search(
 
     fun describe(o: Outcome): String =
         if (o.won) "WIN carrot ${o.carrotHp}/${o.maxCarrotHp} invested ${o.invested}"
-        else "lost at wave ${o.wave} (kills ${o.kills}, nukes ${o.nukes})"
+        else "lost at wave ${o.wave} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%, nukes ${o.nukes})"
 
     // ---- 突變 ----
 

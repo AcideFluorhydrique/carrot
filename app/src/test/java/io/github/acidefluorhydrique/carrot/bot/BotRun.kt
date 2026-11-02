@@ -46,7 +46,9 @@ class BotRun {
             seeds += base.copy(call = CallPolicy.WHEN_CLEAR)
         }
 
-        val search = Search(target, geo, Random(target.name.hashCode())) { println("[${target.name}] $it") }
+        // 每次執行換一組亂數，重跑同一關才會走不同的路，而不是把上次走過的路再走一遍
+        val seed = System.getProperty("bot.seed")?.toLongOrNull() ?: 0L
+        val search = Search(target, geo, Random(target.name.hashCode().toLong() xor seed)) { println("[${target.name}] $it") }
         val (plan, outcome) = search.run(seeds, deadline)
         val seconds = (System.currentTimeMillis() - started) / 1000
 
@@ -69,6 +71,7 @@ class BotRun {
     private fun result(o: Outcome, target: Target): String = when {
         o.won -> "✅ win, carrot ${o.carrotHp}/${o.maxCarrotHp} " + "★".repeat(o.stars)
         target.endless -> "died in wave ${o.wave}" + if (o.nukes > 0) " (${o.nukes} nukes)" else ""
+        o.bossDamage > 0f -> "❌ lost in wave ${o.wave}/${target.level.waves.size}, boss took ${"%.0f".format(o.bossDamage * 100)}%"
         else -> "❌ lost in wave ${o.wave}/${target.level.waves.size}"
     }
 

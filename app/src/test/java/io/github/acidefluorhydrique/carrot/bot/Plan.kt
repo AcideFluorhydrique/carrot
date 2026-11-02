@@ -82,14 +82,19 @@ data class Outcome(
     val kills: Int,
     val frames: Int,
     val nukes: Int,
+    /** 最後一波裡，首領被打掉的最大血量比例，0 到 1。 */
+    val bossDamage: Float,
     val invested: Int,
     val gold: Int,
     val layout: List<String>,
     val log: List<String>
 ) {
-    /** 越大越好。過關優先，再看蘿蔔剩幾滴血，最後花得越少越好；沒過就比撐到第幾波、殺了幾隻。 */
+    /**
+     * 越大越好。過關優先，再看蘿蔔剩幾滴血，最後花得越少越好；沒過就比撐到第幾波、殺了幾隻，
+     * 再比首領被打掉多少。少了最後這項，卡在首領時所有打法都同分，搜尋就看不出誰比較接近。
+     */
     val score: Double
-        get() = if (won) 1e9 + carrotHp * 1e6 - invested else wave * 1e5 + kills
+        get() = if (won) 1e9 + carrotHp * 1e6 - invested else wave * 1e5 + kills + bossDamage.coerceAtMost(0.999f)
 
     val stars: Int
         get() = when {
@@ -192,9 +197,18 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
 
         val frameLimit = if (target.endless) Int.MAX_VALUE else MAX_LEVEL_FRAMES
         var capped = false
+        var bossWave = 0
+        var bossDamage = 0f
         while (!sim.isOver) {
             if (sim.frames % reaction == 0) act()
             sim.step()
+            if (GameState.wave != bossWave) {
+                bossWave = GameState.wave
+                bossDamage = 0f
+            }
+            for (enemy in sim.enemyManager.enemies) {
+                if (enemy.kind.isBoss && enemy.isAlive) bossDamage = maxOf(bossDamage, 1f - enemy.hpRatio)
+            }
             if (target.endless && GameState.wave > maxWave) {
                 capped = true
                 break
@@ -211,6 +225,7 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             kills = GameState.kills,
             frames = sim.frames,
             nukes = GameState.nukeUses,
+            bossDamage = bossDamage,
             invested = sim.towerManager.towers.sumOf { it.invested },
             gold = GameState.gold,
             layout = sim.layout(),

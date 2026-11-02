@@ -78,7 +78,7 @@ jobs:
           ENDLESS_MINUTES: ${{ inputs.endless_minutes }}
         run: |
           case "$TARGET" in endless*) m="${ENDLESS_MINUTES:-120}" ;; *) m="${MINUTES:-15}" ;; esac
-          ./gradlew :app:testDebugUnitTest --tests '*.BotRun' "-Pbot.target=$TARGET" "-Pbot.minutes=$m"
+          ./gradlew :app:testDebugUnitTest --tests '*.BotRun' "-Pbot.target=$TARGET" "-Pbot.minutes=$m" "-Pbot.seed=$GITHUB_RUN_ID"
           cat "app/build/bot/$TARGET.md" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v5

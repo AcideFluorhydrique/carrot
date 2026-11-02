@@ -68,7 +68,7 @@ tasks.withType<Test>().configureEach {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
     // 機器人玩家的參數，例如 -Pbot.target=hard-12 -Pbot.minutes=15。沒給 bot.target 時 BotRun 會跳過。
-    for (key in listOf("bot.target", "bot.minutes", "bot.out")) {
+    for (key in listOf("bot.target", "bot.minutes", "bot.out", "bot.seed")) {
         project.findProperty(key)?.let { systemProperty(key, it.toString()) }
     }
 }
