@@ -1,0 +1,4 @@
+Bosses that slip through cost less the more you hurt them.
+
+* A boss reaching the carrot used to cost 5 HP however close to death it was. It now costs its remaining health's share of 5, rounded up: 5 untouched, 3 at half, 1 once it is down to a fifth.
+* Every shot at a boss you cannot finish now counts. Other enemies cost the same as before.
