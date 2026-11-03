@@ -128,6 +128,43 @@ class Sim(target: Target) {
         return done
     }
 
+    /** 和玩家一樣：點塔、按賣出。退款是 [Tower.sellValue]。 */
+    fun sell(tower: Tower): Boolean {
+        val (x, y) = map.centerOf(tower.col, tower.row)
+        towerManager.onMapDown(x, y)
+        val done = towerManager.sellSelected()
+        towerManager.clearSelection()
+        return done
+    }
+
+    private val reach = HashMap<Triple<Int, Int, Int>, Float>()
+
+    /**
+     * 敵人沿路徑走過多遠（同 [io.github.acidefluorhydrique.carrot.Enemy.distanceTravelled] 的像素）之後，
+     * 就再也不會進到這座塔的射程。所有活著的敵人都超過這個距離，這座塔就不會再開火。
+     * 射程判定和 TowerManager 一樣：塔中心到敵人中心 ≤ [Tower.range]。
+     */
+    fun lastReach(tower: Tower): Float = reach.getOrPut(Triple(tower.col, tower.row, tower.level)) {
+        val points = map.pathPoints.map { (c, r) -> map.centerOf(c, r) }
+        val r2 = tower.range * tower.range
+        var travelled = 0f
+        var last = -1f
+        for (i in 0 until points.size - 1) {
+            val (ax, ay) = points[i]
+            val (bx, by) = points[i + 1]
+            val seg = kotlin.math.hypot(bx - ax, by - ay)
+            val n = 16
+            for (k in 0..n) {
+                val t = k / n.toFloat()
+                val dx = ax + (bx - ax) * t - tower.centerX
+                val dy = ay + (by - ay) * t - tower.centerY
+                if (dx * dx + dy * dy <= r2) last = travelled + seg * t
+            }
+            travelled += seg
+        }
+        last
+    }
+
     /** 標記障礙物集火。已經標記過的不再點，否則會變成取消標記。 */
     fun mark(col: Int, row: Int) {
         val obstacle = obstacleManager.aliveAt(col, row) ?: return

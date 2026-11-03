@@ -69,6 +69,35 @@ class SimTest {
         val target = Target.parse("endless")
         for (plan in Seeder.seeds(Geometry(target.level), endless = true)) {
             assertEquals(plan, Plan.parse(plan.text()))
+            assertEquals(plan.copy(salvage = true), Plan.parse(plan.copy(salvage = true).text()))
         }
+    }
+
+    /** 什麼都不蓋：蘿蔔早早歸零，但模擬照跑完，把整局漏掉的血都算進來。 */
+    @Test
+    fun aLossCountsEveryLeak() {
+        val target = Target.parse("normal-1")
+        val outcome = Bot(Plan(emptyList())).play(target, record = true)
+        assertTrue(!outcome.won)
+        assertEquals(0, outcome.carrotHp)
+        assertTrue("leaked ${outcome.leaked}", outcome.leaked > outcome.maxCarrotHp)
+        assertTrue("died in wave ${outcome.wave}", outcome.wave < target.level.waves.size)
+        assertTrue(outcome.log.any { "LEAK " in it })
+    }
+
+    /** 賣掉的只會是再也打不到人的塔，所以開了賣塔，原本過得了的關一樣過得了。 */
+    @Test
+    fun salvageNeverLosesAWin() {
+        val target = Target.parse("normal-1")
+        val cells = listOf(6 to 3, 8 to 4, 6 to 1, 8 to 3, 6 to 4)
+        val steps = ArrayList<Step>()
+        cells.forEachIndexed { i, (col, row) -> steps += Build(i + 1, col, row, TowerType.ARROW, TargetMode.FIRST) }
+        cells.indices.forEach { i -> steps += Upgrade(i + 1); steps += Upgrade(i + 1) }
+        val plain = Bot(Plan(steps)).play(target)
+        val salvaged = Bot(Plan(steps, salvage = true)).play(target, record = true)
+        salvaged.log.filter { "sell" in it }.forEach(::println)
+        assertTrue(plain.won)
+        assertTrue(salvaged.won)
+        assertTrue(salvaged.carrotHp >= plain.carrotHp)
     }
 }
