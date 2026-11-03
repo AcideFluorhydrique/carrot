@@ -43,6 +43,8 @@ class BotRun {
         val layout = target.layout
         if (layout == null) {
             seeds += Seeder.seeds(geo, target.endless)
+            // 賣塔只用在一般關卡的最後一波；每個起點都給一份開著的，讓搜尋兩邊都看得到
+            if (!target.endless) seeds += seeds.toList().map { it.copy(salvage = !it.salvage) }
         } else {
             val base = Seeder.fromLayout(geo, layout, nukeAt = 0.85f)
             seeds += base
@@ -74,14 +76,14 @@ class BotRun {
     private fun result(o: Outcome, target: Target): String = when {
         o.won -> "✅ win, carrot ${o.carrotHp}/${o.maxCarrotHp} " + "★".repeat(o.stars)
         target.endless -> "died in wave ${o.wave}" + if (o.nukes > 0) " (${o.nukes} nukes)" else ""
-        o.bossDamage > 0f -> "❌ lost in wave ${o.wave}/${target.level.waves.size}, boss took ${"%.0f".format(o.bossDamage * 100)}%"
-        else -> "❌ lost in wave ${o.wave}/${target.level.waves.size}"
+        o.bossDamage > 0f -> "❌ lost in wave ${o.wave}/${target.level.waves.size}, leaked ${o.leaked}/${o.maxCarrotHp}, boss took ${"%.0f".format(o.bossDamage * 100)}%"
+        else -> "❌ lost in wave ${o.wave}/${target.level.waves.size}, leaked ${o.leaked}/${o.maxCarrotHp}"
     }
 
     private fun short(o: Outcome, target: Target): String = when {
         o.won -> "${o.carrotHp}/${o.maxCarrotHp}"
         target.endless -> "w${o.wave}"
-        else -> "✗w${o.wave}"
+        else -> "✗w${o.wave} -${o.leaked}"
     }
 
     private fun report(
@@ -103,8 +105,17 @@ class BotRun {
         recorded.layout.forEach { appendLine(it) }
         appendLine("```")
         appendLine()
-        appendLine("Early wave calls: ${plan.call}" + if (target.endless) ", nuke when an enemy has walked ${"%.0f".format(plan.nukeAt * 100)}% of the path" else "")
+        appendLine("Early wave calls: ${plan.call}" + if (target.endless) ", nuke when an enemy has walked ${"%.0f".format(plan.nukeAt * 100)}% of the path" else ", sell passed towers in the last wave: ${plan.salvage}")
         appendLine()
+        val leaks = recorded.log.filter { "LEAK " in it }
+        if (leaks.isNotEmpty()) {
+            appendLine("Leaks (${recorded.leaked} carrot HP in all):")
+            appendLine()
+            appendLine("```")
+            leaks.forEach { appendLine(it) }
+            appendLine("```")
+            appendLine()
+        }
         appendLine("Same plan with slower reactions (1 s = 60 frames at 1x):")
         appendLine()
         appendLine("| decides every | result | carrot | kills | gold left |")

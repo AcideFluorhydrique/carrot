@@ -72,7 +72,8 @@ class Search(
 
     fun describe(o: Outcome): String =
         if (o.won) "WIN carrot ${o.carrotHp}/${o.maxCarrotHp} invested ${o.invested}"
-        else "lost at wave ${o.wave} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%, nukes ${o.nukes})"
+        else if (o.endless) "lost at wave ${o.wave} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%, nukes ${o.nukes})"
+        else "lost at wave ${o.wave}, leaked ${o.leaked}/${o.maxCarrotHp} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%)"
 
     // ---- 突變 ----
 
@@ -80,9 +81,10 @@ class Search(
         val steps = ArrayList(plan.steps)
         var call = plan.call
         var nukeAt = plan.nukeAt
+        var salvage = plan.salvage
         repeat(1 + rng.nextInt(3)) {
             // 固定陣型：只能調順序、升級、瞄準與兩條臨場規則，不能換塔、搬塔、加塔、拆塔
-            val op = if (target.layout != null) FIXED_LAYOUT_OPS.random(rng) else rng.nextInt(11)
+            val op = if (target.layout != null) FIXED_LAYOUT_OPS.random(rng) else rng.nextInt(if (target.endless) 11 else 12)
             when (op) {
                 0 -> retype(steps)
                 1, 2 -> move(steps)
@@ -98,9 +100,10 @@ class Search(
                 } else {
                     call = if (call == CallPolicy.NEVER) CallPolicy.WHEN_CLEAR else CallPolicy.NEVER
                 }
+                11 -> salvage = !salvage
             }
         }
-        return Plan(tidy(steps), call, nukeAt)
+        return Plan(tidy(steps), call, nukeAt, salvage)
     }
 
     private fun buildIndices(steps: List<Step>): List<Int> = steps.indices.filter { steps[it] is Build }

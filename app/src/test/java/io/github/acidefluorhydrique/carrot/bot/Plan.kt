@@ -28,17 +28,24 @@ enum class CallPolicy { NEVER, WHEN_CLEAR }
  *
  * - [call]：場上清空時提前叫下一波，換提前獎勵金。
  * - [nukeAt]：無盡模式中，有敵人走完路徑的這個比例時發射核彈（買得起、沒在冷卻時）。1 表示不用核彈。
+ * - [salvage]：一般關卡的最後一波生成完之後，所有敵人都已經走過的塔不會再開火，賣掉換錢升級還打得到的塔。
  *
  * 無盡模式裡計畫做完之後，剩下的錢自動拿去升級最便宜的塔。只看撐到第幾波時，
  * 搜尋會把「多升幾座小塔」這種不改變波數的升級刪掉，留著錢不花；真人不會這樣。
  */
-data class Plan(val steps: List<Step>, val call: CallPolicy = CallPolicy.NEVER, val nukeAt: Float = 1f) {
+data class Plan(
+    val steps: List<Step>,
+    val call: CallPolicy = CallPolicy.NEVER,
+    val nukeAt: Float = 1f,
+    val salvage: Boolean = false
+) {
 
     val builds: List<Build> get() = steps.filterIsInstance<Build>()
 
     fun text(): String = buildString {
         appendLine("call ${call.name}")
         appendLine("nuke $nukeAt")
+        appendLine("salvage $salvage")
         for (step in steps) {
             appendLine(
                 when (step) {
@@ -54,6 +61,7 @@ data class Plan(val steps: List<Step>, val call: CallPolicy = CallPolicy.NEVER, 
         fun parse(text: String): Plan {
             var call = CallPolicy.NEVER
             var nukeAt = 1f
+            var salvage = false
             val steps = ArrayList<Step>()
             for (raw in text.lines()) {
                 val line = raw.substringBefore('#').trim()
@@ -62,13 +70,14 @@ data class Plan(val steps: List<Step>, val call: CallPolicy = CallPolicy.NEVER, 
                 when (f[0]) {
                     "call" -> call = CallPolicy.valueOf(f[1])
                     "nuke" -> nukeAt = f[1].toFloat()
+                    "salvage" -> salvage = f[1].toBooleanStrict()
                     "build" -> steps += Build(f[1].toInt(), f[2].toInt(), f[3].toInt(), TowerType.valueOf(f[4]), TargetMode.valueOf(f[5]))
                     "upgrade" -> steps += Upgrade(f[1].toInt())
                     "mark" -> steps += Mark(f[1].toInt(), f[2].toInt())
                     else -> throw IllegalArgumentException("bad plan line: $raw")
                 }
             }
-            return Plan(steps, call, nukeAt)
+            return Plan(steps, call, nukeAt, salvage)
         }
     }
 }
@@ -77,6 +86,9 @@ data class Outcome(
     val won: Boolean,
     /** 結束時的波次：贏了是最後一波，輸了是死在第幾波，無盡模式到上限就停在那一波。 */
     val wave: Int,
+    /** 一般關卡整局漏掉的蘿蔔血，包含蘿蔔歸零之後的（見 [Bot.play]）。無盡模式是死前漏掉的。 */
+    val leaked: Int,
+    val endless: Boolean,
     val carrotHp: Int,
     val maxCarrotHp: Int,
     val kills: Int,
@@ -90,11 +102,19 @@ data class Outcome(
     val log: List<String>
 ) {
     /**
-     * 越大越好。過關優先，再看蘿蔔剩幾滴血，最後花得越少越好；沒過就比撐到第幾波、殺了幾隻，
-     * 再比首領被打掉多少。少了最後這項，卡在首領時所有打法都同分，搜尋就看不出誰比較接近。
+     * 越大越好。過關優先，再看蘿蔔剩幾滴血，最後花得越少越好。
+     *
+     * 一般關卡沒過：比整局漏掉幾滴血。蘿蔔歸零後遊戲照跑，所以「漏 7 滴、差一滴就過」和「漏 30 滴」分得出來，
+     * 「放走一隻首領、其他全殺」這種只差一點的打法也找得到。同分再比殺了幾隻、首領被打掉多少。
+     *
+     * 無盡模式沒有終點，照舊比撐到第幾波。
      */
     val score: Double
-        get() = if (won) 1e9 + carrotHp * 1e6 - invested else wave * 1e5 + kills + bossDamage.coerceAtMost(0.999f)
+        get() = when {
+            won -> 1e9 + carrotHp * 1e6 - invested
+            endless -> wave * 1e5 + kills + bossDamage.coerceAtMost(0.999f)
+            else -> 5e8 - leaked * 1e5 + kills + bossDamage.coerceAtMost(0.999f)
+        }
 
     val stars: Int
         get() = when {
@@ -115,6 +135,12 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
 
     fun play(target: Target, maxWave: Int = MAX_ENDLESS_WAVE, record: Boolean = false): Outcome {
         val sim = Sim(target)
+        // 一般關卡用一顆打不死的蘿蔔跑完整局，再自己用真正的血量判輸贏：輸的打法也能比出「差多少」
+        val realHp = GameState.maxCarrotHp
+        if (!target.endless) GameState.carrotHp = SHADOW_HP
+        fun leakedSoFar(): Int = if (target.endless) realHp - GameState.carrotHp else SHADOW_HP - GameState.carrotHp
+        var diedAt = 0
+        val lastWave = sim.level.waves.size
         val pending = ArrayList(plan.steps)
         val planned = plan.builds.mapTo(HashSet()) { it.id }
         val built = HashMap<Int, Build>()
@@ -126,7 +152,30 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             if (record) log += "wave %3d  %5.0fs  gold %6d  %s".format(GameState.wave, sim.frames / 60f, GameState.gold, text)
         }
 
+        fun salvage() {
+            if (!plan.salvage || target.endless || GameState.wave < lastWave || sim.enemyManager.pendingInWave > 0) return
+            val alive = sim.enemyManager.enemies.filter { it.isAlive }
+            if (alive.isEmpty()) return
+            val rearmost = alive.minOf { it.distanceTravelled }
+            for (tower in sim.towerManager.towers.toList()) {
+                if (sim.lastReach(tower) < rearmost) {
+                    val refund = tower.sellValue
+                    if (sim.sell(tower)) note("sell ${tower.type.name} (${tower.col},${tower.row}) L${tower.level} +$refund, every enemy has passed it")
+                }
+            }
+            // 錢先讓計畫裡還沒做的事用；計畫做完了，才升級還打得到人的塔，越下游的越先（剩下的敵人都會經過它）
+            if (pending.any { it is Build || it is Upgrade }) return
+            while (true) {
+                val tower = sim.towerManager.towers
+                    .filter { !it.isMaxLevel && sim.lastReach(it) >= rearmost }
+                    .maxByOrNull { sim.lastReach(it) } ?: break
+                if (GameState.gold < tower.upgradeCost || !sim.upgrade(tower)) break
+                note("upgrade ${tower.type.name} (${tower.col},${tower.row}) -> L${tower.level} (salvaged gold)")
+            }
+        }
+
         fun act() {
+            salvage()
             if (target.endless && plan.nukeAt < 1f && GameState.nukeCooldown == 0) {
                 val danger = sim.enemyManager.enemies.any { it.isAlive && it.distanceTravelled >= plan.nukeAt * pathPx }
                 if (danger && sim.nuke()) note("NUKE #${GameState.nukeUses}")
@@ -201,7 +250,14 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
         var bossDamage = 0f
         while (!sim.isOver) {
             if (sim.frames % reaction == 0) act()
+            val before = if (record) sim.enemyManager.enemies.filter { it.isAlive } else emptyList()
             sim.step()
+            for (enemy in before) {
+                if (enemy.hasReachedEnd) {
+                    note("LEAK ${enemy.kind.name} -${enemy.kind.leakDamage}, carrot ${realHp - leakedSoFar()}/$realHp")
+                }
+            }
+            if (diedAt == 0 && leakedSoFar() >= realHp) diedAt = GameState.wave
             if (GameState.wave != bossWave) {
                 bossWave = GameState.wave
                 bossDamage = 0f
@@ -215,12 +271,23 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             }
             if (sim.frames >= frameLimit) break
         }
-        if (record) note(if (GameState.status == GameStatus.VICTORY) "VICTORY" else if (capped) "stopped at wave cap" else "DEFEAT")
+        val leaked = leakedSoFar()
+        val won = GameState.status == GameStatus.VICTORY && leaked < realHp
+        if (record) note(
+            when {
+                won -> "VICTORY"
+                capped -> "stopped at wave cap"
+                diedAt > 0 && !target.endless -> "DEFEAT (carrot ran out in wave $diedAt; $leaked leaked in all)"
+                else -> "DEFEAT"
+            }
+        )
 
         return Outcome(
-            won = GameState.status == GameStatus.VICTORY,
-            wave = GameState.wave,
-            carrotHp = GameState.carrotHp,
+            won = won,
+            wave = if (diedAt > 0) diedAt else GameState.wave,
+            leaked = leaked,
+            endless = target.endless,
+            carrotHp = (realHp - leaked).coerceAtLeast(0),
             maxCarrotHp = GameState.maxCarrotHp,
             kills = GameState.kills,
             frames = sim.frames,
@@ -235,6 +302,9 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
 
     companion object {
         const val MAX_ENDLESS_WAVE = 150
+
+        /** 一般關卡模擬時的蘿蔔血。只是「不會死」，實際血量是關卡的 carrotHp。 */
+        private const val SHADOW_HP = 1_000_000
 
         /** 一般關卡最長也不到這麼久，超過表示卡住了。 */
         const val MAX_LEVEL_FRAMES = 60 * 60 * 60
