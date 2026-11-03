@@ -64,8 +64,10 @@ class Search(
                 sinceImprovement = 0
                 log("eval $evaluations: ${describe(outcome)}")
             }
-            // 已經滿血過關，剩下只是在省錢；很久沒進步就收工，把時間留給別的關卡
+            // 已經滿血過關，剩下只是在省錢；很久沒進步就收工，把時間留給別的關卡。
+            // 過關但沒滿血的也一樣，只是多給一些時間找多一滴血
             if (bestOutcome.won && bestOutcome.carrotHp >= bestOutcome.maxCarrotHp && sinceImprovement > 4000) break
+            if (bestOutcome.won && sinceImprovement > 30000) break
         }
         return best to bestOutcome
     }
@@ -84,7 +86,7 @@ class Search(
         var salvage = plan.salvage
         repeat(1 + rng.nextInt(3)) {
             // 固定陣型：只能調順序、升級、瞄準與兩條臨場規則，不能換塔、搬塔、加塔、拆塔
-            val op = if (target.layout != null) FIXED_LAYOUT_OPS.random(rng) else rng.nextInt(if (target.endless) 11 else 12)
+            val op = ops.random(rng)
             when (op) {
                 0 -> retype(steps)
                 1, 2 -> move(steps)
@@ -101,9 +103,34 @@ class Search(
                     call = if (call == CallPolicy.NEVER) CallPolicy.WHEN_CLEAR else CallPolicy.NEVER
                 }
                 11 -> salvage = !salvage
+                12 -> swapCells(steps)
             }
         }
         return Plan(tidy(steps), call, nukeAt, salvage)
+    }
+
+    /**
+     * 能用的突變，對應 [mutate] 裡的編號。固定陣型只調順序與臨場規則；
+     * 可換塔的陣型多了換塔種與兩座塔互換位置，格子本身不動。
+     */
+    private val ops: List<Int> = when {
+        target.layout != null && target.retypeable -> FIXED_LAYOUT_OPS + listOf(0, 12, 12)
+        target.layout != null -> FIXED_LAYOUT_OPS
+        target.endless -> (0..10).toList() + 12
+        else -> (0..12).toList()
+    }
+
+    /** 兩座不同種的塔互換位置，升級跟著塔走。試的是「哪種塔擺在哪段路」的搭配，不改變花費。 */
+    private fun swapCells(steps: MutableList<Step>) {
+        val builds = buildIndices(steps)
+        if (builds.size < 2) return
+        val i = builds.random(rng)
+        val a = steps[i] as Build
+        val others = builds.filter { (steps[it] as Build).type != a.type }
+        val j = others.randomOrNull(rng) ?: return
+        val b = steps[j] as Build
+        steps[i] = a.copy(col = b.col, row = b.row)
+        steps[j] = b.copy(col = a.col, row = a.row)
     }
 
     private fun buildIndices(steps: List<Step>): List<Int> = steps.indices.filter { steps[it] is Build }

@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: 'all, normal, hard, endless, compare, or a list like "normal-5 hard-12 endless@player"'
+        description: 'all, normal, hard, endless, compare, endless-all, or a list like "normal-5 hard-12 endless@player endless+bot"'
         default: 'all'
       minutes:
         description: 'Search time per level (minutes)'
@@ -47,7 +47,9 @@ jobs:
               # The player's endless layout against the bot's, each with its layout fixed,
               # plus the levels the first full run did not clear with three stars.
               compare) list+=("endless@player" "endless@bot" "normal-20" "hard-18" "hard-20") ;;
-              endless@player|endless@bot) list+=("$word") ;;
+              # Every way to search endless: free, each layout fixed, and each layout's cells with the towers free.
+              endless-all) list+=("endless" "endless@player" "endless@bot" "endless+player" "endless+bot") ;;
+              endless@player|endless@bot|endless+player|endless+bot) list+=("$word") ;;
               normal-*|hard-*)
                 n="${word#*-}"
                 if [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= 20 )); then list+=("$word"); else echo "::error::bad target $word"; exit 1; fi ;;
