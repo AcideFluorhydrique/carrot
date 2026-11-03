@@ -554,8 +554,7 @@ COLS, ROWS = 16, 8                          # GameMap.COLS / ROWS
 BOSS_ARMOR = KIND_STATS["BOSS"][3]
 SLOW = {                                    # 最強的減速（倍率越小越強），減速不疊加，見 Enemy.applySlow
     "ICE": lambda L: 0.62 - L * 0.08,       # Tower.slowFactor
-    "MOON": lambda L: 0.86 - L * 0.06,      # Tower.auraSlowFactor
-    "SUN": lambda L: 0.86 - L * 0.06,
+    "MOON": lambda L: 0.86 - L * 0.06,      # Tower.auraSlowFactor；太陽也是脈衝，但不減速（TowerManager.firePulse）
 }
 
 
@@ -652,11 +651,18 @@ def boss_build(usable, gold, speed, bmap, slots=None):
             towers[ref] = (t, lv + 1, cell)
 
 
+def bosses_to_kill(level, group):
+    """蘿蔔滿血時最多能放走幾隻首領還不死；剩下的非殺不可。一隻都不用殺時回傳 0。"""
+    affordable = (level.carrot_hp - 1) // group.leak
+    return max(0, group.count - affordable)
+
+
 def boss_check(level):
     """
-    每個首領波：首領血量 vs 全部財產拿來單挑首領的傷害上限。
+    每個首領波：非殺不可的首領總血量 vs 全部財產拿來打首領的傷害上限。
+    一波可能有不只一隻首領；蘿蔔血夠的話可以放走幾隻（見 bosses_to_kill）。
     財產 = simulate 估的開場金 + 提前叫波獎金 + 清光障礙物的金幣。
-    回傳 [(波, 首領血量, 可用金, 單挑傷害, ratio, 減速, 塔)]。ratio < 1 表示首領一定會漏。
+    回傳 [(波, 首領數, 必殺數, 單隻血量, 可用金, 傷害, ratio, 減速, 塔)]。ratio < 1 表示一定會死。
     """
     res = simulate(level)
     if not res:
@@ -670,7 +676,9 @@ def boss_check(level):
                 continue
             budget = rows[wi - 1][2] + call_bonus(wi, PREP_FRAMES if wi == 1 else 110) + level.obstacle_gold()
             towers, dmg, slow = boss_build(usable, budget, g.speed, bmap)
-            out.append((wi, g.hp, budget, dmg, dmg / g.hp, slow, towers))
+            must = bosses_to_kill(level, g)
+            ratio = dmg / (g.hp * must) if must else float("inf")
+            out.append((wi, g.count, must, g.hp, budget, dmg, ratio, slow, towers))
     return out
 
 
@@ -682,15 +690,16 @@ def describe_towers(towers):
 
 
 def cmd_boss(difficulty="normal"):
-    print(f"首領單挑檢查：可用的錢全部拿來打首領一隻（單體 DPS、扣護甲 {BOSS_ARMOR}、真實路徑幾何）。")
-    print("樂觀假設：全程吃最強減速、毒算一份從頭毒到尾、不扣小兵分走的火力、障礙物已清。")
-    print(f"ratio < 1：連這樣都打不死，首領必漏 {KIND_STATS['BOSS'][4]} 滴血。ratio ≥ 1 只代表理論上可能。\n")
-    print(f"{'關卡':<7}{'波':>3}{'首領血':>9}{'可用金':>9}{'單挑傷害':>10}{'ratio':>8}{'減速':>6}  最划算的組合")
-    print("-" * 96)
+    print(f"首領檢查：可用的錢全部拿來打首領（單體 DPS、扣護甲 {BOSS_ARMOR}、真實路徑幾何）。")
+    print("樂觀假設：全程吃最強減速（只有冰與月亮會減速）、毒算一份從頭毒到尾、不扣小兵分走的火力、障礙物已清。")
+    print(f"首領漏一隻扣 {KIND_STATS['BOSS'][4]} 滴；蘿蔔滿血時放得走的那幾隻不用殺，剩下的是『必殺』。")
+    print("ratio = 傷害 / 必殺首領的總血量。< 1：連這樣都殺不夠，這關一定輸。≥ 1 只代表理論上可能。\n")
+    print(f"{'關卡':<7}{'波':>3}{'隻數':>5}{'必殺':>5}{'單隻血':>9}{'可用金':>9}{'傷害':>9}{'ratio':>8}{'減速':>6}  最划算的組合")
+    print("-" * 104)
     for lv in levels_for(difficulty):
-        for wi, hp, budget, dmg, ratio, slow, towers in boss_check(lv):
+        for wi, count, must, hp, budget, dmg, ratio, slow, towers in boss_check(lv):
             mark = "  ⚠️" if ratio < 1.0 else ""
-            print(f"{lv.name:<7}{wi:>3}{hp:>9}{budget:>9}{dmg:>10.0f}{ratio:>8.2f}{slow:>6.2f}  {describe_towers(towers)}{mark}")
+            print(f"{lv.name:<7}{wi:>3}{count:>5}{must:>5}{hp:>9}{budget:>9}{dmg:>9.0f}{ratio:>8.2f}{slow:>6.2f}  {describe_towers(towers)}{mark}")
 
 
 def endless_boss_rows(slots=40, max_wave=80):
