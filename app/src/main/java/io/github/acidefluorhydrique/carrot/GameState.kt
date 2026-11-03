@@ -87,10 +87,10 @@ object GameState {
         return true
     }
 
-    /** 敵人抵達終點，扣蘿蔔血。 */
-    fun onEnemyReached(kind: EnemyKind) {
+    /** 敵人抵達終點，扣蘿蔔血。首領扣多少看它剩多少血，見 [EnemyKind.leakFor]。 */
+    fun onEnemyReached(kind: EnemyKind, hpRatio: Float = 1f) {
         leaks++
-        carrotHp -= kind.leakDamage
+        carrotHp -= kind.leakFor(hpRatio)
         carrotHurtTimer = 30
         Audio.play(Sfx.HURT)
         Fx.shake(Ui.dp(5f), 18)

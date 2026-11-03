@@ -254,7 +254,7 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             sim.step()
             for (enemy in before) {
                 if (enemy.hasReachedEnd) {
-                    note("LEAK ${enemy.kind.name} -${enemy.kind.leakDamage}, carrot ${realHp - leakedSoFar()}/$realHp")
+                    note("LEAK ${enemy.kind.name} -${enemy.kind.leakFor(enemy.hpRatio)}, carrot ${realHp - leakedSoFar()}/$realHp")
                 }
             }
             if (diedAt == 0 && leakedSoFar() >= realHp) diedAt = GameState.wave
