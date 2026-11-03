@@ -17,7 +17,7 @@ enum class EnemyKind(
     /** 固定減傷，毒傷無視。 */
     val armor: Int,
     val auraColor: String,
-    /** 漏怪時扣掉的蘿蔔血量。 */
+    /** 漏怪時扣掉的蘿蔔血量。首領是上限，實際看剩多少血，見 [leakFor]。 */
     val leakDamage: Int = 1,
     val isBoss: Boolean = false
 ) {
@@ -28,6 +28,15 @@ enum class EnemyKind(
     BOSS(R.string.enemy_boss, "👹", 9.0f, 0.52f, 6.0f, 1.8f, 6, "#F87171", leakDamage = 5, isBoss = true);
 
     val displayName: String get() = Strings.get(displayNameRes)
+
+    /**
+     * 漏掉時實際扣的血。首領按剩下的血量比例扣，無條件進位、最少一滴：
+     * 滿血漏掉扣滿，打掉一半扣 3，打到剩兩成以下只扣 1。
+     * 否則打不死的首領打多少都一樣，玩家乾脆完全不理它。
+     */
+    fun leakFor(hpRatio: Float): Int =
+        if (isBoss) kotlin.math.ceil(leakDamage * hpRatio.coerceIn(0f, 1f) - 1e-4f).toInt().coerceIn(1, leakDamage)
+        else leakDamage
 
     /** 玩法說明用的一句話描述，護甲類需要帶入數值。 */
     val note: String

@@ -140,7 +140,7 @@
     <string name="enemy_tank">铁甲兽</string>
     <string name="enemy_tank_note">护甲 %1$d，漏掉扣 %2$d 血</string>
     <string name="enemy_boss">菜园霸主</string>
-    <string name="enemy_boss_note">护甲 %1$d，漏掉扣 %2$d 血</string>
+    <string name="enemy_boss_note">护甲 %1$d，漏掉最多扣 %2$d 血，打得越残扣得越少</string>
 
     <!-- Chapters -->
     <string name="chapters_title">选择章节</string>

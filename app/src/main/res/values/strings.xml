@@ -140,7 +140,7 @@
     <string name="enemy_tank">Ironhide</string>
     <string name="enemy_tank_note">Armour %1$d, costs %2$d carrot HP</string>
     <string name="enemy_boss">Overlord</string>
-    <string name="enemy_boss_note">Armour %1$d, costs %2$d carrot HP</string>
+    <string name="enemy_boss_note">Armour %1$d, costs up to %2$d carrot HP, less the more it is hurt</string>
 
     <!-- Chapters -->
     <string name="chapters_title">Select Chapter</string>

@@ -223,6 +223,31 @@ def parse_levels():
 
 # ---------------------------------------------------------------- 前推模擬
 
+def boss_leak(leak, hp_ratio):
+    """EnemyKind.leakFor：首領按剩下的血量比例扣，無條件進位、最少一滴。"""
+    return min(leak, max(1, math.ceil(leak * min(max(hp_ratio, 0.0), 1.0) - 1e-4)))
+
+
+def leak_of(groups, delivered):
+    """
+    傷害按順序吃掉敵人，殺不完的漏出去。回傳 (擊殺金幣, 漏掉的蘿蔔血)。
+    沒殺掉的第一隻首領身上留著打剩的傷害，按比例少扣（其他種類不管剩多少血都扣滿）。
+    """
+    remaining = delivered
+    gold = leaked = 0
+    for g in groups:
+        k = min(g.count, int(remaining // g.hp))
+        remaining -= k * g.hp
+        gold += k * g.reward
+        left = g.count - k
+        if left and g.kind == "BOSS":
+            leaked += boss_leak(g.leak, 1 - remaining / g.hp) + (left - 1) * g.leak
+            remaining = 0
+        else:
+            leaked += left * g.leak
+    return gold, leaked
+
+
 def pick_build(usable, gold, armor, spacing, count_cap):
     """
     逐座買：每次挑「當下買得起、DPG 最高」的一座，直到錢不夠為止。
@@ -296,14 +321,7 @@ def simulate(level, coverage=1.0):
                 best_engaged = max(best_engaged, engaged)
             engaged_total += best_engaged
 
-        # 傷害按順序吃掉敵人，殺不完的漏出去
-        remaining = delivered
-        killed_gold = 0
-        for g in groups:
-            k = min(g.count, int(remaining // g.hp))
-            remaining -= k * g.hp
-            killed_gold += k * g.reward
-            leaked_damage += (g.count - k) * g.leak
+        killed_gold, leaked_damage = leak_of(groups, delivered)
 
         gold += killed_gold
         carrot -= leaked_damage
@@ -527,13 +545,7 @@ def simulate_endless(slots, max_waves=200, rows=None, stop_at_death=True):
             for t, lv in towers:
                 d = max(1.0, min(g.count, coverage_cells(t, lv) / spacing))
                 delivered += dps(t, lv, g.armor, d) * (span + coverage_cells(t, lv) / g.speed)
-        remaining = delivered
-        earned = leaked = 0
-        for g in groups:
-            k = min(g.count, int(remaining // g.hp))
-            remaining -= k * g.hp
-            earned += k * g.reward
-            leaked += (g.count - k) * g.leak
+        earned, leaked = leak_of(groups, delivered)
         total = sum(g.total_hp for g in groups)
         gold += earned
         carrot -= leaked
@@ -651,20 +663,26 @@ def boss_build(usable, gold, speed, bmap, slots=None):
             towers[ref] = (t, lv + 1, cell)
 
 
-def bosses_to_kill(level, group):
-    """蘿蔔滿血時最多能放走幾隻首領還不死；剩下的非殺不可。一隻都不用殺時回傳 0。"""
-    affordable = (level.carrot_hp - 1) // group.leak
-    return max(0, group.count - affordable)
+def boss_damage_needed(level, group):
+    """
+    蘿蔔滿血、小怪全殺時，這群首領至少要被打掉多少血（以「隻」計）才不會輸。
+
+    每隻漏掉扣 ceil(leak × 剩血比例)、最少 1；殺掉的不扣。扣 k 滴（k ≥ 1）要先打掉 1 − k/leak，
+    殺掉要打掉 1。兩者每少扣一滴都要多打 1/leak 隻，所以只要把 carrot_hp − 1 滴扣好扣滿：
+    需要 = 隻數 − (carrot_hp − 1) / leak，最少 0。
+    """
+    allowed = min(level.carrot_hp - 1, group.count * group.leak)
+    return max(0.0, group.count - allowed / group.leak)
 
 
 def boss_check(level):
     """
     每個首領波：非殺不可的首領總血量 vs 全部財產拿來打首領的傷害上限。
-    一波可能有不只一隻首領；蘿蔔血夠的話可以放走幾隻（見 bosses_to_kill）。
+    一波可能有不只一隻首領；漏掉的首領按剩血比例扣血，所以算的是「至少要打掉幾隻份的血」（見 boss_damage_needed）。
     財產 = simulate 估的開場金 + 提前叫波獎金 + 清光障礙物的金幣。
     不算賣塔：最後一波首領走過上游的塔之後賣掉（退 65%）再投到下游，同一筆錢能打兩次，
     這是這個上限唯一漏掉、對玩家有利的地方（bot 的 salvage 會試）。
-    回傳 [(波, 首領數, 必殺數, 單隻血量, 可用金, 傷害, ratio, 減速, 塔)]。ratio < 1 表示一定會死。
+    回傳 [(波, 首領數, 需打掉幾隻份, 單隻血量, 可用金, 傷害, ratio, 減速, 塔)]。ratio < 1 表示一定會死。
     """
     res = simulate(level)
     if not res:
@@ -678,8 +696,8 @@ def boss_check(level):
                 continue
             budget = rows[wi - 1][2] + call_bonus(wi, PREP_FRAMES if wi == 1 else 110) + level.obstacle_gold()
             towers, dmg, slow = boss_build(usable, budget, g.speed, bmap)
-            must = bosses_to_kill(level, g)
-            ratio = dmg / (g.hp * must) if must else float("inf")
+            must = boss_damage_needed(level, g)
+            ratio = dmg / (g.hp * must) if must > 0 else float("inf")
             out.append((wi, g.count, must, g.hp, budget, dmg, ratio, slow, towers))
     return out
 
@@ -694,14 +712,14 @@ def describe_towers(towers):
 def cmd_boss(difficulty="normal"):
     print(f"首領檢查：可用的錢全部拿來打首領（單體 DPS、扣護甲 {BOSS_ARMOR}、真實路徑幾何）。")
     print("樂觀假設：全程吃最強減速（只有冰與月亮會減速）、毒算一份從頭毒到尾、不扣小兵分走的火力、障礙物已清。")
-    print(f"首領漏一隻扣 {KIND_STATS['BOSS'][4]} 滴；蘿蔔滿血時放得走的那幾隻不用殺，剩下的是『必殺』。")
-    print("ratio = 傷害 / 必殺首領的總血量。< 1：連這樣都殺不夠，這關一定輸。≥ 1 只代表理論上可能。\n")
-    print(f"{'關卡':<7}{'波':>3}{'隻數':>5}{'必殺':>5}{'單隻血':>9}{'可用金':>9}{'傷害':>9}{'ratio':>8}{'減速':>6}  最划算的組合")
+    print(f"首領漏掉最多扣 {KIND_STATS['BOSS'][4]} 滴，按剩血比例無條件進位、最少 1。『需打掉』= 蘿蔔撐得住的前提下，")
+    print("首領至少要被打掉幾隻份的血（假設小怪全殺）。ratio = 傷害 / 需打掉的血。< 1：這關一定輸。≥ 1 只代表理論上可能。\n")
+    print(f"{'關卡':<7}{'波':>3}{'隻數':>5}{'需打掉':>7}{'單隻血':>9}{'可用金':>9}{'傷害':>9}{'ratio':>8}{'減速':>6}  最划算的組合")
     print("-" * 104)
     for lv in levels_for(difficulty):
         for wi, count, must, hp, budget, dmg, ratio, slow, towers in boss_check(lv):
             mark = "  ⚠️" if ratio < 1.0 else ""
-            print(f"{lv.name:<7}{wi:>3}{count:>5}{must:>5}{hp:>9}{budget:>9}{dmg:>9.0f}{ratio:>8.2f}{slow:>6.2f}  {describe_towers(towers)}{mark}")
+            print(f"{lv.name:<7}{wi:>3}{count:>5}{must:>7.2f}{hp:>9}{budget:>9}{dmg:>9.0f}{ratio:>8.2f}{slow:>6.2f}  {describe_towers(towers)}{mark}")
 
 
 def endless_boss_rows(slots=40, max_wave=80):

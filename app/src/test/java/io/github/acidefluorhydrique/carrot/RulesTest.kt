@@ -136,6 +136,32 @@ class RulesTest {
         assertEquals(0.75f, Nuke.bossFraction(1000, 4000), 1e-6f)
     }
 
+    // ---- 漏怪 ----
+
+    @Test
+    fun aBossCostsLessTheMoreItIsHurt() {
+        val boss = EnemyKind.BOSS
+        assertEquals(5, boss.leakFor(1f))
+        assertEquals(5, boss.leakFor(0.81f))
+        assertEquals(4, boss.leakFor(0.8f))
+        assertEquals(3, boss.leakFor(0.6f))
+        assertEquals(3, boss.leakFor(0.5f))
+        assertEquals(1, boss.leakFor(0.2f))
+        assertEquals("a boss that reaches the carrot always costs something", 1, boss.leakFor(0.01f))
+        for (step in 0..100) {
+            val ratio = step / 100f
+            assertTrue(boss.leakFor(ratio) <= boss.leakFor((step + 1) / 100f))
+        }
+    }
+
+    @Test
+    fun otherEnemiesCostTheSameWhateverTheirHp() {
+        for (kind in EnemyKind.values().filter { !it.isBoss }) {
+            assertEquals(kind.leakDamage, kind.leakFor(1f))
+            assertEquals(kind.leakDamage, kind.leakFor(0.01f))
+        }
+    }
+
     private fun allLevels(): List<LevelConfig> = GameLevels.all + Endless.level
 
     private fun name(level: LevelConfig): String =

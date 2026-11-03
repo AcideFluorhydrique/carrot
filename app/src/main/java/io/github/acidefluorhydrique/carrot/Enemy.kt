@@ -177,7 +177,7 @@ class Enemy(
         val points = gameMap.pathPoints
         if (pathIndex >= points.size - 1) {
             hasReachedEnd = true
-            GameState.onEnemyReached(kind)
+            GameState.onEnemyReached(kind, hpRatio)
             Fx.burst(x, y, 10, Colors.of("#F87171"), Ui.dp(2f), Ui.dp(2.6f), 24)
             return
         }
