@@ -24,12 +24,16 @@ import io.github.acidefluorhydrique.carrot.TowerType
  *
  * `endless@player`、`endless@bot` 固定一張陣型（[Seeder.LAYOUTS]），搜尋只調蓋塔與升級的先後、
  * 瞄準方式、核彈與叫波時機，不能換塔也不能搬塔，用來公平比較兩張陣型。
+ *
+ * `endless+player`、`endless+bot` 從同一張陣型出發、用同一批格子，但每一格放什麼塔、
+ * 兩座塔互換位置都可以改：格子的形狀保留，找哪些塔擺在一起、誰在誰前面最好（[retypeable]）。
  */
 data class Target(
     val name: String,
     val level: LevelConfig,
     val difficulty: Difficulty,
-    val layout: List<String>? = null
+    val layout: List<String>? = null,
+    val retypeable: Boolean = false
 ) {
 
     val endless: Boolean get() = Endless.isEndless(level)
@@ -38,10 +42,10 @@ data class Target(
         fun parse(text: String): Target {
             val name = text.trim().lowercase()
             if (name == "endless") return Target(name, Endless.level, Difficulty.NORMAL)
-            if (name.startsWith("endless@")) {
-                val layout = Seeder.LAYOUTS[name.substringAfter('@')]
+            if (name.startsWith("endless@") || name.startsWith("endless+")) {
+                val layout = Seeder.LAYOUTS[name.substring("endless@".length)]
                     ?: throw IllegalArgumentException("unknown layout in $text, known: ${Seeder.LAYOUTS.keys}")
-                return Target(name, Endless.level, Difficulty.NORMAL, layout)
+                return Target(name, Endless.level, Difficulty.NORMAL, layout, retypeable = name[7] == '+')
             }
             val parts = name.split("-")
             require(parts.size == 2) { "target must be endless, normal-N or hard-N: $text" }
@@ -77,6 +81,10 @@ class Sim(target: Target) {
     var frames = 0
         private set
 
+    /** 整局蓋塔、升級花掉的金幣。賣塔的退款不扣回來：最後一波把塔賣光，錢並沒有真的省下。 */
+    var spent = 0
+        private set
+
     init {
         GameState.difficulty = target.difficulty
         Fx.clear()
@@ -106,6 +114,7 @@ class Sim(target: Target) {
     /** 和玩家一樣：選塔、按下、放開。成功時回傳新塔。 */
     fun build(col: Int, row: Int, type: TowerType, mode: TargetMode): Tower? {
         if (!type.isAvailable || !map.canPlaceTower(col, row) || GameState.gold < type.baseCost) return null
+        val before = GameState.gold
         towerManager.clearBuildType()
         towerManager.toggleBuildType(type)
         val (x, y) = map.centerOf(col, row)
@@ -113,6 +122,7 @@ class Sim(target: Target) {
         towerManager.onMapUp()
         towerManager.clearBuildType()
         val tower = towerAt(col, row) ?: return null
+        spent += before - GameState.gold
         var guard = TargetMode.values().size
         while (tower.targetMode != mode && guard-- > 0) towerManager.cycleTargetModeOfSelected()
         towerManager.clearSelection()
@@ -121,10 +131,12 @@ class Sim(target: Target) {
 
     fun upgrade(tower: Tower): Boolean {
         if (tower.isMaxLevel || GameState.gold < tower.upgradeCost) return false
+        val before = GameState.gold
         val (x, y) = map.centerOf(tower.col, tower.row)
         towerManager.onMapDown(x, y)
         val done = towerManager.upgradeSelected()
         towerManager.clearSelection()
+        if (done) spent += before - GameState.gold
         return done
     }
 

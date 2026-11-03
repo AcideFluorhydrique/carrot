@@ -99,5 +99,35 @@ class SimTest {
         assertTrue(plain.won)
         assertTrue(salvaged.won)
         assertTrue(salvaged.carrotHp >= plain.carrotHp)
+        // 賣掉的塔已經花掉的錢照算：投入不會因為賣塔而變少
+        assertTrue("salvaged ${salvaged.invested} < plain ${plain.invested}", salvaged.invested >= plain.invested)
+    }
+
+    @Test
+    fun layoutTargetsParse() {
+        val fixed = Target.parse("endless@player")
+        val free = Target.parse("endless+player")
+        assertEquals(fixed.layout, free.layout)
+        assertTrue(!fixed.retypeable)
+        assertTrue(free.retypeable)
+        assertTrue(Target.parse("endless+bot").retypeable)
+    }
+
+    /** 可換塔的陣型：突變可以換塔種、互換位置，但用到的格子永遠是原本那一批。 */
+    @Test
+    fun retypeableLayoutKeepsItsCells() {
+        val target = Target.parse("endless+player")
+        val geo = Geometry(target.level)
+        val base = Seeder.fromLayout(geo, target.layout!!, nukeAt = 0.85f)
+        val cells = base.builds.map { it.col to it.row }.toSet()
+        val search = Search(target, geo, kotlin.random.Random(1)) {}
+        var plan = base
+        var retyped = false
+        repeat(500) {
+            plan = search.mutate(plan)
+            assertEquals(cells, plan.builds.map { it.col to it.row }.toSet())
+            if (plan.builds.map { it.type } != base.builds.map { it.type }) retyped = true
+        }
+        assertTrue("500 mutations never changed a tower", retyped)
     }
 }

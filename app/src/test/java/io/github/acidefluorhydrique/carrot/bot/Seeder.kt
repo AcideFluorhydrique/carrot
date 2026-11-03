@@ -146,7 +146,7 @@ object Seeder {
             val weights = baseWeight.mapValues { (type, w) -> if (type == favourite) w * 3f else w }
             plans += greedy(geo, weights, maxBuilds, marksFirst = true, nukeAt = nukeAt)
         }
-        if (endless) plans += fromLayout(geo, PLAYER_ENDLESS_LAYOUT, nukeAt)
+        if (endless) LAYOUTS.values.forEach { plans += fromLayout(geo, it, nukeAt) }
         return plans
     }
 
