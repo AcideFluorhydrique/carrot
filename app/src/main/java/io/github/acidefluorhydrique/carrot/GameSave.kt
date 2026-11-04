@@ -20,7 +20,11 @@ data class EnemySnapshot(
     val slowFactor: Float,
     val slowTimer: Int,
     val poisonDamage: Int,
-    val poisonTimer: Int
+    val poisonTimer: Int,
+    /** 冰彈的凍結與餘寒。舊存檔沒有，讀回來是沒被凍。 */
+    val frozenTimer: Int = 0,
+    val chillFactor: Float = 1f,
+    val chillTimer: Int = 0
 )
 
 data class EnemyManagerSnapshot(
@@ -71,6 +75,9 @@ data class GameSave(
     /** 核彈狀態，只有無盡模式有意義。舊存檔沒有，讀回來是 0。 */
     val nukeUses: Int = 0,
     val nukeCooldown: Int = 0,
+    /** 冰彈狀態，只有無盡模式有意義。舊存檔沒有，讀回來是 0。 */
+    val freezeUses: Int = 0,
+    val freezeCooldown: Int = 0,
     /** 無盡模式的波次種子。舊存檔沒有，讀回來是 [Endless.FIXED_ORDER]，照原本固定的順序。 */
     val endlessSeed: Long = Endless.FIXED_ORDER
 )
@@ -239,6 +246,8 @@ class SaveRepository(context: Context) {
         .put("difficulty", difficulty)
         .put("nukeUses", nukeUses)
         .put("nukeCooldown", nukeCooldown)
+        .put("freezeUses", freezeUses)
+        .put("freezeCooldown", freezeCooldown)
         .put("endlessSeed", endlessSeed)
         .put("enemyManager", enemyManager.toJson())
         .put("towers", JSONArray().also { array -> towers.forEach { array.put(it.toJson()) } })
@@ -267,6 +276,9 @@ class SaveRepository(context: Context) {
         .put("slowTimer", slowTimer)
         .put("poisonDamage", poisonDamage)
         .put("poisonTimer", poisonTimer)
+        .put("frozenTimer", frozenTimer)
+        .put("chillFactor", chillFactor.toDouble())
+        .put("chillTimer", chillTimer)
 
     private fun ObstacleSnapshot.toJson(): JSONObject = JSONObject()
         .put("col", col)
@@ -302,6 +314,8 @@ class SaveRepository(context: Context) {
         difficulty = optString("difficulty", Difficulty.NORMAL.name),
         nukeUses = optInt("nukeUses", 0),
         nukeCooldown = optInt("nukeCooldown", 0),
+        freezeUses = optInt("freezeUses", 0),
+        freezeCooldown = optInt("freezeCooldown", 0),
         endlessSeed = optLong("endlessSeed", Endless.FIXED_ORDER)
     )
 
@@ -328,7 +342,10 @@ class SaveRepository(context: Context) {
         slowFactor = getDouble("slowFactor").toFloat(),
         slowTimer = getInt("slowTimer"),
         poisonDamage = optInt("poisonDamage", 0),
-        poisonTimer = optInt("poisonTimer", 0)
+        poisonTimer = optInt("poisonTimer", 0),
+        frozenTimer = optInt("frozenTimer", 0),
+        chillFactor = optDouble("chillFactor", 1.0).toFloat(),
+        chillTimer = optInt("chillTimer", 0)
     )
 
     private fun JSONObject.toObstacleSnapshot(): ObstacleSnapshot = ObstacleSnapshot(

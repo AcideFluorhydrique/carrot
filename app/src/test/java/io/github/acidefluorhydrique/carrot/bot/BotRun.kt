@@ -50,6 +50,8 @@ class BotRun {
             seeds += base
             seeds += base.copy(call = CallPolicy.WHEN_CLEAR)
         }
+        // 冰彈：每個還沒用冰彈的起點都給一份會用的，讓搜尋從兩邊出發
+        if (target.endless) seeds += seeds.filter { it.freezeAt >= 1f }.map { it.copy(freezeAt = 0.6f) }
 
         // 每次執行換一組亂數，重跑同一關才會走不同的路，而不是把上次走過的路再走一遍
         val seed = System.getProperty("bot.seed")?.toLongOrNull() ?: 0L
@@ -79,7 +81,7 @@ class BotRun {
 
     private fun result(o: Outcome, target: Target): String = when {
         o.won -> "✅ win, carrot ${o.carrotHp}/${o.maxCarrotHp} " + "★".repeat(o.stars)
-        target.endless -> "died in wave ${o.wave}" + if (o.nukes > 0) " (${o.nukes} nukes)" else ""
+        target.endless -> "died in wave ${o.wave} (${o.nukes} nukes, ${o.freezes} freezes)"
         o.bossDamage > 0f -> "❌ lost in wave ${o.wave}/${target.level.waves.size}, leaked ${o.leaked}/${o.maxCarrotHp}, boss took ${"%.0f".format(o.bossDamage * 100)}%"
         else -> "❌ lost in wave ${o.wave}/${target.level.waves.size}, leaked ${o.leaked}/${o.maxCarrotHp}"
     }
@@ -113,7 +115,7 @@ class BotRun {
         recorded.layout.forEach { appendLine(it) }
         appendLine("```")
         appendLine()
-        appendLine("Early wave calls: ${plan.call}" + if (target.endless) ", nuke when an enemy has walked ${"%.0f".format(plan.nukeAt * 100)}% of the path" else ", sell passed towers in the last wave: ${plan.salvage}")
+        appendLine("Early wave calls: ${plan.call}" + if (target.endless) ", nuke when an enemy has walked ${"%.0f".format(plan.nukeAt * 100)}% of the path, freeze at ${"%.0f".format(plan.freezeAt * 100)}%" else ", sell passed towers in the last wave: ${plan.salvage}")
         appendLine()
         val leaks = recorded.log.filter { "LEAK " in it }
         if (leaks.isNotEmpty()) {

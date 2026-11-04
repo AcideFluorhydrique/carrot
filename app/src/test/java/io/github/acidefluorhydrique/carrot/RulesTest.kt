@@ -160,6 +160,15 @@ class RulesTest {
     // ---- 核彈 ----
 
     @Test
+    fun freezePriceDoublesAndSaturates() {
+        assertEquals(400, Freeze.price(0))
+        assertEquals(800, Freeze.price(1))
+        assertEquals(3200, Freeze.price(3))
+        assertEquals(Int.MAX_VALUE, Freeze.price(40))
+        assertEquals(Int.MAX_VALUE, Freeze.price(1000))
+    }
+
+    @Test
     fun nukePriceDoublesAndSaturates() {
         assertEquals(800, Nuke.price(0))
         assertEquals(1600, Nuke.price(1))

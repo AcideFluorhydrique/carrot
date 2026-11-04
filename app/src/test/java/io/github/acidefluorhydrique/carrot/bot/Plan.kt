@@ -28,6 +28,7 @@ enum class CallPolicy { NEVER, WHEN_CLEAR }
  *
  * - [call]：場上清空時提前叫下一波，換提前獎勵金。
  * - [nukeAt]：無盡模式中，有敵人走完路徑的這個比例時發射核彈（買得起、沒在冷卻時）。1 表示不用核彈。
+ * - [freezeAt]：同 [nukeAt]，換成冰彈。1 表示不用冰彈。
  * - [salvage]：一般關卡的最後一波生成完之後，所有敵人都已經走過的塔不會再開火，賣掉換錢升級還打得到的塔。
  *
  * 無盡模式裡計畫做完之後，剩下的錢自動拿去升級最便宜的塔。只看撐到第幾波時，
@@ -37,7 +38,8 @@ data class Plan(
     val steps: List<Step>,
     val call: CallPolicy = CallPolicy.NEVER,
     val nukeAt: Float = 1f,
-    val salvage: Boolean = false
+    val salvage: Boolean = false,
+    val freezeAt: Float = 1f
 ) {
 
     val builds: List<Build> get() = steps.filterIsInstance<Build>()
@@ -45,6 +47,7 @@ data class Plan(
     fun text(): String = buildString {
         appendLine("call ${call.name}")
         appendLine("nuke $nukeAt")
+        appendLine("freeze $freezeAt")
         appendLine("salvage $salvage")
         for (step in steps) {
             appendLine(
@@ -61,6 +64,7 @@ data class Plan(
         fun parse(text: String): Plan {
             var call = CallPolicy.NEVER
             var nukeAt = 1f
+            var freezeAt = 1f
             var salvage = false
             val steps = ArrayList<Step>()
             for (raw in text.lines()) {
@@ -70,6 +74,7 @@ data class Plan(
                 when (f[0]) {
                     "call" -> call = CallPolicy.valueOf(f[1])
                     "nuke" -> nukeAt = f[1].toFloat()
+                    "freeze" -> freezeAt = f[1].toFloat()
                     "salvage" -> salvage = f[1].toBooleanStrict()
                     "build" -> steps += Build(f[1].toInt(), f[2].toInt(), f[3].toInt(), TowerType.valueOf(f[4]), TargetMode.valueOf(f[5]))
                     "upgrade" -> steps += Upgrade(f[1].toInt())
@@ -77,7 +82,7 @@ data class Plan(
                     else -> throw IllegalArgumentException("bad plan line: $raw")
                 }
             }
-            return Plan(steps, call, nukeAt, salvage)
+            return Plan(steps, call, nukeAt, salvage, freezeAt)
         }
     }
 }
@@ -94,6 +99,7 @@ data class Outcome(
     val kills: Int,
     val frames: Int,
     val nukes: Int,
+    val freezes: Int,
     /** 最後一波裡，首領被打掉的最大血量比例，0 到 1。 */
     val bossDamage: Float,
     val invested: Int,
@@ -179,6 +185,10 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             if (target.endless && plan.nukeAt < 1f && GameState.nukeCooldown == 0) {
                 val danger = sim.enemyManager.enemies.any { it.isAlive && it.distanceTravelled >= plan.nukeAt * pathPx }
                 if (danger && sim.nuke()) note("NUKE #${GameState.nukeUses}")
+            }
+            if (target.endless && plan.freezeAt < 1f && GameState.freezeCooldown == 0) {
+                val danger = sim.enemyManager.enemies.any { it.isAlive && it.distanceTravelled >= plan.freezeAt * pathPx }
+                if (danger && sim.freeze()) note("FREEZE #${GameState.freezeUses}")
             }
 
             var i = 0
@@ -292,6 +302,7 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             kills = GameState.kills,
             frames = sim.frames,
             nukes = GameState.nukeUses,
+            freezes = GameState.freezeUses,
             bossDamage = bossDamage,
             invested = sim.spent,
             gold = GameState.gold,

@@ -22,7 +22,10 @@ class HudRenderer {
         drawBossBar(canvas, w, enemyManager)
         if (GameState.status == GameStatus.PLAYING) {
             drawWaveCall(canvas, w, h, enemyManager)
-            if (GameState.isEndless) drawNuke(canvas, w, h)
+            if (GameState.isEndless) {
+                drawNuke(canvas, w, h)
+                drawFreeze(canvas, w, h)
+            }
         }
     }
 
@@ -198,6 +201,21 @@ class HudRenderer {
         )
     }
 
+    /** 冰彈鍵，疊在核彈上方，顯示方式同核彈。 */
+    private fun drawFreeze(canvas: Canvas, w: Int, h: Int) {
+        val price = Freeze.price(GameState.freezeUses)
+        val ready = GameState.freezeCooldown <= 0
+        val sub = if (ready) {
+            Strings.format(R.string.tower_price, price)
+        } else {
+            Strings.format(R.string.nuke_cooldown, (GameState.freezeCooldown + 59) / 60)
+        }
+        Widgets.button(
+            canvas, freezeRect(w, h), Strings.get(R.string.freeze_label), Widgets.BLUE_TOP, Widgets.BLUE_BOTTOM,
+            enabled = ready && GameState.gold >= price, textSize = Ui.dp(12f), subLabel = sub
+        )
+    }
+
     // ---- 覆蓋層 ----
 
     fun drawPauseOverlay(canvas: Canvas, w: Int, h: Int) {
@@ -314,6 +332,13 @@ class HudRenderer {
             val call = callWaveRect(w, h)
             val bottom = call.top - Ui.dp(24f)
             return RectF(call.left, bottom - call.height(), call.right, bottom)
+        }
+
+        /** 疊在核彈上方。 */
+        fun freezeRect(w: Int, h: Int): RectF {
+            val nuke = nukeRect(w, h)
+            val bottom = nuke.top - Ui.dp(8f)
+            return RectF(nuke.left, bottom - nuke.height(), nuke.right, bottom)
         }
 
         /** 覆蓋層上水平排列的按鈕。 */

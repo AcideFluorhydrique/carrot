@@ -32,6 +32,7 @@
     <string name="hud_wave_endless">Wave %1$d</string>
     <string name="nuke_label">☢️ Nuke</string>
     <string name="nuke_cooldown">%1$ds</string>
+    <string name="freeze_label">❄️ Freeze</string>
     <string name="result_endless_reached">Reached wave %1$d</string>
 
     <!-- Level select -->

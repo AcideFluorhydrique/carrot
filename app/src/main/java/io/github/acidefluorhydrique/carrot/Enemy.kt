@@ -45,6 +45,11 @@ class Enemy(
     private var slowFactor = 1f
     private var slowTimer = 0
 
+    /** 冰彈：凍住時完全不動，解凍後另有一段自己的減速，見 [freeze]。 */
+    private var frozenTimer = 0
+    private var chillFactor = 1f
+    private var chillTimer = 0
+
     private var poisonDamage = 0
     private var poisonTimer = 0
     private var poisonTick = 0
@@ -57,8 +62,23 @@ class Enemy(
      * 移動速度以格寬為基準換算，否則同一組數值在不同解析度上
      * 會變成完全不同的難度（格子越小、過關越快）。
      */
-    val speed: Float get() = baseSpeed * slowFactor * gameMap.cellSize / REFERENCE_CELL
-    val isSlowed: Boolean get() = slowTimer > 0
+    val speed: Float get() = baseSpeed * currentSlow * gameMap.cellSize / REFERENCE_CELL
+
+    /**
+     * 目前的速度倍率。凍住是 0；否則塔的減速和冰彈的餘寒取最強（最小）的那個，不相乘。
+     * 要改成疊加或別的算法，只改這裡。
+     */
+    private val currentSlow: Float
+        get() = when {
+            frozenTimer > 0 -> 0f
+            chillTimer > 0 && slowTimer > 0 -> minOf(slowFactor, chillFactor)
+            chillTimer > 0 -> chillFactor
+            slowTimer > 0 -> slowFactor
+            else -> 1f
+        }
+
+    val isSlowed: Boolean get() = slowTimer > 0 || chillTimer > 0
+    val isFrozen: Boolean get() = frozenTimer > 0
     val isPoisoned: Boolean get() = poisonTimer > 0
     val hpRatio: Float get() = if (maxHp <= 0) 0f else (hp.toFloat() / maxHp).coerceIn(0f, 1f)
     val radius: Float get() = gameMap.cellSize * 0.3f * kind.sizeScale
@@ -98,6 +118,18 @@ class Enemy(
         if (factor > slowFactor) return
         // 同強度的來源：單純續期
         if (duration > slowTimer) slowTimer = duration
+    }
+
+    /**
+     * 冰彈：原地凍 [frames] 影格，解凍後再以 [chill] 的倍率慢 [chillFrames] 影格。首領也一樣。
+     * 已經凍住時取較長的那次，不累加；餘寒同理。
+     */
+    fun freeze(frames: Int, chill: Float, chillFrames: Int) {
+        if (!isAlive) return
+        frozenTimer = maxOf(frozenTimer, frames)
+        chillFactor = minOf(if (chillTimer > 0) chillFactor else 1f, chill)
+        chillTimer = maxOf(chillTimer, frames + chillFrames)
+        hitFlash = 6
     }
 
     fun applyPoison(damagePerTick: Int, duration: Int) {
@@ -153,11 +185,17 @@ class Enemy(
 
     fun update() {
         if (!isAlive) return
-        animFrame++
+        // 凍住時連走路的晃動也停下來
+        if (frozenTimer <= 0) animFrame++
 
         if (slowTimer > 0) {
             slowTimer--
             if (slowTimer == 0) slowFactor = 1f
+        }
+        if (frozenTimer > 0) frozenTimer--
+        if (chillTimer > 0) {
+            chillTimer--
+            if (chillTimer == 0) chillFactor = 1f
         }
 
         if (poisonTimer > 0) {
@@ -189,6 +227,7 @@ class Enemy(
         val dy = targetY - y
         val dist = sqrt(dx * dx + dy * dy)
         val step = speed
+        if (step <= 0f) return
 
         if (dist <= step || dist < 0.0001f) {
             x = targetX
@@ -217,7 +256,10 @@ class Enemy(
         slowFactor = slowFactor,
         slowTimer = slowTimer,
         poisonDamage = poisonDamage,
-        poisonTimer = poisonTimer
+        poisonTimer = poisonTimer,
+        frozenTimer = frozenTimer,
+        chillFactor = chillFactor,
+        chillTimer = chillTimer
     )
 
     fun restore(snapshot: EnemySnapshot) {
@@ -233,6 +275,9 @@ class Enemy(
         slowTimer = snapshot.slowTimer
         poisonDamage = snapshot.poisonDamage
         poisonTimer = snapshot.poisonTimer
+        frozenTimer = snapshot.frozenTimer
+        chillFactor = snapshot.chillFactor
+        chillTimer = snapshot.chillTimer
         poisonTick = 0
         hitFlash = 0
         isDead = false
@@ -276,6 +321,12 @@ class Enemy(
         paint.textSize = r * 2.1f
         val emoji = kind.emoji
         canvas.drawText(emoji, x - TextWidths.of(emoji, paint) / 2f, y + bob + r * 0.72f, paint)
+
+        // 冰彈：凍住時整隻罩一層冰
+        if (frozenTimer > 0) {
+            paint.color = Colors.of("#99D6F0FF")
+            canvas.drawCircle(x, y + bob, r * 1.1f, paint)
+        }
 
         // 受擊白光
         if (hitFlash > 0) {

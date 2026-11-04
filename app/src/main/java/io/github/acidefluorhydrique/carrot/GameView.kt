@@ -559,6 +559,10 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
             fireNuke()
             return
         }
+        if (GameState.isEndless && HudRenderer.freezeRect(screenWidth, screenHeight).contains(x, y)) {
+            fireFreeze()
+            return
+        }
         if (upgradePanel.onTap(x, y, screenWidth, screenHeight, towerManager)) return
         if (selectBar.onTap(x, y, screenWidth, screenHeight, towerManager)) return
 
@@ -591,6 +595,25 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         Fx.explosion(cx, cy, gameMap.cellSize * 3f)
         Fx.burst(cx, cy, 60, Colors.of("#FFD27A"), Ui.dp(4f), Ui.dp(3.2f), 60, gravity = -0.03f)
         Audio.play(Sfx.EXPLODE)
+    }
+
+    /** 見 [Freeze]：場上所有敵人凍住一段時間，解凍後再慢一段；首領也一樣。 */
+    private fun fireFreeze() {
+        if (!Freeze.tryFire(enemyManager.enemies)) {
+            Audio.play(Sfx.DENY)
+            return
+        }
+        towerManager.cancelPlacement()
+
+        val cx = gameMap.offsetX + gameMap.cellSize * GameMap.COLS / 2f
+        val cy = gameMap.offsetY + gameMap.cellSize * GameMap.ROWS / 2f
+        val span = gameMap.cellSize * GameMap.COLS
+        Fx.ring(cx, cy, span * 0.4f, Colors.of("#E0F7FF"), 30, Ui.dp(7f))
+        Fx.ring(cx, cy, span * 0.7f, Colors.of("#7DD3FC"), 44, Ui.dp(5f))
+        for (enemy in enemyManager.enemies) {
+            if (enemy.isAlive) Fx.burst(enemy.x, enemy.y, 8, Colors.of("#BAE6FD"), Ui.dp(1.4f), Ui.dp(2f), 30, gravity = -0.02f)
+        }
+        Audio.play(Sfx.ICE)
     }
 
     private fun handlePauseTap(x: Float, y: Float) {
@@ -687,6 +710,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         GameState.status = GameStatus.PLAYING
         GameState.nukeUses = save.nukeUses.coerceAtLeast(0)
         GameState.nukeCooldown = save.nukeCooldown.coerceIn(0, Nuke.COOLDOWN_FRAMES)
+        GameState.freezeUses = save.freezeUses.coerceAtLeast(0)
+        GameState.freezeCooldown = save.freezeCooldown.coerceIn(0, Freeze.COOLDOWN_FRAMES)
         // 要在 enemyManager.restore 之前：它會照種子重算目前這一波
         GameState.endlessSeed = save.endlessSeed
 
@@ -758,6 +783,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 difficulty = GameState.difficulty.name,
                 nukeUses = GameState.nukeUses,
                 nukeCooldown = GameState.nukeCooldown,
+                freezeUses = GameState.freezeUses,
+                freezeCooldown = GameState.freezeCooldown,
                 endlessSeed = GameState.endlessSeed
             )
         )
