@@ -28,6 +28,10 @@ object GameState {
 
     /** 核彈剩餘冷卻，單位是遊戲影格。 */
     var nukeCooldown: Int = 0
+
+    /** 冰彈，見 [Freeze]。和核彈各自計價、各自冷卻。 */
+    var freezeUses: Int = 0
+    var freezeCooldown: Int = 0
     var carrotHp: Int = 10
     var maxCarrotHp: Int = 10
     var gold: Int = 100
@@ -72,6 +76,8 @@ object GameState {
         carrotHurtTimer = 0
         nukeUses = 0
         nukeCooldown = 0
+        freezeUses = 0
+        freezeCooldown = 0
         endlessSeed = if (Endless.isEndless(selectedLevel)) Endless.newSeed() else Endless.FIXED_ORDER
     }
 
@@ -108,5 +114,6 @@ object GameState {
     fun tickTimers() {
         if (carrotHurtTimer > 0) carrotHurtTimer--
         if (nukeCooldown > 0) nukeCooldown--
+        if (freezeCooldown > 0) freezeCooldown--
     }
 }

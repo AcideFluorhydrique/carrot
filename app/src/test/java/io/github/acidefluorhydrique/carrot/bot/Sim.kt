@@ -6,6 +6,7 @@ package io.github.acidefluorhydrique.carrot.bot
 import io.github.acidefluorhydrique.carrot.Difficulty
 import io.github.acidefluorhydrique.carrot.Endless
 import io.github.acidefluorhydrique.carrot.EnemyManager
+import io.github.acidefluorhydrique.carrot.Freeze
 import io.github.acidefluorhydrique.carrot.Fx
 import io.github.acidefluorhydrique.carrot.GameLevels
 import io.github.acidefluorhydrique.carrot.GameMap
@@ -194,6 +195,8 @@ class Sim(target: Target) {
     }
 
     fun nuke(): Boolean = level.id == Endless.LEVEL_ID && Nuke.tryFire(enemyManager.enemies)
+
+    fun freeze(): Boolean = level.id == Endless.LEVEL_ID && Freeze.tryFire(enemyManager.enemies)
 
     /** 地圖現況，每格兩個字：塔是種類代號加等級。 */
     fun layout(): List<String> = (0 until GameMap.ROWS).map { row ->

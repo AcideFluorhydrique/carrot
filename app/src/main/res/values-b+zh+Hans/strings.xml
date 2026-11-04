@@ -32,6 +32,7 @@
     <string name="hud_wave_endless">第 %1$d 波</string>
     <string name="nuke_label">☢️ 核弹</string>
     <string name="nuke_cooldown">%1$d 秒</string>
+    <string name="freeze_label">❄️ 冰弹</string>
     <string name="result_endless_reached">撑到第 %1$d 波</string>
 
     <!-- 选关 -->

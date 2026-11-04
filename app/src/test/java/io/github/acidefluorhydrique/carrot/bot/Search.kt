@@ -84,7 +84,7 @@ class Search(
 
     fun describe(o: Outcome): String =
         if (o.won) "WIN carrot ${o.carrotHp}/${o.maxCarrotHp} invested ${o.invested}"
-        else if (o.endless) "lost at wave ${o.wave} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%, nukes ${o.nukes})"
+        else if (o.endless) "lost at wave ${o.wave} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%, nukes ${o.nukes}, freezes ${o.freezes})"
         else "lost at wave ${o.wave}, leaked ${o.leaked}/${o.maxCarrotHp} (kills ${o.kills}, boss ${"%.0f".format(o.bossDamage * 100)}%)"
 
     // ---- 突變 ----
@@ -93,6 +93,7 @@ class Search(
         val steps = ArrayList(plan.steps)
         var call = plan.call
         var nukeAt = plan.nukeAt
+        var freezeAt = plan.freezeAt
         var salvage = plan.salvage
         repeat(1 + rng.nextInt(3)) {
             // 固定陣型：只能調順序、升級、瞄準與兩條臨場規則，不能換塔、搬塔、加塔、拆塔
@@ -107,16 +108,16 @@ class Search(
                 7 -> insertUpgrade(steps)
                 8 -> retarget(steps)
                 9 -> relocate(steps, upgradesOnly = true)
-                10 -> if (target.endless && rng.nextBoolean()) {
-                    nukeAt = (nukeAt + (rng.nextFloat() - 0.5f) * 0.2f).coerceIn(0.3f, 1f)
-                } else {
-                    call = if (call == CallPolicy.NEVER) CallPolicy.WHEN_CLEAR else CallPolicy.NEVER
+                10 -> when (if (target.endless) rng.nextInt(3) else 2) {
+                    0 -> nukeAt = (nukeAt + (rng.nextFloat() - 0.5f) * 0.2f).coerceIn(0.3f, 1f)
+                    1 -> freezeAt = (freezeAt + (rng.nextFloat() - 0.5f) * 0.2f).coerceIn(0.2f, 1f)
+                    else -> call = if (call == CallPolicy.NEVER) CallPolicy.WHEN_CLEAR else CallPolicy.NEVER
                 }
                 11 -> salvage = !salvage
                 12 -> swapCells(steps)
             }
         }
-        return Plan(tidy(steps), call, nukeAt, salvage)
+        return Plan(tidy(steps), call, nukeAt, salvage, freezeAt)
     }
 
     /**

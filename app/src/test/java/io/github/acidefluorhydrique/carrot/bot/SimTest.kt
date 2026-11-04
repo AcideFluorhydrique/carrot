@@ -3,6 +3,7 @@
 
 package io.github.acidefluorhydrique.carrot.bot
 
+import io.github.acidefluorhydrique.carrot.Freeze
 import io.github.acidefluorhydrique.carrot.GameState
 import io.github.acidefluorhydrique.carrot.TargetMode
 import io.github.acidefluorhydrique.carrot.TowerType
@@ -70,6 +71,7 @@ class SimTest {
         for (plan in Seeder.seeds(Geometry(target.level), endless = true)) {
             assertEquals(plan, Plan.parse(plan.text()))
             assertEquals(plan.copy(salvage = true), Plan.parse(plan.copy(salvage = true).text()))
+            assertEquals(plan.copy(freezeAt = 0.4f), Plan.parse(plan.copy(freezeAt = 0.4f).text()))
         }
     }
 
@@ -101,6 +103,30 @@ class SimTest {
         assertTrue(salvaged.carrotHp >= plain.carrotHp)
         // 賣掉的塔已經花掉的錢照算：投入不會因為賣塔而變少
         assertTrue("salvaged ${salvaged.invested} < plain ${plain.invested}", salvaged.invested >= plain.invested)
+    }
+
+    /** 冰彈：場上每一隻都停住整整 [Freeze.FREEZE_FRAMES]，解凍後以 [Freeze.CHILL_FACTOR] 的速度走，冷卻中不能再丟。 */
+    @Test
+    fun freezeStopsEveryEnemyThenSlowsThem() {
+        val sim = Sim(Target.parse("endless"))
+        sim.callNextWave()
+        repeat(600) { sim.step() }
+        val walking = sim.enemyManager.enemies.filter { it.isAlive }
+        assertTrue("no enemy on the field", walking.isNotEmpty())
+        val speeds = walking.map { it.speed }
+        GameState.gold = 100_000
+        assertTrue(sim.freeze())
+        assertTrue(walking.all { it.isFrozen && it.speed == 0f })
+        val where = walking.map { it.distanceTravelled }
+        repeat(Freeze.FREEZE_FRAMES - 1) { sim.step() }
+        assertEquals("moved while frozen", where, walking.map { it.distanceTravelled })
+        repeat(2) { sim.step() }
+        for ((enemy, speed) in walking.zip(speeds)) {
+            assertTrue(!enemy.isFrozen && enemy.isSlowed)
+            assertEquals(speed * Freeze.CHILL_FACTOR, enemy.speed, speed * 1e-4f)
+        }
+        assertTrue("fired again during the cooldown", !sim.freeze())
+        assertEquals(1, GameState.freezeUses)
     }
 
     @Test
