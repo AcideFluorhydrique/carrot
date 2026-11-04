@@ -70,7 +70,9 @@ data class GameSave(
     val difficulty: String = Difficulty.NORMAL.name,
     /** 核彈狀態，只有無盡模式有意義。舊存檔沒有，讀回來是 0。 */
     val nukeUses: Int = 0,
-    val nukeCooldown: Int = 0
+    val nukeCooldown: Int = 0,
+    /** 無盡模式的波次種子。舊存檔沒有，讀回來是 [Endless.FIXED_ORDER]，照原本固定的順序。 */
+    val endlessSeed: Long = Endless.FIXED_ORDER
 )
 
 class SaveRepository(context: Context) {
@@ -237,6 +239,7 @@ class SaveRepository(context: Context) {
         .put("difficulty", difficulty)
         .put("nukeUses", nukeUses)
         .put("nukeCooldown", nukeCooldown)
+        .put("endlessSeed", endlessSeed)
         .put("enemyManager", enemyManager.toJson())
         .put("towers", JSONArray().also { array -> towers.forEach { array.put(it.toJson()) } })
         .put("obstacles", JSONArray().also { array -> obstacles.forEach { array.put(it.toJson()) } })
@@ -298,7 +301,8 @@ class SaveRepository(context: Context) {
         savedAt = optLong("savedAt", 0L),
         difficulty = optString("difficulty", Difficulty.NORMAL.name),
         nukeUses = optInt("nukeUses", 0),
-        nukeCooldown = optInt("nukeCooldown", 0)
+        nukeCooldown = optInt("nukeCooldown", 0),
+        endlessSeed = optLong("endlessSeed", Endless.FIXED_ORDER)
     )
 
     private fun JSONObject.toEnemyManagerSnapshot(): EnemyManagerSnapshot = EnemyManagerSnapshot(

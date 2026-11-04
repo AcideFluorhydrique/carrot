@@ -212,6 +212,13 @@ object Seeder {
             }
         }
         towers.sortByDescending { (col, row, type) -> geo.score(type, col, row, weights) / type.baseCost }
+        // 冰塔和月亮罩得廣，每金幣的分數最高，但它們只減速、幾乎沒有傷害。開局的錢只夠三四座，
+        // 全拿去蓋減速塔，第一波一隻都殺不掉。所以先蓋 [OPENING_DAMAGE_TOWERS] 座會打人的塔。
+        val opening = towers.filter { it.third !in SLOW_ONLY }.take(OPENING_DAMAGE_TOWERS)
+        val rest = towers.filter { it !in opening }
+        towers.clear()
+        towers += opening
+        towers += rest
 
         val steps = ArrayList<Step>()
         geo.obstacles.forEach { steps += Mark(it.first, it.second) }
@@ -228,6 +235,10 @@ object Seeder {
         }
         return Plan(steps, CallPolicy.NEVER, nukeAt)
     }
+
+    /** 只減速、傷害可以忽略的塔。 */
+    private val SLOW_ONLY = setOf(TowerType.ICE, TowerType.MOON)
+    private const val OPENING_DAMAGE_TOWERS = 4
 
     /** 固定陣型的比較對象，見 [Target]。 */
     val LAYOUTS: Map<String, List<String>> by lazy {

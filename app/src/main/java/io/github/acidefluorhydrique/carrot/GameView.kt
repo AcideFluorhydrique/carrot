@@ -687,6 +687,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
         GameState.status = GameStatus.PLAYING
         GameState.nukeUses = save.nukeUses.coerceAtLeast(0)
         GameState.nukeCooldown = save.nukeCooldown.coerceIn(0, Nuke.COOLDOWN_FRAMES)
+        // 要在 enemyManager.restore 之前：它會照種子重算目前這一波
+        GameState.endlessSeed = save.endlessSeed
 
         gameMap.loadLevel(level)
         gameMap.initSize(screenWidth, screenHeight)
@@ -755,7 +757,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 savedAt = System.currentTimeMillis(),
                 difficulty = GameState.difficulty.name,
                 nukeUses = GameState.nukeUses,
-                nukeCooldown = GameState.nukeCooldown
+                nukeCooldown = GameState.nukeCooldown,
+                endlessSeed = GameState.endlessSeed
             )
         )
         cachedHasSave = true
