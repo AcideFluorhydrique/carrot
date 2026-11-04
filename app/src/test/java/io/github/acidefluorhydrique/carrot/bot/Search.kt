@@ -24,9 +24,19 @@ class Search(
     var evaluations = 0
         private set
 
+    /**
+     * 打一局，打分。無盡模式每一局的波次順序是隨機的，同一份打法要在 [ENDLESS_SEEDS] 每一個種子上都打一次，
+     * 取最差的那一局：找的是不靠運氣也撐得到的打法，而不是剛好合某一個種子的。
+     */
     fun evaluate(plan: Plan): Outcome {
-        evaluations++
-        return Bot(plan).play(target)
+        if (!target.endless) {
+            evaluations++
+            return Bot(plan).play(target)
+        }
+        return ENDLESS_SEEDS.map { seed ->
+            evaluations++
+            Bot(plan).play(target.copy(seed = seed))
+        }.minByOrNull { it.score }!!
     }
 
     fun run(seeds: List<Plan>, deadline: Long): Pair<Plan, Outcome> {
@@ -221,6 +231,9 @@ class Search(
     }
 
     companion object {
+        /** 無盡模式用來評分的種子。固定下來，同一份打法每次的分數才一樣。 */
+        val ENDLESS_SEEDS = listOf(1L, 2L, 3L)
+
         /** 固定陣型時可用的突變，對應 [mutate] 裡的編號。 */
         private val FIXED_LAYOUT_OPS = listOf(3, 4, 6, 7, 8, 9, 10)
     }

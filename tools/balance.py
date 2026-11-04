@@ -440,14 +440,14 @@ def cmd_level(lid, difficulty="normal"):
 # ---------------------------------------------------------------- 無盡模式（對應 Endless.kt）
 
 # Endless.kt 改了，這裡也要跟著改。
-ENDLESS_START_GOLD = 350
+ENDLESS_START_GOLD = 250
 ENDLESS_CARROT_HP = 10
-ENDLESS_BASE_HP = 30
-ENDLESS_HP_GROWTH = 1.12
+ENDLESS_BASE_HP = 45
+ENDLESS_HP_GROWTH = 1.11
 ENDLESS_BASE_COUNT = 10
 ENDLESS_COUNT_GROWTH = 1.03
 ENDLESS_BASE_REWARD = 6
-ENDLESS_REWARD_GROWTH = 1.06
+ENDLESS_REWARD_GROWTH = 1.065
 ENDLESS_BASE_SPEED = 1.5
 ENDLESS_SPEED_STEP = 0.01
 ENDLESS_MAX_SPEED = 2.1
@@ -469,14 +469,54 @@ ENDLESS_COUNT_FACTOR = {"SWARM": 2.2, "TANK": 0.45}
 ENDLESS_INTERVAL = {"GRUNT": 42, "RUNNER": 32, "SWARM": 14, "TANK": 56, "BOSS": 150}
 
 
-def endless_wave(index):
-    """Endless.build 的 Python 版本。"""
+ENDLESS_ESCORTS = ["GRUNT", "RUNNER", "SWARM", "TANK"]
+ENDLESS_ESCORT_WEIGHT = 0.7
+ENDLESS_FIXED_ORDER = 0
+
+_MASK = (1 << 64) - 1
+_GOLDEN = 0x9E3779B97F4A7C15
+
+
+class SplitMix64:
+    """Endless.kt 的 SplitMix64：同一個種子，兩邊抽出一模一樣的數。種子是 Kotlin 的有號 Long。"""
+
+    def __init__(self, seed):
+        self.state = seed & _MASK
+
+    def next(self):
+        self.state = (self.state + _GOLDEN) & _MASK
+        z = self.state
+        z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & _MASK
+        z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & _MASK
+        return z ^ (z >> 31)
+
+    def next_int(self, bound):
+        return (self.next() >> 1) % bound
+
+
+def endless_pattern(index, seed):
+    """Endless.patternFor：第一輪固定，之後每輪把前九種洗牌、首領波的護衛隨機。"""
+    n = len(ENDLESS_PATTERN)
+    slot = index % n
+    if seed == ENDLESS_FIXED_ORDER or index < n:
+        return ENDLESS_PATTERN[slot]
+    rng = SplitMix64((seed & _MASK) ^ (((index // n) * _GOLDEN) & _MASK))
+    order = list(range(n - 1))
+    for i in range(len(order) - 1, 0, -1):
+        j = rng.next_int(i + 1)
+        order[i], order[j] = order[j], order[i]
+    escort = ENDLESS_ESCORTS[rng.next_int(len(ENDLESS_ESCORTS))]
+    return [("BOSS", 1.0), (escort, ENDLESS_ESCORT_WEIGHT)] if slot == n - 1 else ENDLESS_PATTERN[order[slot]]
+
+
+def endless_wave(index, seed=ENDLESS_FIXED_ORDER):
+    """Endless.build 的 Python 版本。seed 省略就是原本固定的順序。"""
     hp = max(1, kround(min(ENDLESS_BASE_HP * ENDLESS_HP_GROWTH ** index, ENDLESS_MAX_HP)))
     count = ENDLESS_BASE_COUNT * ENDLESS_COUNT_GROWTH ** index
     reward = max(1, kround(ENDLESS_BASE_REWARD * ENDLESS_REWARD_GROWTH ** index))
     speed = min(ENDLESS_BASE_SPEED + ENDLESS_SPEED_STEP * index, ENDLESS_MAX_SPEED)
     groups = []
-    for kind, weight in ENDLESS_PATTERN[index % len(ENDLESS_PATTERN)]:
+    for kind, weight in endless_pattern(index, seed):
         if kind == "BOSS":
             n = 1
         else:

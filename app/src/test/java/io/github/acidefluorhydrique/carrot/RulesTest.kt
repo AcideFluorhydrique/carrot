@@ -70,7 +70,7 @@ class RulesTest {
     fun endlessWavesGrowAndStayBounded() {
         var previousHp = 0
         for (index in 0 until 1000) {
-            val wave = Endless.wave(index)
+            val wave = Endless.wave(index, Endless.FIXED_ORDER)
             val hp = wave.groups.first().hp
             assertTrue("wave $index hp $hp < $previousHp", hp >= previousHp)
             previousHp = hp
@@ -81,6 +81,46 @@ class RulesTest {
                 assertTrue("wave $index reward overflow", group.actualReward >= 1)
             }
         }
+    }
+
+    @Test
+    fun seededEndlessWavesStayInShape() {
+        for (seed in listOf(1L, -7L, 123456789L, Long.MIN_VALUE)) {
+            var previousHp = 0
+            for (index in 0 until 300) {
+                val wave = Endless.wave(index, seed)
+                val hp = wave.groups.first().hp
+                assertTrue("seed $seed wave $index hp $hp < $previousHp", hp >= previousHp)
+                previousHp = hp
+                assertEquals("seed $seed wave $index boss", index % 10 == 9, wave.hasBoss())
+            }
+        }
+    }
+
+    /** 第一輪是教學，每一局都一樣；之後每一輪是同一批敵人組合換個順序。 */
+    @Test
+    fun aSeedOnlyReordersEachRound() {
+        fun kinds(index: Int, seed: Long) = Endless.wave(index, seed).groups.map { it.kind }
+        val seed = 987654321L
+        for (index in 0 until 10) assertEquals("wave $index", Endless.wave(index, Endless.FIXED_ORDER), Endless.wave(index, seed))
+        for (round in 1 until 30) {
+            val fixed = (0 until 9).map { kinds(round * 10 + it, Endless.FIXED_ORDER).toString() }.sorted()
+            val shuffled = (0 until 9).map { kinds(round * 10 + it, seed).toString() }.sorted()
+            assertEquals("round $round", fixed, shuffled)
+        }
+    }
+
+    @Test
+    fun differentSeedsGiveDifferentRuns() {
+        fun run(seed: Long) = (10 until 200).map { Endless.wave(it, seed).groups.map { g -> g.kind } }
+        assertEquals(run(42L), run(42L))
+        assertTrue(run(42L) != run(43L))
+        assertTrue(run(42L) != run(Endless.FIXED_ORDER))
+    }
+
+    @Test
+    fun aNewSeedIsNeverTheFixedOrder() {
+        repeat(1000) { assertTrue(Endless.newSeed() != Endless.FIXED_ORDER) }
     }
 
     @Test

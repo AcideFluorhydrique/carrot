@@ -79,7 +79,7 @@ class EnemyManager(private val gameMap: GameMap) {
     }
 
     private fun waveAt(index: Int): WaveConfig? =
-        if (endless) Endless.wave(index) else level.waves.getOrNull(index)
+        if (endless) Endless.wave(index, GameState.endlessSeed) else level.waves.getOrNull(index)
 
     private fun isLastWave(index: Int): Boolean = !endless && index >= level.waves.size - 1
 

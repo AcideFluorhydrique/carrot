@@ -23,6 +23,9 @@ class BalanceScriptTest {
 
     companion object {
         private const val ENDLESS_WAVES = 120
+
+        /** 隨機波次也要逐波對得上；挑一個負數，順便驗證兩邊對 64 位元有號數的處理一致。 */
+        private const val SEED = -1234567890123456789L
         private val script = File("../tools/balance.py")
 
         /** 每一行：區塊 關卡 波 組 種類 數量 基礎血量 基礎獎勵 間隔 實際速度 */
@@ -41,6 +44,7 @@ class BalanceScriptTest {
                         for g, x in enumerate(groups):
                             print(block, lid, w, g, x.kind, x.count, x.raw_hp, x.raw_reward, x.interval, repr(x.speed))
                 emit("endless", 0, [b.endless_wave(i) for i in range($ENDLESS_WAVES)])
+                emit("endless-seeded", 0, [b.endless_wave(i, $SEED) for i in range($ENDLESS_WAVES)])
                 for d in ("normal", "hard"):
                     for lv in b.levels_for(d):
                         emit(d, lv.id, lv.waves)
@@ -64,7 +68,20 @@ class BalanceScriptTest {
         for (row in script) {
             val w = row[2].toInt()
             val g = row[3].toInt()
-            compare("endless wave $w group $g", Endless.wave(w).groups[g], row)
+            compare("endless wave $w group $g", Endless.wave(w, Endless.FIXED_ORDER).groups[g], row)
+        }
+    }
+
+    @Test
+    fun seededEndlessWavesMatch() {
+        val script = block("endless-seeded")
+        assertEquals(ENDLESS_WAVES, script.map { it[2] }.distinct().size)
+        for (row in script) {
+            val w = row[2].toInt()
+            val g = row[3].toInt()
+            val wave = Endless.wave(w, SEED)
+            assertEquals("seeded endless wave $w groups", wave.groups.size, script.count { it[2].toInt() == w })
+            compare("seeded endless wave $w group $g", wave.groups[g], row)
         }
     }
 

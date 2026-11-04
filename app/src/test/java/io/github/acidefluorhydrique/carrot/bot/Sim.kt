@@ -33,7 +33,9 @@ data class Target(
     val level: LevelConfig,
     val difficulty: Difficulty,
     val layout: List<String>? = null,
-    val retypeable: Boolean = false
+    val retypeable: Boolean = false,
+    /** 無盡模式的波次種子，見 Endless.wave。一般關卡用不到。 */
+    val seed: Long = Endless.FIXED_ORDER
 ) {
 
     val endless: Boolean get() = Endless.isEndless(level)
@@ -90,6 +92,8 @@ class Sim(target: Target) {
         Fx.clear()
         Fx.showDamageNumbers = false
         GameState.reset(level)
+        // reset 會替無盡模式抽一個新種子；模擬要可重現，換成目標指定的那一個
+        GameState.endlessSeed = target.seed
         map.loadLevel(level)
         towerManager.reset()
         obstacleManager.reset(level)

@@ -23,6 +23,9 @@ object GameState {
     /** 本局用過幾次核彈，決定下一顆的價格。只有無盡模式會用到。 */
     var nukeUses: Int = 0
 
+    /** 無盡模式這一局的波次種子，見 [Endless.wave]。開新局時抽，存檔時記下來。 */
+    var endlessSeed: Long = Endless.FIXED_ORDER
+
     /** 核彈剩餘冷卻，單位是遊戲影格。 */
     var nukeCooldown: Int = 0
     var carrotHp: Int = 10
@@ -69,6 +72,7 @@ object GameState {
         carrotHurtTimer = 0
         nukeUses = 0
         nukeCooldown = 0
+        endlessSeed = if (Endless.isEndless(selectedLevel)) Endless.newSeed() else Endless.FIXED_ORDER
     }
 
     fun cycleSpeed() {

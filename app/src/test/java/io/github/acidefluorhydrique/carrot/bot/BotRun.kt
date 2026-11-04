@@ -58,9 +58,13 @@ class BotRun {
         val seconds = (System.currentTimeMillis() - started) / 1000
 
         // 同一份計畫換成較慢的反應重跑：60 影格是 1x 速度下的一秒
+        // 無盡模式的重播用評分種子裡最差的那一個，和上面的成績是同一局
+        val replay = if (target.endless) {
+            Search.ENDLESS_SEEDS.map { target.copy(seed = it) }.minByOrNull { Bot(plan).play(it).score }!!
+        } else target
         val reactions = listOf(1, 15, 30, 60, 120)
-        val robustness = reactions.map { it to Bot(plan, it).play(target) }
-        val recorded = Bot(plan).play(target, record = true)
+        val robustness = reactions.map { it to Bot(plan, it).play(replay) }
+        val recorded = Bot(plan).play(replay, record = true)
 
         File(out, "${target.name}.plan.txt").writeText(
             "# ${target.name}: ${search.describe(outcome)}\n" + plan.text()
@@ -98,6 +102,10 @@ class BotRun {
         appendLine("## ${target.name}")
         appendLine()
         appendLine("**${result(best, target)}** · ${evaluations} games simulated in ${seconds / 60} min")
+        if (target.endless) {
+            appendLine()
+            appendLine("Endless waves are shuffled per run; every plan is played on seeds ${Search.ENDLESS_SEEDS} and scored by the worst. The replays below use that seed.")
+        }
         appendLine()
         appendLine("Final layout (`--` path, `##` permanent, `()` obstacle left, letter + level = tower; ${Codes.legend}):")
         appendLine()
