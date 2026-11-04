@@ -3,6 +3,7 @@
 
 package io.github.acidefluorhydrique.carrot.bot
 
+import io.github.acidefluorhydrique.carrot.Freeze
 import io.github.acidefluorhydrique.carrot.GameState
 import io.github.acidefluorhydrique.carrot.TargetMode
 import io.github.acidefluorhydrique.carrot.TowerType
