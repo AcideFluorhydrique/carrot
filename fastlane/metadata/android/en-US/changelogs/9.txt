@@ -1,0 +1,5 @@
+Endless mode changes every run.
+
+* After the first ten waves, each round of ten comes in a new order with a different boss escort, so no single build order beats it every time.
+* The opening is tighter: less starting gold and tougher early enemies, while the later waves grow a little more slowly.
+* New freeze bomb: every enemy stops for 4 seconds, then walks at half speed for 6 more. Bosses too. Its price doubles with each use.
