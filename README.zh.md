@@ -12,7 +12,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   <a href="https://github.com/AcideFluorhydrique/carrot/releases">
     <img src="https://raw.githubusercontent.com/mmlado/GapSign/main/assets/badges/badge_github.png" alt="在 GitHub 上取得" height="70" />
   </a>
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/AcideFluorhydrique/carrot/releases">
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/AcideFluorhydrique/carrot/releases">
     <img src="https://raw.githubusercontent.com/mmlado/GapSign/main/assets/badges/badge_obtainium.png" alt="在 Obtainium 上取得" height="70" />
   </a>
 </p>
