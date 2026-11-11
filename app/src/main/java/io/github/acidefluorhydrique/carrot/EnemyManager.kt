@@ -13,6 +13,11 @@ class EnemyManager(private val gameMap: GameMap) {
         const val PHASE_RESTING = 2
         const val PHASE_DONE = 3
 
+        /**
+         * 準備階段不倒數：第一波等玩家按「開始」才出發，想看多久地圖、蓋多少塔都可以。
+         * 這個值只用來算開始時給的獎勵金，固定是倒數一開始就按的那份（[callBonus]），
+         * 慢慢想不會比趕快按吃虧。tools/balance.py 的 PREP_FRAMES 也假設第一波拿滿額。
+         */
         private const val PREP_FRAMES = 240
     }
 
@@ -31,6 +36,7 @@ class EnemyManager(private val gameMap: GameMap) {
     val currentWaveNumber: Int
         get() = if (endless) waveIndex + 1 else (waveIndex + 1).coerceAtMost(level.waves.size)
     val totalWaves: Int get() = level.waves.size
+    /** 第一波之前，等玩家按「開始」。 */
     val isPreparing: Boolean get() = phase == PHASE_PREPARING
     val isResting: Boolean get() = phase == PHASE_RESTING
     val countdownSeconds: Int get() = (restTimer / 60) + 1
@@ -61,7 +67,7 @@ class EnemyManager(private val gameMap: GameMap) {
         return phase == PHASE_PREPARING || phase == PHASE_RESTING
     }
 
-    /** 玩家主動催下一波，換取獎勵金。 */
+    /** 玩家主動催下一波，換取獎勵金。準備階段裡就是「開始」。 */
     fun callNextWave() {
         if (!canCallNextWave()) return
         val bonus = callBonus
@@ -100,10 +106,8 @@ class EnemyManager(private val gameMap: GameMap) {
         if (GameState.status != GameStatus.PLAYING) return
 
         when (phase) {
-            PHASE_PREPARING -> {
-                restTimer--
-                if (restTimer <= 0) beginWave(0)
-            }
+            // 等玩家按「開始」，不倒數
+            PHASE_PREPARING -> Unit
             PHASE_SPAWNING -> updateSpawning()
             PHASE_RESTING -> {
                 if (enemies.none { it.isAlive }) {
@@ -221,7 +225,8 @@ class EnemyManager(private val gameMap: GameMap) {
         groupIndex = snapshot.groupIndex.coerceAtLeast(0)
         spawnedInGroup = snapshot.spawnedInGroup.coerceAtLeast(0)
         spawnTimer = snapshot.spawnTimer.coerceAtLeast(0)
-        restTimer = snapshot.restTimer.coerceAtLeast(0)
+        // 舊版的準備階段會倒數，存檔裡可能是倒數到一半；現在一律等玩家按開始、給滿額獎勵
+        restTimer = if (phase == PHASE_PREPARING) PREP_FRAMES else snapshot.restTimer.coerceAtLeast(0)
         for (enemySnapshot in snapshot.enemies) {
             val kind = EnemyKind.fromName(enemySnapshot.kind)
             val enemy = Enemy(gameMap, kind, enemySnapshot.maxHp, enemySnapshot.baseSpeed, enemySnapshot.goldReward)

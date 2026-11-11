@@ -129,6 +129,24 @@ class SimTest {
         assertEquals(1, GameState.freezeUses)
     }
 
+    /** 第一波等玩家按「開始」：不按就永遠不出發；按了給滿額獎勵金，不管等了多久。 */
+    @Test
+    fun theFirstWaveWaitsForStart() {
+        for (name in listOf("normal-20", "hard-20", "endless")) {
+            val sim = Sim(Target.parse(name))
+            val gold = GameState.gold
+            repeat(60 * 60) { sim.step() }
+            assertTrue("$name started on its own", sim.enemyManager.isPreparing)
+            assertTrue("$name has enemies before start", sim.enemyManager.enemies.isEmpty())
+            assertEquals(gold, GameState.gold)
+            assertTrue(sim.callNextWave())
+            assertEquals("$name start bonus", gold + 56, GameState.gold)
+            assertTrue(!sim.enemyManager.isPreparing)
+            repeat(120) { sim.step() }
+            assertTrue("$name spawned nothing after start", sim.enemyManager.enemies.isNotEmpty())
+        }
+    }
+
     @Test
     fun layoutTargetsParse() {
         val fixed = Target.parse("endless@player")

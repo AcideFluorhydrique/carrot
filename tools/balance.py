@@ -47,7 +47,7 @@ from pathlib import Path
 FPS = 60
 MAX_LEVEL = 3
 POISON_TICK_FRAMES = 18
-PREP_FRAMES = 240
+PREP_FRAMES = 240   # EnemyManager.PREP_FRAMES：第一波等玩家按開始，獎勵金固定照這個算
 
 SRC = Path(__file__).resolve().parent.parent / "app/src/main/java/io/github/acidefluorhydrique/carrot"
 
