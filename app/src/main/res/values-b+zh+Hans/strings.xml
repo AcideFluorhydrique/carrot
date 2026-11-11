@@ -68,6 +68,8 @@
     <string name="hud_score">分数 %1$d</string>
     <string name="hud_call_wave">催下一波</string>
     <string name="hud_call_wave_bonus">+%1$d 🪙 · %2$d 秒</string>
+    <string name="hud_start_wave">开始</string>
+    <string name="hud_start_wave_bonus">+%1$d 🪙</string>
     <string name="hud_incoming">进攻中</string>
     <string name="hud_remaining">剩 %1$d</string>
     <string name="hud_boss">%1$s %2$s  %3$d</string>

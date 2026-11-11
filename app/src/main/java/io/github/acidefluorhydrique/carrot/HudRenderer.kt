@@ -168,12 +168,16 @@ class HudRenderer {
                 Widgets.left(canvas, "BOSS", chipX + Ui.dp(2f), chipY, Ui.dp(9f), Colors.of("#FF9A9A"), bold = true)
             }
 
+            // 第一波之前沒有倒數，按鈕就是「開始」
+            val label = if (enemyManager.isPreparing) R.string.hud_start_wave else R.string.hud_call_wave
+            val sub = if (enemyManager.isPreparing) {
+                Strings.format(R.string.hud_start_wave_bonus, enemyManager.callBonus)
+            } else {
+                Strings.format(R.string.hud_call_wave_bonus, enemyManager.callBonus, enemyManager.countdownSeconds)
+            }
             Widgets.button(
-                canvas, rect, Strings.get(R.string.hud_call_wave), Widgets.AMBER_TOP, Widgets.AMBER_BOTTOM,
-                textSize = Ui.dp(12f),
-                subLabel = Strings.format(
-                    R.string.hud_call_wave_bonus, enemyManager.callBonus, enemyManager.countdownSeconds
-                )
+                canvas, rect, Strings.get(label), Widgets.AMBER_TOP, Widgets.AMBER_BOTTOM,
+                textSize = Ui.dp(12f), subLabel = sub
             )
         } else {
             Widgets.button(

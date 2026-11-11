@@ -252,6 +252,9 @@ class Bot(private val plan: Plan, private val reaction: Int = 1) {
             if (plan.call == CallPolicy.WHEN_CLEAR && sim.enemyManager.enemies.none { it.isAlive } && sim.callNextWave()) {
                 note("call wave ${GameState.wave}")
             }
+
+            // 第一波等玩家按「開始」。上面已經把買得起的都蓋了，現在就開始
+            if (sim.enemyManager.isPreparing && sim.callNextWave()) note("start")
         }
 
         val frameLimit = if (target.endless) Int.MAX_VALUE else MAX_LEVEL_FRAMES
