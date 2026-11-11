@@ -1,0 +1,4 @@
+Take your time before the first wave.
+
+* Levels no longer start on a 4 second countdown. The first wave waits until you press Start, so you can read the path and place your towers first.
+* Starting still pays the full early-call bonus, however long you wait. Later waves work as before.
