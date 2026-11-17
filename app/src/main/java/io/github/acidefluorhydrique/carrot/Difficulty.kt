@@ -23,6 +23,8 @@ import kotlin.math.roundToInt
  * 每波的長度大致不變，敵人變得更密。首領不放大數量 —— 多一隻首領就是多 5 點漏怪傷，
  * 那是另一種難度，不是這裡要的。
  *
+ * 少數關卡的首領尖峰被逐波成長推得太高，用 [LevelConfig.hardBossHp] 個別打折，只影響困難模式。
+ *
  * 擊殺金幣刻意不動：tools/balance.py 顯示降低金幣會先讓 4-4、5-2 打不過，
  * 卻還沒讓第一章變難，因為各章的餘裕差了好幾倍，全域倍率只能顧到一端。
  *
@@ -55,14 +57,14 @@ enum class Difficulty(
             waves = base.waves.mapIndexed { index, wave ->
                 val hpFactor = hpGrowth.pow(index)
                 val countFactor = countGrowth.pow(index)
-                wave.copy(groups = wave.groups.map { scale(it, hpFactor, countFactor) })
+                wave.copy(groups = wave.groups.map { scale(it, hpFactor, countFactor, base.hardBossHp) })
             }
         )
     }
 
-    private fun scale(group: WaveGroup, hpFactor: Float, countFactor: Float): WaveGroup {
+    private fun scale(group: WaveGroup, hpFactor: Float, countFactor: Float, bossFactor: Float): WaveGroup {
+        if (group.kind.isBoss) return group.copy(hp = (group.hp * hpFactor * bossFactor).roundToInt().coerceAtLeast(1))
         val hp = (group.hp * hpFactor).roundToInt().coerceAtLeast(1)
-        if (group.kind.isBoss) return group.copy(hp = hp)
         val count = (group.count * countFactor).roundToInt().coerceAtLeast(1)
         val interval = (group.spawnInterval * group.count / count.toFloat())
             .roundToInt()
