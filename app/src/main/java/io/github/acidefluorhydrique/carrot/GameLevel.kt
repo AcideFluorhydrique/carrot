@@ -49,7 +49,12 @@ data class LevelConfig(
     val obstacles: List<ObstacleSpec>,
     /** 這一關開放使用的防禦塔，還要再和解鎖進度取交集。 */
     val allowedTowers: List<TowerType>,
-    val waves: List<WaveConfig>
+    val waves: List<WaveConfig>,
+    /**
+     * 困難模式裡，首領的血量在 [Difficulty.hpGrowth] 之外再乘這個倍率。普通模式不受影響。
+     * 給首領尖峰被逐波成長推得太高的關卡用，見 5-4。
+     */
+    val hardBossHp: Float = 1f
 ) {
     val chapter: Chapter get() = Chapters.byId(chapterId)
 
@@ -1243,6 +1248,9 @@ object GameLevels {
             indexInChapter = 4,
             // 同 5-2：起始金 +50%、第一波血量 -15%。
             startGold = 424,
+            // 最後一波兩隻首領，困難模式逐波成長到第 9 波已是 ×3.06。原樣的話，連機器人也只打到 2/7（一星），
+            // 塔蓋滿地圖也殺不掉其中一隻（issue #12）。打六折：打得好的玩家拿得到兩星，三星仍然很難。
+            hardBossHp = 0.6f,
             carrotHp = 7,
             path = listOf(
                 0 to 6, 1 to 6, 2 to 6, 2 to 5, 2 to 4, 2 to 3, 2 to 2, 2 to 1,

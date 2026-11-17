@@ -7,6 +7,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /** 規則本身的不變量：關卡資料、無盡波次、難度、核彈。 */
 class RulesTest {
@@ -183,6 +185,26 @@ class RulesTest {
         assertEquals(1f, Nuke.bossFraction(800, 100), 0f)
         assertEquals(0.5f, Nuke.bossFraction(800, Int.MAX_VALUE), 0f)
         assertEquals(0.75f, Nuke.bossFraction(1000, 4000), 1e-6f)
+    }
+
+    /** hardBossHp 只動困難模式的首領：普通模式、小怪、其他關卡都照舊。 */
+    @Test
+    fun hardBossHpOnlyCutsHardBosses() {
+        for (level in GameLevels.all) {
+            val hard = Difficulty.HARD.apply(level)
+            assertEquals(level, Difficulty.NORMAL.apply(level))
+            for ((w, wave) in level.waves.withIndex()) {
+                val growth = Difficulty.HARD.hpGrowth.pow(w)
+                for ((g, group) in wave.groups.withIndex()) {
+                    val factor = if (group.kind.isBoss) level.hardBossHp else 1f
+                    assertEquals(
+                        "level ${level.id} wave $w group $g",
+                        (group.hp * growth * factor).roundToInt(), hard.waves[w].groups[g].hp
+                    )
+                }
+            }
+        }
+        assertEquals("only 5-4 is cut", listOf(20), GameLevels.all.filter { it.hardBossHp != 1f }.map { it.id })
     }
 
     // ---- 漏怪 ----

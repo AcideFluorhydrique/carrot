@@ -214,6 +214,8 @@ def parse_levels():
                     waves.append(groups)
         lv = Level(num("id"), num("chapterId"), num("indexInChapter"),
                    num("startGold"), num("carrotHp"), path_len, obstacles, allowed, waves)
+        bm = re.search(r"\bhardBossHp\s*=\s*([\d.]+)f", b)
+        lv.hard_boss_hp = float(bm.group(1)) if bm else 1.0
         lv.path = [(int(c), int(r)) for c, r in re.findall(r"(\d+)\s+to\s+(\d+)", pm.group(1))] if pm else []
         km = re.search(r"permanent = listOf\((.*?)\)", b, re.S)
         lv.permanent = [(int(c), int(r)) for c, r in re.findall(r"(\d+)\s+to\s+(\d+)", km.group(1))] if km else []
@@ -373,13 +375,14 @@ def harden(level):
     """
     Difficulty.HARD.apply 的 Python 版本：第 w 波（0 起算）的血量乘 HARD_HP_GROWTH^w，
     數量乘 HARD_COUNT_GROWTH^w，生成間隔同比縮短；首領不放大數量，金幣不動。
+    首領的血量再乘這一關的 hardBossHp（LevelConfig.hardBossHp）。
     """
     lv = copy.deepcopy(level)
     for w, groups in enumerate(lv.waves):
         fh = HARD_HP_GROWTH ** w
         fc = HARD_COUNT_GROWTH ** w
         for g in groups:
-            g.raw_hp = max(1, kround(g.raw_hp * fh))
+            g.raw_hp = max(1, kround(g.raw_hp * fh * (lv.hard_boss_hp if g.kind == "BOSS" else 1.0)))
             g.hp = max(1, int(g.raw_hp * KIND_STATS[g.kind][0]))
             if g.kind == "BOSS":
                 continue
