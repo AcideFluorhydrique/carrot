@@ -1,0 +1,4 @@
+Fairer openings, and a kinder final boss on hard.
+
+* Towers now hold fire until you press Start. Before that they could clear obstacles for free, piling up gold before the first wave.
+* Hard 5-4: the two bosses in the last wave have 40% less health. Fully built defences could not kill even one of them before.
