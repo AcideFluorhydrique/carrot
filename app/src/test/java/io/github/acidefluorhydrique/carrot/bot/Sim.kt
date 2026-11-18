@@ -108,7 +108,7 @@ class Sim(target: Target) {
         GameState.tickTimers()
         enemyManager.update()
         obstacleManager.update()
-        towerManager.update(enemyManager.enemies, obstacleManager)
+        if (!enemyManager.isPreparing) towerManager.update(enemyManager.enemies, obstacleManager)
         // 特效只會越積越多，沒有人看就直接丟掉
         Fx.clear()
         frames++

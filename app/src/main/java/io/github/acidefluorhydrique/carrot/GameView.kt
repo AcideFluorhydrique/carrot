@@ -203,7 +203,8 @@ class GameView(context: Context) : SurfaceView(context), SurfaceHolder.Callback 
                 GameState.tickTimers()
                 enemyManager.update()
                 obstacleManager.update()
-                towerManager.update(enemyManager.enemies, obstacleManager)
+                // 按「開始」之前塔不開火。準備階段沒有時限，否則開局前就能無限清障物賺錢（#14）
+                if (!enemyManager.isPreparing) towerManager.update(enemyManager.enemies, obstacleManager)
                 Fx.update()
                 if (GameState.status != GameStatus.PLAYING) break
             }

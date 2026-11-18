@@ -147,6 +147,23 @@ class SimTest {
         }
     }
 
+    /** 按「開始」之前塔不開火，標記了障礙物也一樣：開局前不能免費清障賺錢（#14）。 */
+    @Test
+    fun towersHoldFireUntilStart() {
+        val sim = Sim(Target.parse("normal-1"))
+        assertTrue(sim.build(8, 3, TowerType.ARROW, TargetMode.FIRST) != null)
+        sim.mark(8, 2)
+        val rock = sim.obstacleManager.aliveAt(8, 2)!!
+        val gold = GameState.gold
+        repeat(60 * 60) { sim.step() }
+        assertTrue(sim.enemyManager.isPreparing)
+        assertEquals(rock.maxHp, rock.hp)
+        assertEquals(gold, GameState.gold)
+        sim.callNextWave()
+        repeat(60 * 30) { sim.step() }
+        assertTrue("the tower never fired after Start", rock.hp < rock.maxHp || !rock.isAlive || GameState.kills > 0)
+    }
+
     @Test
     fun layoutTargetsParse() {
         val fixed = Target.parse("endless@player")
