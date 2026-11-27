@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-FileCopyrightText: 2026 AcideFluorhydrique
+    SPDX-License-Identifier: GPL-3.0-or-later
+    translated By @marco-acorte (https://github.com/marco-acorte)
+-->
+<resources>
+
+    <!-- App -->
+    <string name="app_name">The Last Carrot</string>
+
+    <!-- Menu principale -->
+    <string name="menu_title">The Last Carrot</string>
+    <string name="menu_tagline">Costruisci, potenzia e difendi la linea</string>
+    <string name="menu_continue">Continua</string>
+    <string name="menu_start">Gioca</string>
+    <string name="menu_levels">Livelli</string>
+    <string name="menu_help">Come giocare</string>
+    <string name="menu_settings">Impostazioni</string>
+    <string name="menu_progress">Completati %1$d/%2$d   ★ %3$d/%4$d</string>
+    <string name="menu_current_level">Livello: %1$s</string>
+
+    <!-- Difficoltà -->
+    <string name="difficulty_title">Difficoltà</string>
+    <string name="difficulty_normal">Normale</string>
+    <string name="difficulty_hard">Difficile</string>
+    <string name="level_with_difficulty">%1$s · %2$s</string>
+
+    <!-- Modalità infinita -->
+    <string name="endless_title">Infinita</string>
+    <string name="menu_endless_locked">Completa %1$d-%2$d</string>
+    <string name="menu_endless_best">Record: ondata %1$d</string>
+    <string name="hud_wave_endless">Ondata %1$d</string>
+    <string name="nuke_label">☢️ Bomba atomica</string>
+    <string name="nuke_cooldown">%1$ds</string>
+    <string name="freeze_label">❄️ Congela</string>
+    <string name="result_endless_reached">Raggiunta l\'ondata %1$d</string>
+
+    <!-- Selezione livello -->
+    <string name="common_back">Indietro</string>
+
+    <!-- Impostazioni -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_sound">Effetti sonori</string>
+    <string name="settings_music">Musica</string>
+    <string name="settings_damage_numbers">Numeri dei danni</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_language_system">Predefinita del sistema</string>
+    <string name="settings_on">Attivo</string>
+    <string name="settings_off">Disattivo</string>
+    <string name="settings_reset">Azzera progressi</string>
+    <string name="settings_reset_confirm">Tocca di nuovo per confermare</string>
+    <string name="settings_reset_warning">Tutte le stelle verranno cancellate</string>
+
+    <!-- Come giocare -->
+    <string name="help_title">Come giocare</string>
+    <string name="help_towers">Torri</string>
+    <string name="help_enemies">Nemici</string>
+    <string name="help_tower_line">%1$s %2$s (%3$d🪙) %4$s</string>
+    <string name="help_enemy_line">%1$s %2$s: %3$s</string>
+    <string name="help_tower_note_1">Le torri possono arrivare al livello 3. Vendendole recuperi il 65% di quanto hai speso.</string>
+    <string name="help_tower_note_2">Seleziona una torre per cambiare bersaglio: primo, più forte o più vicino.</string>
+    <string name="help_enemy_note_1">Il veleno ignora l\'armatura. Il ghiaccio rallenta anche le unità corazzate.</string>
+    <string name="help_enemy_note_2">Anticipa le ondate per ottenere oro bonus. La velocità (1x/2x/3x) è in alto a destra.</string>
+
+    <!-- HUD di gioco -->
+    <string name="hud_wave">Ondata %1$d/%2$d</string>
+    <string name="hud_wave_remaining">%1$s · ne restano %2$d</string>
+    <string name="hud_score">Punteggio %1$d</string>
+    <string name="hud_call_wave">Anticipa ondata</string>
+    <string name="hud_call_wave_bonus">+%1$d 🪙 · %2$ds</string>
+    <string name="hud_start_wave">Inizia</string>
+    <string name="hud_start_wave_bonus">+%1$d 🪙</string>
+    <string name="hud_incoming">In arrivo</string>
+    <string name="hud_remaining">Ne restano %1$d</string>
+    <string name="hud_boss">%1$s %2$s  %3$d</string>
+
+    <!-- Pausa -->
+    <string name="pause_title">In pausa</string>
+    <string name="pause_summary">%1$s · Ondata %2$d · Punteggio %3$d</string>
+    <string name="pause_resume">Riprendi</string>
+    <string name="pause_restart">Ricomincia</string>
+    <string name="pause_settings">Impostazioni</string>
+    <string name="pause_save_exit">Salva ed esci</string>
+
+    <!-- Risultato -->
+    <string name="result_victory">Carota salvata!</string>
+    <string name="result_defeat">La carota è stata mangiata</string>
+    <string name="result_new_record">Nuovo record!</string>
+    <string name="result_best">Migliore %1$d ★</string>
+    <string name="result_survived">Resistito fino all\'ondata %1$d/%2$d</string>
+    <string name="result_stats">Uccisioni %1$d   Oro %2$d🪙   Fuggiti %3$d   Punteggio %4$d</string>
+    <string name="result_next_level">Livello successivo</string>
+    <string name="result_replay">Gioca ancora</string>
+    <string name="result_menu">Menu principale</string>
+
+    <!-- Pannello torre -->
+    <string name="tower_panel_header">%1$s %2$s Lv.%3$d</string>
+    <string name="tower_panel_stats">DAN %1$d · DPS %2$d · Portata %3$s caselle</string>
+    <string name="tower_stat_rate">%1$s colpi/s</string>
+    <string name="tower_stat_slow">Rallenta %1$d%% · %2$ds</string>
+    <string name="tower_stat_splash">Raggio dell\'esplosione %1$s caselle</string>
+    <string name="tower_stat_poison">Veleno %1$d/scatto · ignora l\'armatura</string>
+    <string name="tower_stat_chain">Rimbalza su %1$d bersagli</string>
+    <string name="tower_max_level">MAX</string>
+    <string name="tower_upgrade">Potenzia</string>
+    <string name="tower_price">%1$d🪙</string>
+    <string name="tower_sell">Vendi</string>
+    <string name="tower_refund">+%1$d🪙</string>
+    <string name="tower_target">Bersaglio</string>
+
+    <!-- Messaggi -->
+    <string name="toast_cannot_build">Non puoi costruire qui</string>
+    <string name="toast_no_gold">Oro insufficiente</string>
+    <string name="toast_level_up">Lv.%1$d</string>
+
+    <!-- Mappa -->
+    <string name="map_start">VAI</string>
+
+    <!-- Torri -->
+    <string name="tower_arrow">Freccia</string>
+    <string name="tower_arrow_tag">Rapida contro un singolo bersaglio</string>
+    <string name="tower_ice">Ghiaccio</string>
+    <string name="tower_ice_tag">Rallenta i nemici</string>
+    <string name="tower_bomb">Bomba</string>
+    <string name="tower_bomb_tag">Danni ad area</string>
+    <string name="tower_poison">Veleno</string>
+    <string name="tower_poison_tag">Danni nel tempo, ignora l\'armatura</string>
+    <string name="tower_tesla">Tesla</string>
+    <string name="tower_tesla_tag">Fulmine a catena</string>
+
+    <!-- Modalità di puntamento -->
+    <string name="target_first">Primo</string>
+    <string name="target_strongest">Più forte</string>
+    <string name="target_nearest">Più vicino</string>
+
+    <!-- Nemici -->
+    <string name="enemy_grunt">Ladro</string>
+    <string name="enemy_grunt_note">Unità standard</string>
+    <string name="enemy_runner">Velocista</string>
+    <string name="enemy_runner_note">Fragile ma velocissimo</string>
+    <string name="enemy_swarm">Sciame</string>
+    <string name="enemy_swarm_note">Arriva in gran numero</string>
+    <string name="enemy_tank">Corazzato</string>
+    <string name="enemy_tank_note">Armatura %1$d, costa %2$d PS alla carota</string>
+    <string name="enemy_boss">Supremo</string>
+    <string name="enemy_boss_note">Armatura %1$d, costa fino a %2$d PS alla carota, meno quando è ferito</string>
+
+    <!-- Capitoli -->
+    <string name="chapters_title">Seleziona capitolo</string>
+    <string name="chapter_number">Capitolo %1$d</string>
+    <string name="chapter_stars">%1$d/%2$d ★</string>
+    <string name="chapter_locked">Completa il capitolo precedente</string>
+    <string name="chapter_1_name">Orto</string>
+    <string name="chapter_1_desc">Costruisci, potenzia e impara a congelare</string>
+    <string name="chapter_2_name">Campi dorati</string>
+    <string name="chapter_2_desc">Arrivano gli sciami, e anche le bombe</string>
+    <string name="chapter_3_name">Boschi notturni</string>
+    <string name="chapter_3_desc">Arrivano le armature; il veleno le ignora</string>
+    <string name="chapter_4_name">Pianure gelate</string>
+    <string name="chapter_4_desc">Velocisti e sciami: ci pensa il fulmine a catena</string>
+    <string name="chapter_5_name">Cratere ardente</string>
+    <string name="chapter_5_desc">Tutto quello che hai imparato, in una volta</string>
+    <string name="level_number">Livello %1$d</string>
+    <string name="level_full_name">%1$s %2$d-%3$d</string>
+    <string name="tower_locked">Si sblocca a %1$d-%2$d</string>
+
+    <!-- Torri e ostacoli aggiunti nella v2 -->
+    <string name="tower_moon">Luna</string>
+    <string name="tower_moon_tag">Rallenta dolcemente ampi gruppi</string>
+    <string name="tower_rocket">Razzo</string>
+    <string name="tower_rocket_tag">Trafigge tutto in linea retta</string>
+    <string name="tower_sun">Sole</string>
+    <string name="tower_sun_tag">Danneggia a impulsi tutto ciò che lo circonda</string>
+    <string name="tower_stat_pulse">Raggio dell\'impulso %1$s caselle</string>
+    <string name="tower_stat_aura">Rallenta del %1$d%% entro %2$s caselle</string>
+    <string name="tower_stat_pierce">Trafigge per %1$s caselle</string>
+    <string name="obstacle_mushroom">Fungo</string>
+    <string name="obstacle_rock">Roccia</string>
+    <string name="obstacle_tree">Albero</string>
+    <string name="obstacle_ice">Blocco di ghiaccio</string>
+    <string name="obstacle_toxic">Fungo tossico</string>
+    <string name="obstacle_crate">Cassa</string>
+    <string name="help_obstacles">Ostacoli</string>
+    <string name="help_obstacle_note_1">Tocca gli ostacoli per evidenziarli; puoi selezionarne diversi. Le torri li attaccano solo quando non ci sono nemici a portata, nell\'ordine in cui li hai selezionati.</string>
+    <string name="help_obstacle_note_2">Distruggerne uno dà oro e libera la casella. Le casse danno più oro.</string>
+    <string name="help_obstacle_note_3">Sole, Luna e Razzo danneggiano gli ostacoli da soli, senza selezionarli.</string>
+    <string name="help_loadout">Ogni livello offre solo alcune torri. Sfrutta quelle a disposizione.</string>
+
+</resources>
