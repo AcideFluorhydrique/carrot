@@ -22,8 +22,9 @@ object LocaleManager {
     const val ENGLISH = "en"
     const val CHINESE_TRADITIONAL = "zh-Hant"
     const val CHINESE_SIMPLIFIED = "zh-Hans"
+    const val ITALIAN = "it"
 
-    val options = listOf(SYSTEM, ENGLISH, CHINESE_TRADITIONAL, CHINESE_SIMPLIFIED)
+    val options = listOf(SYSTEM, ENGLISH, CHINESE_TRADITIONAL, CHINESE_SIMPLIFIED, ITALIAN)
 
     private const val PREFS = "carrot_save"
     private const val KEY_LANGUAGE = "language_tag"
@@ -47,6 +48,7 @@ object LocaleManager {
         ENGLISH -> "English"
         CHINESE_TRADITIONAL -> "正體中文"
         CHINESE_SIMPLIFIED -> "简体中文"
+        ITALIAN -> "Italiano"
         else -> Strings.get(R.string.settings_language_system)
     }
 
