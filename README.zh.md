@@ -5,6 +5,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # 最後一根蘿蔔
 
+[🇬🇧English](./README.md)  |  [🇹🇼中文](./README.zh.md)
+
 <p>
   <a href="https://f-droid.org/en/packages/io.github.acidefluorhydrique.carrot/">
     <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="在 F-Droid 上取得" height="70" />
@@ -23,7 +25,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 一款小巧、完全自足的路線型塔防遊戲。饞嘴的傢伙沿著菜園小徑前進，而田裡只剩最後一根蘿蔔。
 放塔、升級，守住這條防線。
 
-*[English README](README.md)*
 
 **不索取任何權限，沒有廣告、沒有追蹤器、不連網、不夾帶任何素材檔。**
 
@@ -116,7 +117,8 @@ APK 會產生在 `app/build/outputs/apk/debug/app-debug.apk`。如果你本機�
 
 ## 翻譯
 
-介面內建英文、正體中文與簡體中文，可在遊戲內切換，與系統語言無關。
+介面內建英文、正體中文、簡體中文與義大利文，可在遊戲內切換，與系統語言無關。
+義大利文由 [@marco-acorte](https://github.com/marco-acorte) 協助翻譯。
 
 要新增語言，把 `app/src/main/res/values/strings.xml` 複製到帶語系限定詞的新目錄再翻譯即可。
 中文使用書寫系統限定詞，這樣香港與澳門才會正確回退：
@@ -125,11 +127,20 @@ APK 會產生在 `app/build/outputs/apk/debug/app-debug.apk`。如果你本機�
 app/src/main/res/values/               英文（預設）
 app/src/main/res/values-b+zh+Hant/     正體中文
 app/src/main/res/values-b+zh+Hans/     簡體中文
+app/src/main/res/values-it/            義大利文
 ```
 
 有兩件事一定要顧到：**所有語系的字串鍵必須完全一致**，以及**位置式格式參數
 （`%1$d`、`%2$s` …）必須對得上** —— 翻譯漏掉或改了編號會在執行時直接崩潰。
 最後把你的語系加進 `LocaleManager.options`，它才會出現在遊戲內的語言選單裡。
+
+## 貢獻者
+
+GitHub 會自動統計程式碼貢獻者。[查看貢獻者圖表](https://github.com/AcideFluorhydrique/carrot/graphs/contributors)。
+
+[![貢獻者](https://contrib.rocks/image?repo=AcideFluorhydrique/carrot)](https://github.com/AcideFluorhydrique/carrot/graphs/contributors)
+
+頭像牆由 [contrib.rocks](https://contrib.rocks) 提供。
 
 ## 授權
 
@@ -139,3 +150,13 @@ GPL-3.0-or-later，詳見 [LICENSE](LICENSE)。原始碼檔案都帶有 SPDX 標
 
 這是一款原創遊戲。它從啟發它的路線型塔防類型借用的只有類型本身，
 與任何商業作品沒有關聯、未經其背書，也不是從中衍生而來。
+
+
+## Star 历史
+
+<a href="https://star-history.com/#AcideFluorhydrique/carrot&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=AcideFluorhydrique/carrot&type=Date&theme=dark" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=AcideFluorhydrique/carrot&type=Date" />
+  </picture>
+</a>

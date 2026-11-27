@@ -5,6 +5,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # The Last Carrot
 
+[🇬🇧English](./README.md)  |  [🇹🇼中文](./README.zh.md)
+
 <p>
   <a href="https://f-droid.org/en/packages/io.github.acidefluorhydrique.carrot/">
     <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="70" />
@@ -23,7 +25,6 @@ SPDX-License-Identifier: GPL-3.0-or-later
 A small, self-contained lane tower defence game for Android. Hungry critters march down the
 garden path and there is one carrot left. Build towers, upgrade them, hold the line.
 
-*[中文說明](README.zh.md)*
 
 **No permissions. No ads. No trackers. No network access. No bundled assets.**
 
@@ -123,8 +124,9 @@ for connectivity, self-intersection and buildable space, then emits Kotlin. Hand
 
 ## Translating
 
-The interface ships in English, Traditional Chinese and Simplified Chinese, switchable in-game and
-independent of the system language.
+The interface ships in English, Traditional Chinese, Simplified Chinese and Italian, switchable
+in-game and independent of the system language. The Italian translation was contributed by
+[@marco-acorte](https://github.com/marco-acorte).
 
 To add a language, copy `app/src/main/res/values/strings.xml` into a new qualified directory and
 translate the values. Script-based qualifiers are used for Chinese so that Hong Kong and Macau fall
@@ -134,12 +136,21 @@ back correctly:
 app/src/main/res/values/               English (default)
 app/src/main/res/values-b+zh+Hant/     Traditional Chinese
 app/src/main/res/values-b+zh+Hans/     Simplified Chinese
+app/src/main/res/values-it/            Italian
 ```
 
 Two rules matter: keep the string keys identical across every locale, and keep the positional
 format arguments (`%1$d`, `%2$s`, …) consistent — a translation that drops or renumbers one will
 crash at runtime. Then add your locale to `LocaleManager.options` so it appears in the in-game
 picker.
+
+## Contributors
+
+Code contributors are tracked automatically. [View the contributors graph](https://github.com/AcideFluorhydrique/carrot/graphs/contributors).
+
+[![Contributors](https://contrib.rocks/image?repo=AcideFluorhydrique/carrot)](https://github.com/AcideFluorhydrique/carrot/graphs/contributors)
+
+Avatar wall by [contrib.rocks](https://contrib.rocks).
 
 ## Licence
 
@@ -149,3 +160,13 @@ GPL-3.0-or-later. See [LICENSE](LICENSE). Source files carry SPDX headers.
 
 This is an original game. It borrows nothing but the genre from the lane tower defence games that
 inspired it, and is not connected to, endorsed by, or derived from any commercial title.
+
+
+## Star History
+
+<a href="https://star-history.com/#AcideFluorhydrique/carrot&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=AcideFluorhydrique/carrot&type=Date&theme=dark" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=AcideFluorhydrique/carrot&type=Date" />
+  </picture>
+</a>
