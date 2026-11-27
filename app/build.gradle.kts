@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.acidefluorhydrique.carrot"
         minSdk = 26
         targetSdk = 34
-        versionCode = 11
-        versionName = "1.2.6"
+        versionCode = 12
+        versionName = "1.2.7"
     }
 
     signingConfigs {
