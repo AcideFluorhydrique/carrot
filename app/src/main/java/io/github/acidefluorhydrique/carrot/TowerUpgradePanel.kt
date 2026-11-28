@@ -109,7 +109,14 @@ class TowerUpgradePanel {
         TowerType.BOMB -> Strings.format(
             R.string.tower_stat_splash, cells(tower.splashCells)
         )
-        TowerType.POISON -> Strings.format(R.string.tower_stat_poison, tower.poisonDamage)
+        TowerType.POISON -> Strings.format(
+            R.string.tower_stat_poison,
+            String.format(
+                Locale.US, "%.1f",
+                tower.poisonDamage * 60f / Enemy.POISON_TICK_FRAMES
+            ),
+            String.format(Locale.US, "%.1f", tower.poisonDuration / 60f)
+        )
         TowerType.LIGHT -> Strings.format(R.string.tower_stat_chain, tower.chainTargets)
         TowerType.SUN -> Strings.format(R.string.tower_stat_pulse, cells(tower.rangeCells))
         TowerType.MOON -> Strings.format(

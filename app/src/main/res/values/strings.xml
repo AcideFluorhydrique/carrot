@@ -99,7 +99,7 @@
     <string name="tower_stat_rate">%1$s shots/sec</string>
     <string name="tower_stat_slow">Slow %1$d%% · %2$ds</string>
     <string name="tower_stat_splash">Blast radius %1$s tiles</string>
-    <string name="tower_stat_poison">Poison %1$d/tick · ignores armour</string>
+    <string name="tower_stat_poison">Poison %1$s/s · %2$ss · ignores armour</string>
     <string name="tower_stat_chain">Chains to %1$d targets</string>
     <string name="tower_max_level">MAX</string>
     <string name="tower_upgrade">Upgrade</string>

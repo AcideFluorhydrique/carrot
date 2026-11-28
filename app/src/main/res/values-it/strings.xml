@@ -100,7 +100,7 @@
     <string name="tower_stat_rate">%1$s colpi/s</string>
     <string name="tower_stat_slow">Rallenta %1$d%% · %2$ds</string>
     <string name="tower_stat_splash">Raggio dell\'esplosione %1$s caselle</string>
-    <string name="tower_stat_poison">Veleno %1$d/scatto · ignora l\'armatura</string>
+    <string name="tower_stat_poison">Veleno %1$s/s · %2$s s · ignora l\'armatura</string>
     <string name="tower_stat_chain">Rimbalza su %1$d bersagli</string>
     <string name="tower_max_level">MAX</string>
     <string name="tower_upgrade">Potenzia</string>

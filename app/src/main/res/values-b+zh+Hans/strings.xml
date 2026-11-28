@@ -99,7 +99,7 @@
     <string name="tower_stat_rate">攻速 %1$s 次/秒</string>
     <string name="tower_stat_slow">减速 %1$d%% · %2$d 秒</string>
     <string name="tower_stat_splash">爆炸范围 %1$s 格</string>
-    <string name="tower_stat_poison">毒伤 %1$d/跳 · 无视护甲</string>
+    <string name="tower_stat_poison">毒伤 %1$s/秒 · 持续 %2$s 秒 · 无视护甲</string>
     <string name="tower_stat_chain">连锁 %1$d 个目标</string>
     <string name="tower_max_level">已满级</string>
     <string name="tower_upgrade">升级</string>
